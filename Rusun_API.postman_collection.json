@@ -1,0 +1,260 @@
+{
+  "info": {
+    "name": "Rusun API Collection",
+    "_postman_id": "rusun-api-collection",
+    "description": "Complete API collection for Rusun (Rumah Susun) endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Public Endpoints",
+      "item": [
+        {
+          "name": "Get All Rusun",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rusun?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rusun"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "province_id",
+                  "value": "12",
+                  "disabled": true,
+                  "description": "Filter by province"
+                },
+                {
+                  "key": "regency_id",
+                  "value": "1275",
+                  "disabled": true,
+                  "description": "Filter by regency"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true,
+                  "description": "Filter by status"
+                },
+                {
+                  "key": "search",
+                  "value": "medan",
+                  "disabled": true,
+                  "description": "Search term"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rusun by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rusun/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rusun", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rusun by Province",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rusun/province/12",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rusun", "province", "12"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rusun Map Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rusun/map?province_id=12",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rusun", "map"],
+              "query": [
+                {
+                  "key": "province_id",
+                  "value": "12",
+                  "description": "Filter by province (optional)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rusun/statistics?province_id=12",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rusun", "statistics"],
+              "query": [
+                {
+                  "key": "province_id",
+                  "value": "12",
+                  "description": "Filter by province (optional)"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin Endpoints",
+      "item": [
+        {
+          "name": "Create Rusun",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rusun Test\",\n  \"address\": \"Jl. Test No. 123, Medan\",\n  \"province_id\": 12,\n  \"regency_id\": 1275,\n  \"latitude\": 3.5952,\n  \"longitude\": 98.6722,\n  \"unit_count\": 100,\n  \"tower_count\": 2,\n  \"floor_count\": 5,\n  \"type\": \"Type 36\",\n  \"build_year\": 2023,\n  \"handover_year\": 2024,\n  \"occupied_units\": 50,\n  \"contractor\": \"PT. Test Konstruksi\",\n  \"status\": \"active\",\n  \"description\": \"Rusun test untuk development\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/rusun",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "rusun"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Rusun",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rusun Test Updated\",\n  \"address\": \"Jl. Test No. 123, Medan (Updated)\",\n  \"province_id\": 12,\n  \"regency_id\": 1275,\n  \"latitude\": 3.5952,\n  \"longitude\": 98.6722,\n  \"unit_count\": 100,\n  \"tower_count\": 2,\n  \"floor_count\": 5,\n  \"type\": \"Type 36\",\n  \"build_year\": 2023,\n  \"handover_year\": 2024,\n  \"occupied_units\": 75,\n  \"contractor\": \"PT. Test Konstruksi\",\n  \"status\": \"active\",\n  \"description\": \"Rusun test updated\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/rusun/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "rusun", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Rusun",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/rusun/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "rusun", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.token) {",
+                  "        pm.environment.set('admin_token', jsonData.data.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"your_password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/admin/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "admin", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

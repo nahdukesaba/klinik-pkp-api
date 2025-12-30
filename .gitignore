@@ -4,8 +4,8 @@
 *.dll
 *.so
 *.dylib
-klinik-api
-klinik-api.exe
+klinik-pkp-api
+klinik-pkp-api.exe
 
 # Environment files
 .env

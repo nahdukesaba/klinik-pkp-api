@@ -1,27 +1,26 @@
 package models
 
 import (
-	"time"
-
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"time"
 )
 
 // User represents user account in the system
 type User struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Name      string         `gorm:"size:255;not null" json:"name"`
-	Email     string         `gorm:"size:255;uniqueIndex;not null" json:"email"`
-	Password  string         `gorm:"size:255;not null" json:"-"` // Hide from JSON
-	Phone     string         `gorm:"size:20;uniqueIndex" json:"phone,omitempty"` // Unique phone
-	Role      string         `gorm:"type:varchar(50);not null" json:"role"`
-	IsActive  bool           `gorm:"default:true" json:"is_active"`
-	
-	// Audit fields
-	CreatedBy *uint          `gorm:"index" json:"created_by,omitempty"`
-	UpdatedBy *uint          `gorm:"index" json:"updated_by,omitempty"`
-	DeletedBy *uint          `gorm:"index" json:"deleted_by,omitempty"`
-	
+	ID       uuid.UUID `gorm:"primaryKey;autoIncrement:false" json:"id"`
+	Name     string    `gorm:"size:255;not null" json:"name"`
+	Email    string    `gorm:"size:255;uniqueIndex;not null" json:"email"`
+	Password string    `gorm:"size:255;not null" json:"-"`                 // HIDE FROM JSON
+	Phone    string    `gorm:"size:20;uniqueIndex" json:"phone,omitempty"` // UNIQUE
+	Role     string    `gorm:"type:varchar(50);not null" json:"role"`
+	IsActive bool      `gorm:"default:true" json:"is_active"`
+
+	CreatedBy *uint `gorm:"index" json:"created_by,omitempty"`
+	UpdatedBy *uint `gorm:"index" json:"updated_by,omitempty"`
+	DeletedBy *uint `gorm:"index" json:"deleted_by,omitempty"`
+
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`

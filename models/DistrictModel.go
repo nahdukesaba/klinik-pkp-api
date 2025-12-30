@@ -1,23 +1,23 @@
 package models
 
 import (
-	"time"
-
 	"gorm.io/gorm"
+	"time"
 )
 
-// District represents Kecamatan
 type District struct {
-	ID         uint           `gorm:"primaryKey" json:"id"`
-	RegencyID  uint           `gorm:"not null;index" json:"regency_id"`
-	Regency    Regency        `gorm:"foreignKey:RegencyID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT" json:"regency,omitempty"`
-	Name       string         `gorm:"type:varchar(255);not null;index" json:"name"`
-	Code       string         `gorm:"type:varchar(20);uniqueIndex" json:"code"`
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
-	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
+	ID       string `gorm:"primaryKey;autoIncrement:false" json:"id"`
+	RegionID string `gorm:"column:region_id" json:"region_id"`
+	Name     string `gorm:"column:name" json:"name"`
+
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+
+	// RELATIONSHIPS
+	Region *Region `gorm:"foreignKey:RegionID" json:"region,omitempty"`
 }
 
 func (District) TableName() string {
-	return "districts"
+	return "district"
 }

@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"klinik-api/service"
-	"klinik-api/utils"
+	"klinik-pkp-api/service"
+	"klinik-pkp-api/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,7 +17,7 @@ func NewUserController(service *service.UserService) *UserController {
 
 // Register handles user registration
 func (c *UserController) Register(ctx *fiber.Ctx) error {
-	var input service.RegisterInput
+	var input service.RegisterPayload
 	if err := ctx.BodyParser(&input); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body: " + err.Error()))
 	}
@@ -32,7 +32,7 @@ func (c *UserController) Register(ctx *fiber.Ctx) error {
 
 // Login handles user authentication
 func (c *UserController) Login(ctx *fiber.Ctx) error {
-	var input service.LoginInput
+	var input service.LoginPayload
 	if err := ctx.BodyParser(&input); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body: " + err.Error()))
 	}
@@ -43,6 +43,17 @@ func (c *UserController) Login(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Login successful", result))
+}
+
+// GetAllUsers returns all users in the database
+func (c *UserController) GetAllUsers(ctx *fiber.Ctx) error {
+	users, err := c.service.GetAll()
+	
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse("Failed to fetch users"))
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Success", users))
 }
 
 // GetProfile returns current user profile

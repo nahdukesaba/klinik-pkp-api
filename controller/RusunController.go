@@ -1,230 +1,98 @@
 package controller
 
 import (
-	"klinik-api/models"
-	"klinik-api/service"
-	"strconv"
-
 	"github.com/gofiber/fiber/v2"
+	"klinik-pkp-api/service"
+	"klinik-pkp-api/utils"
+	"strconv"
 )
 
+// RUSUN CONTROLLER STRUCT
 type RusunController struct {
-	Service *service.RusunService
+	service *service.RusunService
 }
 
+// RUSUN CONTROLLER CONSTRUCTOR
 func NewRusunController(service *service.RusunService) *RusunController {
-	return &RusunController{Service: service}
+	return &RusunController{service: service}
 }
 
-func (c *RusunController) GetAll(ctx *fiber.Ctx) error {
-	page, _ := strconv.Atoi(ctx.Query("page", "1"))
-	limit, _ := strconv.Atoi(ctx.Query("limit", "10"))
-	provinceID, _ := strconv.Atoi(ctx.Query("province_id", "0"))
-	regencyID, _ := strconv.Atoi(ctx.Query("regency_id", "0"))
-	status := ctx.Query("status", "")
-	search := ctx.Query("search", "")
+func (c *RusunController) GetAllRusun(ctx *fiber.Ctx) error {
+	rusun, err := c.service.GetAll()
 
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 || limit > 100 {
-		limit = 10
-	}
-
-	rusun, total, err := c.Service.GetAll(page, limit, uint(provinceID), uint(regencyID), status, search)
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Gagal mengambil data",
-			"error":   err.Error(),
-		})
+		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse("Failed to fetch rusun data"))
 	}
 
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Data berhasil diambil",
-		"data":    rusun,
-		"pagination": fiber.Map{
-			"page":        page,
-			"limit":       limit,
-			"total":       total,
-			"total_pages": totalPages,
-		},
-	})
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Success", rusun))
 }
 
-func (c *RusunController) GetByID(ctx *fiber.Ctx) error {
-	id, err := strconv.ParseUint(ctx.Params("id"), 10, 32)
+func (c *RusunController) GetRusunByID(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
+
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "ID tidak valid",
-		})
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid rusun id"))
 	}
 
-	rusun, err := c.Service.GetByID(uint(id))
+	rusun, err := c.service.GetByID(id)
+
 	if err != nil {
-		status := fiber.StatusInternalServerError
-		if err.Error() == "rusun tidak ditemukan" {
-			status = fiber.StatusNotFound
-		}
-		return ctx.Status(status).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err.Error()))
 	}
 
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Data berhasil diambil",
-		"data":    rusun,
-	})
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Success", rusun))
 }
 
-func (c *RusunController) GetByProvince(ctx *fiber.Ctx) error {
-	provinceID, err := strconv.ParseUint(ctx.Params("province_id"), 10, 32)
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Province ID tidak valid",
-		})
+func (c *RusunController) CreateRusun(ctx *fiber.Ctx) error {
+	var input service.RusunPayload
+
+	if err := ctx.BodyParser(&input); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body"))
 	}
 
-	rusun, err := c.Service.GetByProvince(uint(provinceID))
+	rusun, err := c.service.Create(input)
+
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
 	}
 
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Data berhasil diambil",
-		"data":    rusun,
-	})
+	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessMessageResponse("Rusun created", rusun))
 }
 
-func (c *RusunController) GetMapData(ctx *fiber.Ctx) error {
-	provinceID, _ := strconv.Atoi(ctx.Query("province_id", "0"))
+func (c *RusunController) UpdateRusun(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 
-	mapData, err := c.Service.GetMapData(uint(provinceID))
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Gagal mengambil data peta",
-		})
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid rusun id"))
 	}
 
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Data peta berhasil diambil",
-		"data":    mapData,
-	})
-}
+	var input service.RusunPayload
 
-func (c *RusunController) Create(ctx *fiber.Ctx) error {
-	var rusun models.Rusun
-
-	if err := ctx.BodyParser(&rusun); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Data tidak valid",
-		})
+	if err := ctx.BodyParser(&input); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body"))
 	}
 
-	if err := c.Service.Create(&rusun); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
+	rusun, err := c.service.Update(id, input)
 
-	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success": true,
-		"message": "Data berhasil dibuat",
-		"data":    rusun,
-	})
-}
-
-func (c *RusunController) Update(ctx *fiber.Ctx) error {
-	id, err := strconv.ParseUint(ctx.Params("id"), 10, 32)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "ID tidak valid",
-		})
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
 	}
 
-	var rusun models.Rusun
-	if err := ctx.BodyParser(&rusun); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Data tidak valid",
-		})
-	}
-
-	if err := c.Service.Update(uint(id), &rusun); err != nil {
-		status := fiber.StatusBadRequest
-		if err.Error() == "rusun tidak ditemukan" {
-			status = fiber.StatusNotFound
-		}
-		return ctx.Status(status).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
-
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Data berhasil diupdate",
-		"data":    rusun,
-	})
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Rusun updated", rusun))
 }
 
-func (c *RusunController) Delete(ctx *fiber.Ctx) error {
-	id, err := strconv.ParseUint(ctx.Params("id"), 10, 32)
+func (c *RusunController) DeleteRusun(ctx *fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
+
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "ID tidak valid",
-		})
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid rusun id"))
 	}
 
-	if err := c.Service.Delete(uint(id)); err != nil {
-		status := fiber.StatusInternalServerError
-		if err.Error() == "rusun tidak ditemukan" {
-			status = fiber.StatusNotFound
-		}
-		return ctx.Status(status).JSON(fiber.Map{
-			"success": false,
-			"message": err.Error(),
-		})
-	}
+	err = c.service.Delete(id)
 
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Data berhasil dihapus",
-	})
-}
-
-func (c *RusunController) GetStatistics(ctx *fiber.Ctx) error {
-	provinceID, _ := strconv.Atoi(ctx.Query("province_id", "0"))
-
-	stats, err := c.Service.GetStatistics(uint(provinceID))
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "Gagal mengambil statistik",
-		})
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
 	}
 
-	return ctx.JSON(fiber.Map{
-		"success": true,
-		"message": "Statistik berhasil diambil",
-		"data":    stats,
-	})
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Rusun deleted", nil))
 }
-

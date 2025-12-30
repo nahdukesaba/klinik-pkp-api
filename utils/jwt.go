@@ -6,26 +6,27 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var jwtSecret = []byte(getJWTSecret())
 
 // Claims represents JWT claims
 type Claims struct {
-	UserID uint   `json:"user_id"`
+	UserID uuid.UUID   `json:"user_id"`
 	Email  string `json:"email"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken generates JWT token for user
-func GenerateToken(userID uint, email, role string) (string, error) {
+func GenerateToken(userID uuid.UUID, email, role string) (string, error) {
 	// Parse JWT expiration from env
 	expirationStr := os.Getenv("JWT_EXPIRATION")
 	if expirationStr == "" {
 		expirationStr = "24h"
 	}
-	
+
 	duration, err := time.ParseDuration(expirationStr)
 	if err != nil {
 		duration = 24 * time.Hour // Default fallback
@@ -73,4 +74,3 @@ func getJWTSecret() string {
 	}
 	return secret
 }
-

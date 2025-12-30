@@ -2,16 +2,16 @@ package utils
 
 import "regexp"
 
-// Validator provides validation helpers
+// STRUCT TO INDICATE VALIDATOR UTILITIES
 type Validator struct{}
 
-// ValidateEmail validates email format
+// VALIDATE EMAIL FORMAT
 func (v *Validator) ValidateEmail(email string) bool {
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return emailRegex.MatchString(email)
 }
 
-// ValidatePasswordStrength validates password strength (minimum 8 characters)
+// VALIDATE PASSWORD STRENGTH (MINIMUM 8 CHARACTERS)
 func (v *Validator) ValidatePasswordStrength(password string) (bool, string) {
 	if len(password) < 8 {
 		return false, "Password must be at least 8 characters"
@@ -29,7 +29,7 @@ func (v *Validator) ValidatePhone(phone string) bool {
 }
 
 // ValidateRequired checks if value is not empty
-func (v *Validator) ValidateRequired(value string, fieldName string) (bool, string) {
+func (v *Validator) ValidateRequired(value any, fieldName string) (bool, string) {
 	if value == "" {
 		return false, fieldName + " is required"
 	}

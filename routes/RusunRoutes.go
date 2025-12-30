@@ -1,27 +1,14 @@
 package routes
 
 import (
-	"klinik-api/controller"
-	"klinik-api/middleware"
-
+	"klinik-pkp-api/controller"
 	"github.com/gofiber/fiber/v2"
 )
 
-// SetupRusunRoutes sets up all rusun routes
-func SetupRusunRoutes(app fiber.Router, ctrl *controller.RusunController) {
-	rusun := app.Group("/rusun")
-	{
-		rusun.Get("/", ctrl.GetAll)
-		rusun.Get("/:id", ctrl.GetByID)
-		rusun.Get("/province/:province_id", ctrl.GetByProvince)
-		rusun.Get("/map", ctrl.GetMapData)
-		rusun.Get("/statistics", ctrl.GetStatistics)
-	}
-
-	admin := app.Group("/admin/rusun", middleware.RequireAuth(), middleware.RequireAdmin())
-	{
-		admin.Post("/", ctrl.Create)
-		admin.Put("/:id", ctrl.Update)
-		admin.Delete("/:id", ctrl.Delete)
-	}
+func SetupRusunRoutes(app fiber.Router, controller *controller.RusunController) {
+	app.Get("/rusuns", controller.GetAllRusun)
+	app.Get("/rusun/:id", controller.GetRusunByID)
+	app.Post("/rusun", controller.CreateRusun)
+	app.Put("/rusun/:id", controller.UpdateRusun)
+	app.Delete("/rusun/:id", controller.DeleteRusun)
 }

@@ -2,20 +2,20 @@ package config
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"strings"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	// App
+	// APP
 	AppEnv       string
 	DockerTarget string
 	DockerCmd    string
+	AppPort      string
 
-	// Database
+	// DATABASE
 	DBHost string
 	DBPort string
 	DBUser string
@@ -26,25 +26,22 @@ type Config struct {
 	JWTSecret     string
 	JWTExpiration string
 
-	// Seed
-	DBSeed bool
+	// ROLES
+	RoleSuperAdmin         string
+	RoleAdminEselon1       string
+	RoleVerificatorEselon1 string
+	RoleAdminBalai         string
+	RoleVerificatorBalai   string
+	RoleSurveyor           string
+	RoleUser               string
 
-	// Roles (Database roles only)
-	RoleSuperAdmin          string
-	RoleAdminEselon1        string
-	RoleVerificatorEselon1  string
-	RoleAdminBalai          string
-	RoleVerificatorBalai    string
-	RoleSurveyor            string
-	RoleUser                string
-
-	// Resources
+	// RESOURCES
 	ResourceNegara       string
 	ResourcePengembang   string
 	ResourceSwadaya      string
 	ResourceGotongroyong string
 
-	// Security
+	// BANNED WORDS
 	BannedWords []string
 
 	// CORS
@@ -55,26 +52,24 @@ func LoadConfig() Config {
 	godotenv.Load()
 
 	cfg := Config{
-		// App
+		// APP
 		AppEnv:       getEnv("APP_ENV", "development"),
 		DockerTarget: getEnv("DOCKER_TARGET", "dev"),
 		DockerCmd:    getEnv("DOCKER_CMD", "air"),
+		AppPort:	getEnv("APP_PORT", "8000"),
 
-		// Database
+		// DATABASE
 		DBHost: getEnv("DB_HOST", "127.0.0.1"),
 		DBPort: getEnv("DB_PORT", "5432"),
 		DBUser: getEnv("DB_USER", "postgres"),
 		DBPass: getEnv("DB_PASS", ""),
-		DBName: getEnv("DB_NAME", "klinik-api"),
+		DBName: getEnv("DB_NAME", "klinik-pkp-api"),
 
 		// JWT
 		JWTSecret:     getEnv("JWT_SECRET", "supersecretjwtkey"),
 		JWTExpiration: getEnv("JWT_EXPIRATION", "24h"),
 
-		// Seed
-		DBSeed: getEnv("DB_SEED", "true") == "true",
-
-		// Roles (Database roles only)
+		// ROLES
 		RoleSuperAdmin:         getEnv("ROLE_SUPER_ADMIN", "Super Admin"),
 		RoleAdminEselon1:       getEnv("ROLE_ADMIN_ESELON_1", "Admin Eselon 1"),
 		RoleVerificatorEselon1: getEnv("ROLE_VERIFICATOR_ESELON_1", "Verificator Eselon 1"),
@@ -83,20 +78,20 @@ func LoadConfig() Config {
 		RoleSurveyor:           getEnv("ROLE_SURVEYOR", "Surveyor"),
 		RoleUser:               getEnv("ROLE_USER", "User"),
 
-		// Resources
+		// RESOURCES
 		ResourceNegara:       getEnv("RESOURCE_NEGARA", "Negara"),
 		ResourcePengembang:   getEnv("RESOURCE_PENGEMBANG", "Pengembang"),
 		ResourceSwadaya:      getEnv("RESOURCE_SWADAYA", "Swadaya"),
 		ResourceGotongroyong: getEnv("RESOURCE_GOTONGROYONG", "Gotong Royong"),
 
-		// Security
+		// BANNED WORDS
 		BannedWords: parseCSV(getEnv("BANNED_WORDS", "")),
 
 		// CORS
 		CORSAllowOrigins: parseCSV(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:5173")),
 	}
 
-	// Validate required fields
+	// VALIDATE REQUIRED CONFIGURATIONS
 	if cfg.DBHost == "" || cfg.DBName == "" {
 		log.Fatal("Database configuration is required in .env file")
 	}
@@ -104,20 +99,21 @@ func LoadConfig() Config {
 	return cfg
 }
 
-// GetDSN returns database connection string
+// GET DATA SOURCE NAME FOR DATABASE CONNECTION
 func (c *Config) GetDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		c.DBHost, c.DBUser, c.DBPass, c.DBName, c.DBPort)
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", c.DBHost, c.DBUser, c.DBPass, c.DBName, c.DBPort)
 }
 
-// Helper functions
+// GET ENVIRONMENT VARIABLE OR RETURN DEFAULT VALUE
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
+
 	return defaultValue
 }
 
+// SPLIT A COMMA-SEPARATED STRING INTO A SLICE OF STRINGS
 func parseCSV(value string) []string {
 	if value == "" {
 		return []string{}

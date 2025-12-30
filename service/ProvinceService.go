@@ -2,51 +2,44 @@ package service
 
 import (
 	"errors"
-	"klinik-api/models"
-
 	"gorm.io/gorm"
+	"klinik-pkp-api/models"
+	"klinik-pkp-api/utils"
 )
 
+// PROVINCE SERVICE STRUCT
 type ProvinceService struct {
-	db *gorm.DB
+	db        *gorm.DB
+	validator *utils.Validator
 }
 
+// REPRESENTS DATA FROM INPUT
+type ProvincePayload struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// PROVINCE SERVICE CONSTRUCTOR
 func NewProvinceService(db *gorm.DB) *ProvinceService {
-	return &ProvinceService{db: db}
+	return &ProvinceService{db: db, validator: &utils.Validator{}}
 }
 
-// GetAll returns all provinces with optional regencies
-func (s *ProvinceService) GetAll(includeRegencies bool) ([]models.Province, error) {
+func (s *ProvinceService) GetAll() ([]models.Province, error) {
 	var provinces []models.Province
-	query := s.db.Order("name ASC")
 
-	if includeRegencies {
-		query = query.Preload("Regencies", func(db *gorm.DB) *gorm.DB {
-			return db.Order("name ASC")
-		})
-	}
-
-	if err := query.Find(&provinces).Error; err != nil {
+	if err := s.db.Find(&provinces).Error; err != nil {
 		return nil, err
 	}
 
 	return provinces, nil
 }
 
-// GetByID returns province by ID
-func (s *ProvinceService) GetByID(id uint, includeRegencies bool) (*models.Province, error) {
+func (s *ProvinceService) GetByID(id string) (*models.Province, error) {
 	var province models.Province
-	query := s.db
 
-	if includeRegencies {
-		query = query.Preload("Regencies", func(db *gorm.DB) *gorm.DB {
-			return db.Order("name ASC")
-		})
-	}
-
-	if err := query.First(&province, id).Error; err != nil {
+	if err := s.db.First(&province, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("province not found")
+			return nil, errors.New("Province not found")
 		}
 		return nil, err
 	}
@@ -54,15 +47,17 @@ func (s *ProvinceService) GetByID(id uint, includeRegencies bool) (*models.Provi
 	return &province, nil
 }
 
-// Create creates new province (admin only)
-func (s *ProvinceService) Create(name, code string) (*models.Province, error) {
-	if name == "" {
-		return nil, errors.New("name is required")
+func (s *ProvinceService) Create(input ProvincePayload) (*models.Province, error) {
+	if ok, msg := s.validator.ValidateRequired(input.ID, "ID"); !ok {
+		return nil, errors.New(msg)
+	}
+	if ok, msg := s.validator.ValidateRequired(input.Name, "Name"); !ok {
+		return nil, errors.New(msg)
 	}
 
 	province := models.Province{
-		Name: name,
-		Code: code,
+		ID:   input.ID,
+		Name: input.Name,
 	}
 
 	if err := s.db.Create(&province).Error; err != nil {
@@ -72,22 +67,22 @@ func (s *ProvinceService) Create(name, code string) (*models.Province, error) {
 	return &province, nil
 }
 
-// Update updates province (admin only)
-func (s *ProvinceService) Update(id uint, name, code string) (*models.Province, error) {
+func (s *ProvinceService) Update(id string, input ProvincePayload) (*models.Province, error) {
+	if ok, msg := s.validator.ValidateRequired(input.Name, "Name"); !ok {
+		return nil, errors.New(msg)
+	}
+
 	var province models.Province
+
 	if err := s.db.First(&province, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("province not found")
+			return nil, errors.New("Province not found")
 		}
+
 		return nil, err
 	}
 
-	if name != "" {
-		province.Name = name
-	}
-	if code != "" {
-		province.Code = code
-	}
+	province.Name = input.Name
 
 	if err := s.db.Save(&province).Error; err != nil {
 		return nil, err
@@ -96,12 +91,12 @@ func (s *ProvinceService) Update(id uint, name, code string) (*models.Province, 
 	return &province, nil
 }
 
-// Delete deletes province (admin only)
-func (s *ProvinceService) Delete(id uint) error {
+func (s *ProvinceService) Delete(id string) error {
 	var province models.Province
+
 	if err := s.db.First(&province, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return errors.New("province not found")
+			return errors.New("Province not found")
 		}
 		return err
 	}

@@ -2,292 +2,288 @@ package service
 
 import (
 	"errors"
-	"html"
-	"klinik-api/models"
-	"regexp"
-	"strings"
-	"time"
-
 	"gorm.io/gorm"
+	"klinik-pkp-api/models"
+	"klinik-pkp-api/utils"
 )
 
+// RUSUN SERVICE STRUCT
 type RusunService struct {
-	DB *gorm.DB
+	db        *gorm.DB
+	validator *utils.Validator
 }
 
+// REPRESENTS DATA FROM INPUT
+type RusunPayload struct {
+	VillageID  string              `json:"village_id"`
+	DistrictID string              `json:"district_id"`
+	RegionID   string              `json:"region_id"`
+	ProvinceID string              `json:"province_id"`
+	Name       string              `json:"name"`
+	Address    string              `json:"address"`
+	Coordinate []models.Coordinate `json:"coordinate"`
+	Tower      string              `json:"tower"`
+	UnitType   string              `json:"unit_type"`
+	Floor      int                 `json:"floor"`
+	UnitCount  int                 `json:"unit_count"`
+}
+
+// RUSUN SERVICE CONSTRUCTOR
 func NewRusunService(db *gorm.DB) *RusunService {
-	return &RusunService{DB: db}
+	return &RusunService{db: db, validator: &utils.Validator{}}
 }
 
-// sanitize cleans input from XSS attacks
-func (s *RusunService) sanitize(input string) string {
-	input = html.EscapeString(strings.TrimSpace(input))
-	input = regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`).ReplaceAllString(input, "")
-	input = regexp.MustCompile(`(?i)\s*on\w+\s*=\s*["'][^"']*["']`).ReplaceAllString(input, "")
-	return input
+func (s *RusunService) GetAll() ([]models.Rusun, error) {
+	var rusuns []models.Rusun
+
+	if err := s.db.
+		Preload("Village").
+		Preload("District").
+		Preload("Region").
+		Preload("Province").
+		Find(&rusuns).Error; err != nil {
+		return nil, err
+	}
+
+	return rusuns, nil
 }
 
-// validate validates rusun data
-func (s *RusunService) validate(r *models.Rusun) error {
-	r.Name = s.sanitize(r.Name)
-	r.Address = s.sanitize(r.Address)
-	r.Type = s.sanitize(r.Type)
-	r.Contractor = s.sanitize(r.Contractor)
-	r.Status = s.sanitize(r.Status)
-
-	if r.Name == "" || len(r.Name) > 255 {
-		return errors.New("nama tidak valid")
-	}
-	if r.Address == "" {
-		return errors.New("alamat tidak boleh kosong")
-	}
-	if r.Latitude < -90 || r.Latitude > 90 {
-		return errors.New("latitude tidak valid")
-	}
-	if r.Longitude < -180 || r.Longitude > 180 {
-		return errors.New("longitude tidak valid")
-	}
-	if r.OccupiedUnits > r.UnitCount {
-		return errors.New("unit terisi melebihi total unit")
-	}
-	if r.HandoverYear < r.BuildYear {
-		return errors.New("tahun serah terima tidak valid")
-	}
-	
-	// Validate foreign keys
-	if r.ProvinceID == 0 {
-		return errors.New("provinsi harus dipilih")
-	}
-	if r.RegencyID == 0 {
-		return errors.New("kabupaten/kota harus dipilih")
-	}
-	
-	var province models.Province
-	if err := s.DB.First(&province, r.ProvinceID).Error; err != nil {
-		return errors.New("provinsi tidak ditemukan")
-	}
-	
-	var regency models.Regency
-	if err := s.DB.Where("id = ? AND province_id = ?", r.RegencyID, r.ProvinceID).First(&regency).Error; err != nil {
-		return errors.New("kabupaten/kota tidak sesuai dengan provinsi")
-	}
-
-	if r.Status == "" {
-		r.Status = "active"
-	}
-	validStatus := map[string]bool{"active": true, "inactive": true, "maintenance": true}
-	if !validStatus[r.Status] {
-		return errors.New("status tidak valid")
-	}
-
-	return nil
-}
-
-// GetAll retrieves all rusun with filters
-func (s *RusunService) GetAll(page, limit int, provinceID, regencyID uint, status, search string) ([]models.Rusun, int64, error) {
-	var rusun []models.Rusun
-	var total int64
-
-	query := s.DB.Model(&models.Rusun{}).Preload("Province").Preload("Regency")
-
-	if provinceID > 0 {
-		query = query.Where("province_id = ?", provinceID)
-	}
-	if regencyID > 0 {
-		query = query.Where("regency_id = ?", regencyID)
-	}
-	if status != "" && (status == "active" || status == "inactive" || status == "maintenance") {
-		query = query.Where("status = ?", status)
-	}
-	if search != "" {
-		search = s.sanitize(search)
-		searchPattern := "%" + search + "%"
-		query = query.Where("name ILIKE ? OR address ILIKE ? OR contractor ILIKE ?", searchPattern, searchPattern, searchPattern)
-	}
-
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	if limit > 0 {
-		offset := (page - 1) * limit
-		query = query.Limit(limit).Offset(offset)
-	}
-
-	if err := query.Order("created_at DESC").Find(&rusun).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return rusun, total, nil
-}
-
-// GetByID retrieves rusun by ID
-func (s *RusunService) GetByID(id uint) (*models.Rusun, error) {
-	if id == 0 {
-		return nil, errors.New("ID tidak valid")
-	}
-
+func (s *RusunService) GetByID(id int) (*models.Rusun, error) {
 	var rusun models.Rusun
-	if err := s.DB.Preload("Province").Preload("Regency").First(&rusun, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("rusun tidak ditemukan")
-		}
+	if err := s.db.
+		Preload("Village").
+		Preload("District").
+		Preload("Region").
+		Preload("Province").
+		First(&rusun, id).Error; err != nil {
 		return nil, err
 	}
 
 	return &rusun, nil
 }
 
-// GetByProvince retrieves rusun by province
-func (s *RusunService) GetByProvince(provinceID uint) ([]models.Rusun, error) {
-	if provinceID == 0 {
-		return nil, errors.New("province ID tidak valid")
+func (s *RusunService) Create(input RusunPayload) (*models.Rusun, error) {
+	if ok, msginput := s.validator.ValidateRequired(input.VillageID, "VillageID"); !ok {
+		return nil, errors.New(msginput)
 	}
 
-	var rusun []models.Rusun
-	if err := s.DB.Preload("Province").Preload("Regency").
-		Where("province_id = ? AND status = ?", provinceID, "active").
-		Order("name ASC").
-		Find(&rusun).Error; err != nil {
+	if ok, msginput := s.validator.ValidateRequired(input.DistrictID, "DistrictID"); !ok {
+		return nil, errors.New(msginput)
+	}
+
+	if ok, msginput := s.validator.ValidateRequired(input.RegionID, "RegionID"); !ok {
+		return nil, errors.New(msginput)
+	}
+
+	if ok, msginput := s.validator.ValidateRequired(input.ProvinceID, "ProvinceID"); !ok {
+		return nil, errors.New(msginput)
+	}
+
+	if ok, msg := s.validator.ValidateRequired(input.Name, "Name"); !ok {
+		return nil, errors.New(msg)
+	}
+
+	if ok, msg := s.validator.ValidateRequired(input.Address, "Address"); !ok {
+		return nil, errors.New(msg)
+	}
+
+	if ok, msg := s.validator.ValidateRequired(input.Coordinate, "Coordinate"); !ok {
+		return nil, errors.New(msg)
+	}
+
+	if ok, msg := s.validator.ValidateRequired(input.Tower, "Tower"); !ok {
+		return nil, errors.New(msg)
+	}
+
+	if ok, msg := s.validator.ValidateRequired(input.UnitType, "UnitType"); !ok {
+		return nil, errors.New(msg)
+	}
+
+	// ENSURE RELATIONS EXIST
+	var village models.Village
+
+	if err := s.db.First(&village, input.VillageID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("Village not found")
+		}
 		return nil, err
 	}
 
-	return rusun, nil
-}
+	// ENSURE RELATED DISTRICT EXISTS
+	var district models.District
 
-// GetMapData retrieves coordinate data for map
-func (s *RusunService) GetMapData(provinceID uint) ([]map[string]interface{}, error) {
-	var rusun []models.Rusun
-	
-	query := s.DB.Select("id, name, address, latitude, longitude, province_id, regency_id, unit_count, occupied_units").
-		Where("status = ?", "active")
-	
-	if provinceID > 0 {
-		query = query.Where("province_id = ?", provinceID)
-	}
-	
-	if err := query.Find(&rusun).Error; err != nil {
+	if err := s.db.First(&district, input.DistrictID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("District not found")
+		}
 		return nil, err
 	}
 
-	result := make([]map[string]interface{}, len(rusun))
-	for i, r := range rusun {
-		occupancyRate := float64(0)
-		if r.UnitCount > 0 {
-			occupancyRate = float64(r.OccupiedUnits) / float64(r.UnitCount) * 100
+	// ENSURE RELATED REGION EXISTS
+	var region models.Region
+
+	if err := s.db.First(&region, input.RegionID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("Region not found")
 		}
-		
-		result[i] = map[string]interface{}{
-			"id":             r.ID,
-			"name":           r.Name,
-			"address":        r.Address,
-			"latitude":       r.Latitude,
-			"longitude":      r.Longitude,
-			"province_id":    r.ProvinceID,
-			"regency_id":     r.RegencyID,
-			"unit_count":     r.UnitCount,
-			"occupied_units": r.OccupiedUnits,
-			"occupancy_rate": occupancyRate,
-		}
+		return nil, err
 	}
 
-	return result, nil
+	// ENSURE RELATED PROVINCE EXISTS
+	var province models.Province
+
+	if err := s.db.First(&province, input.ProvinceID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("Province not found")
+		}
+		return nil, err
+	}
+
+	rusun := models.Rusun{
+		VillageID:  input.VillageID,
+		DistrictID: input.DistrictID,
+		RegionID:   input.RegionID,
+		ProvinceID: input.ProvinceID,
+		Name:       input.Name,
+		Address:    input.Address,
+		Coordinate: input.Coordinate,
+		Tower:      input.Tower,
+		UnitType:   input.UnitType,
+		Floor:      input.Floor,
+		UnitCount:  input.UnitCount,
+	}
+
+	if err := s.db.Create(&rusun).Error; err != nil {
+		return nil, err
+	}
+
+	return &rusun, nil
 }
 
-// Create creates new rusun
-func (s *RusunService) Create(rusun *models.Rusun) error {
-	if err := s.validate(rusun); err != nil {
-		return err
+func (s *RusunService) Update(id int, input RusunPayload) (*models.Rusun, error) {
+	// VALIDATIONS
+	if ok, msg := s.validator.ValidateRequired(input.VillageID, "VillageID"); !ok {
+		return nil, errors.New(msg)
 	}
 
-	var count int64
-	s.DB.Model(&models.Rusun{}).Where("name = ? AND province_id = ?", rusun.Name, rusun.ProvinceID).Count(&count)
-	if count > 0 {
-		return errors.New("rusun dengan nama yang sama sudah ada")
+	if ok, msg := s.validator.ValidateRequired(input.DistrictID, "DistrictID"); !ok {
+		return nil, errors.New(msg)
 	}
 
-	return s.DB.Create(rusun).Error
-}
-
-// Update updates rusun
-func (s *RusunService) Update(id uint, rusun *models.Rusun) error {
-	if id == 0 {
-		return errors.New("ID tidak valid")
+	if ok, msg := s.validator.ValidateRequired(input.RegionID, "RegionID"); !ok {
+		return nil, errors.New(msg)
 	}
 
-	if err := s.validate(rusun); err != nil {
-		return err
+	if ok, msg := s.validator.ValidateRequired(input.ProvinceID, "ProvinceID"); !ok {
+		return nil, errors.New(msg)
 	}
 
-	var existing models.Rusun
-	if err := s.DB.First(&existing, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("rusun tidak ditemukan")
-		}
-		return err
+	if ok, msg := s.validator.ValidateRequired(input.Name, "Name"); !ok {
+		return nil, errors.New(msg)
 	}
 
-	var count int64
-	s.DB.Model(&models.Rusun{}).Where("name = ? AND province_id = ? AND id != ?", rusun.Name, rusun.ProvinceID, id).Count(&count)
-	if count > 0 {
-		return errors.New("rusun dengan nama yang sama sudah ada")
+	if ok, msg := s.validator.ValidateRequired(input.Address, "Address"); !ok {
+		return nil, errors.New(msg)
 	}
 
-	rusun.ID = id
-	rusun.CreatedAt = existing.CreatedAt
-	rusun.UpdatedAt = time.Now()
-	
-	return s.DB.Save(rusun).Error
-}
+	if ok, msg := s.validator.ValidateRequired(input.Coordinate, "Coordinate"); !ok {
+		return nil, errors.New(msg)
+	}
 
-// Delete soft deletes rusun
-func (s *RusunService) Delete(id uint) error {
-	if id == 0 {
-		return errors.New("ID tidak valid")
+	if ok, msg := s.validator.ValidateRequired(input.Tower, "Tower"); !ok {
+		return nil, errors.New(msg)
+	}
+
+	if ok, msg := s.validator.ValidateRequired(input.UnitType, "UnitType"); !ok {
+		return nil, errors.New(msg)
 	}
 
 	var rusun models.Rusun
-	if err := s.DB.First(&rusun, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("rusun tidak ditemukan")
+
+	// ENSURE RUSUN EXISTS
+	if err := s.db.First(&rusun, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("Rusun not found")
 		}
+
+		return nil, err
+	}
+
+	// ENSURE RELATED VILLAGE EXISTS
+	var village models.Village
+
+	if err := s.db.First(&village, input.VillageID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("Village not found")
+		}
+		return nil, err
+	}
+
+	// ENSURE RELATED DISTRICT EXISTS
+	var district models.District
+
+	if err := s.db.First(&district, input.DistrictID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("District not found")
+		}
+		return nil, err
+	}
+
+	// ENSURE RELATED REGION EXISTS
+	var region models.Region
+
+	if err := s.db.First(&region, input.RegionID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("Region not found")
+		}
+
+		return nil, err
+	}
+
+	// ENSURE RELATED PROVINCE EXISTS
+	var province models.Province
+
+	if err := s.db.First(&province, input.ProvinceID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("Province not found")
+		}
+
+		return nil, err
+	}
+
+	rusun.VillageID = input.VillageID
+	rusun.DistrictID = input.DistrictID
+	rusun.RegionID = input.RegionID
+	rusun.ProvinceID = input.ProvinceID
+	rusun.Name = input.Name
+	rusun.Address = input.Address
+	rusun.Coordinate = input.Coordinate
+	rusun.Tower = input.Tower
+	rusun.UnitType = input.UnitType
+	rusun.Floor = input.Floor
+	rusun.UnitCount = input.UnitCount
+
+	if err := s.db.Save(&rusun).Error; err != nil {
+		return nil, err
+	}
+
+	return &rusun, nil
+}
+
+func (s *RusunService) Delete(id int) error {
+	var rusun models.Rusun
+
+	if err := s.db.First(&rusun, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.New("Rusun not found")
+		}
+
 		return err
 	}
 
-	return s.DB.Delete(&rusun).Error
+	if err := s.db.Delete(&rusun).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
-
-// GetStatistics retrieves rusun statistics
-func (s *RusunService) GetStatistics(provinceID uint) (map[string]interface{}, error) {
-	stats := make(map[string]interface{})
-
-	query := s.DB.Model(&models.Rusun{}).Where("status = ?", "active")
-	if provinceID > 0 {
-		query = query.Where("province_id = ?", provinceID)
-	}
-
-	var totalRusun int64
-	query.Count(&totalRusun)
-	stats["total_rusun"] = totalRusun
-
-	var result struct {
-		TotalUnits    int64
-		TotalOccupied int64
-		TotalTowers   int64
-	}
-	
-	query.Select("COALESCE(SUM(unit_count), 0) as total_units, COALESCE(SUM(occupied_units), 0) as total_occupied, COALESCE(SUM(tower_count), 0) as total_towers").Scan(&result)
-	
-	stats["total_units"] = result.TotalUnits
-	stats["total_occupied"] = result.TotalOccupied
-	stats["total_towers"] = result.TotalTowers
-	
-	if result.TotalUnits > 0 {
-		stats["occupancy_rate"] = float64(result.TotalOccupied) / float64(result.TotalUnits) * 100
-	} else {
-		stats["occupancy_rate"] = 0
-	}
-
-	return stats, nil
-}
-

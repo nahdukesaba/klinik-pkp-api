@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-type Village struct {
+type Region struct {
 	ID         string `gorm:"primaryKey;autoIncrement:false" json:"id"`
-	DistrictID string `gorm:"column:district_id" json:"district_id"`
+	ProvinceID string `gorm:"column:province_id" json:"province_id"`
 	Name       string `gorm:"column:name" json:"name"`
 
 	CreatedAt time.Time      `json:"created_at"`
@@ -15,9 +15,10 @@ type Village struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 
 	// RELATIONSHIPS
-	District *District `gorm:"foreignKey:DistrictID" json:"district,omitempty"`
+	Province *Province `gorm:"foreignKey:ProvinceID" json:"province,omitempty"`
 }
 
-func (Village) TableName() string {
-	return "village"
+// TABLE NAME
+func (Region) TableName() string {
+	return "region"
 }

@@ -1,0 +1,456 @@
+code, name, region_id
+120101,Barus,1201
+120102,Sorkam,1201
+120103,Pandan,1201
+120104,Pinangsori,1201
+120105,Manduamas,1201
+120106,Kolang,1201
+120107,Tapian Nauli,1201
+120108,Sibabangun,1201
+120109,Sosorgadong,1201
+120110,Sorkam Barat,1201
+120111,Sirandorung,1201
+120112,Andam Dewi,1201
+120113,Sitahuis,1201
+120114,Tukka,1201
+120115,Badiri,1201
+120116,Pasaribu Tobing,1201
+120117,Barus Utara,1201
+120118,Suka Bangun,1201
+120119,Lumut,1201
+120120,Sarudik,1201
+120201,Tarutung,1202
+120202,Siatas Barita,1202
+120203,Adiankoting,1202
+120204,Sipoholon,1202
+120205,Pahae Julu,1202
+120206,Pahae Jae,1202
+120207,Simangumban,1202
+120208,Purbatua,1202
+120209,Siborongborong,1202
+120210,Pagaran,1202
+120211,Parmonangan,1202
+120212,Sipahutar,1202
+120213,Pangaribuan,1202
+120214,Garoga,1202
+120215,Muara,1202
+120301,Angkola Barat,1203
+120302,Batang Toru,1203
+120303,Angkola Timur,1203
+120304,Sipirok,1203
+120305,Saipar Dolok Hole,1203
+120306,Angkola Selatan,1203
+120307,Batang Angkola,1203
+120314,Arse,1203
+120320,Marancar,1203
+120321,Sayur Matinggi,1203
+120322,Aek Bilah,1203
+120329,Muara Batang Toru,1203
+120330,Tano Tombangan Angkola,1203
+120331,Angkola Sangkunur,1203
+120332,Angkola Muara Tais,1203
+120405,Hiliduho,1204
+120406,Gido,1204
+120410,Idanogawo,1204
+120411,Bawolato,1204
+120420,Hiliserangkai,1204
+120421,Botomuzoi,1204
+120427,Ulugawo,1204
+120428,Ma,1204
+120429,Somolo-molo,1204
+120435,Sogae,1204
+120501,Bahorok,1205
+120502,Salapian,1205
+120503,Kuala,1205
+120504,Sei Bingai,1205
+120505,Binjai,1205
+120506,Selesai,1205
+120507,Stabat,1205
+120508,Wampu,1205
+120509,Secanggang,1205
+120510,Hinai,1205
+120511,Tanjung Pura,1205
+120512,Padang Tualang,1205
+120513,Gebang,1205
+120514,Babalan,1205
+120515,Pangkalan Susu,1205
+120516,Besitang,1205
+120517,Sei Lepan,1205
+120518,Berandan Barat,1205
+120519,Batang Serangan,1205
+120520,Sawit Seberang,1205
+120521,Sirapit,1205
+120522,Kutambaru,1205
+120523,Pematang Jaya,1205
+120601,Kabanjahe,1206
+120602,Berastagi,1206
+120603,Barusjahe,1206
+120604,Tigapanah,1206
+120605,Merek,1206
+120606,Munte,1206
+120607,Juhar,1206
+120608,Tigabinanga,1206
+120609,Laubaleng,1206
+120610,Mardingding,1206
+120611,Payung,1206
+120612,Simpang Empat,1206
+120613,Kutabuluh,1206
+120614,Dolat Rayat,1206
+120615,Merdeka,1206
+120616,Naman Teran,1206
+120617,Tiganderket,1206
+120701,Gunung Meriah,1207
+120702,Tanjung Morawa,1207
+120703,Sibolangit,1207
+120704,Kutalimbaru,1207
+120705,Pancur Batu,1207
+120706,Namo Rambe,1207
+120707,Biru-Biru,1207
+120708,Sinembah Tanjung Muda Hilir,1207
+120709,Bangun Purba,1207
+120719,Galang,1207
+120720,Sinembah Tanjung Muda Hulu,1207
+120721,Patumbak,1207
+120722,Deli Tua,1207
+120723,Sunggal,1207
+120724,Hamparan Perak,1207
+120725,Labuhan Deli,1207
+120726,Percut Sei Tuan,1207
+120727,Batang Kuis,1207
+120728,Lubuk Pakam,1207
+120731,Pagar Merbau,1207
+120732,Pantai Labu,1207
+120733,Beringin,1207
+120801,Siantar,1208
+120802,Gunung Malela,1208
+120803,Gunung Maligas,1208
+120804,Panei,1208
+120805,Panombeian Panei,1208
+120806,Jorlang Hataran,1208
+120807,Raya Kahean,1208
+120808,Bosar Maligas,1208
+120809,Sidamanik,1208
+120810,Pamatang Sidamanik,1208
+120811,Tanah Jawa,1208
+120812,Hatonduhan,1208
+120813,Dolok Panribuan,1208
+120814,Purba,1208
+120815,Haranggaol Horisan,1208
+120816,Girsang Sipangan Bolon,1208
+120817,Dolok Batu Nanggar,1208
+120818,Hutabayu Raja,1208
+120819,Jawa Maraja Bah Jambi,1208
+120820,Dolok Pardamean,1208
+120821,Pematang Bandar,1208
+120822,Bandar Huluan,1208
+120823,Bandar,1208
+120824,Bandar Masilam,1208
+120825,Silimakuta,1208
+120826,Dolok Silao,1208
+120827,Silou Kahean,1208
+120828,Tapian Dolok,1208
+120829,Raya,1208
+120830,Ujung Padang,1208
+120831,Pamatang Silima Huta,1208
+120832,Dolog Masagal,1208
+120908,Meranti,1209
+120909,Air Joman,1209
+120910,Tanjung Balai,1209
+120911,Sei Kepayang,1209
+120912,Simpang Empat,1209
+120913,Air Batu,1209
+120914,Pulau Rakyat,1209
+120915,Bandar Pulau,1209
+120916,Buntu Pane,1209
+120917,Bandar Pasir Mandoge,1209
+120918,Aek Kuasan,1209
+120919,Kota Kisaran Barat,1209
+120920,Kota Kisaran Timur,1209
+120921,Aek Songsongan,1209
+120922,Rahuning,1209
+120923,Sei Dadap,1209
+120924,Sei Kepayang Barat,1209
+120925,Sei Kepayang Timur,1209
+120926,Tinggi Raja,1209
+120927,Setia Janji,1209
+120928,Silau Laut,1209
+120929,Rawang Panca Arga,1209
+120930,Pulo Bandring,1209
+120931,Teluk Dalam,1209
+120932,Aek Ledong,1209
+121001,Rantau Utara,1210
+121002,Rantau Selatan,1210
+121007,Bilah Barat,1210
+121008,Bilah Hilir,1210
+121009,Bilah Hulu,1210
+121014,Pangkatan,1210
+121018,Panai Tengah,1210
+121019,Panai Hilir,1210
+121020,Panai Hulu,1210
+121101,Sidikalang,1211
+121102,Sumbul,1211
+121103,Tigalingga,1211
+121104,Siempat Nempu,1211
+121105,Silima Pungga Pungga,1211
+121106,Tanah Pinem,1211
+121107,Siempat Nempu Hulu,1211
+121108,Siempat Nempu Hilir,1211
+121109,Pegagan Hilir,1211
+121110,Parbuluan,1211
+121111,Lae Parira,1211
+121112,Gunung Sitember,1211
+121113,Berampu,1211
+121114,Silahisabungan,1211
+121115,Sitinjo,1211
+121201,Balige,1212
+121202,Laguboti,1212
+121203,Silaen,1212
+121204,Habinsaran,1212
+121205,Pintu Pohan Meranti,1212
+121206,Borbor,1212
+121207,Porsea,1212
+121208,Ajibata,1212
+121209,Lumban Julu,1212
+121210,Uluan,1212
+121219,Sigumpar,1212
+121220,Siantar Narumonda,1212
+121221,Nassau,1212
+121222,Tampahan,1212
+121223,Bonatua Lunasi,1212
+121224,Parmaksian,1212
+121301,Panyabungan,1213
+121302,Panyabungan Utara,1213
+121303,Panyabungan Timur,1213
+121304,Panyabungan Selatan,1213
+121305,Panyabungan Barat,1213
+121306,Siabu,1213
+121307,Bukit Malintang,1213
+121308,Kotanopan,1213
+121309,Lembah Sorik Marapi,1213
+121310,Tambangan,1213
+121311,Ulu Pungkut,1213
+121312,Muara Sipongi,1213
+121313,Batang Natal,1213
+121314,Lingga Bayu,1213
+121315,Batahan,1213
+121316,Natal,1213
+121317,Muara Batang Gadis,1213
+121318,Ranto Baek,1213
+121319,Huta Bargot,1213
+121320,Puncak Sorik Marapi,1213
+121321,Pakantan,1213
+121322,Sinunukan,1213
+121323,Naga Juang,1213
+121401,Lolomatua,1214
+121402,Gomo,1214
+121403,Lahusa,1214
+121404,Hibala,1214
+121405,Pulau-Pulau Batu,1214
+121406,Teluk Dalam,1214
+121407,Amandraya,1214
+121408,Lolowau,1214
+121409,Susua,1214
+121410,Maniamolo,1214
+121411,Hilimegai,1214
+121412,Toma,1214
+121413,Mazino,1214
+121414,Umbunasi,1214
+121415,Aramo,1214
+121416,Pulau-Pulau Batu Timur,1214
+121417,Mazo,1214
+121418,Fanayama,1214
+121419,Ulunoyo,1214
+121420,Huruna,1214
+121421,O,1214
+121422,Onohazumba,1214
+121423,Hilisalawa,1214
+121424,Ulususua,1214
+121425,Sidua,1214
+121426,Somambawa,1214
+121427,Boronadu,1214
+121428,Simuk,1214
+121429,Pulau-Pulau Batu Barat,1214
+121430,Pulau-Pulau Batu Utara,1214
+121431,Tanah Masa,1214
+121432,Luahagundre Maniamolo,1214
+121433,Onolalu,1214
+121434,Ulu Idanotae,1214
+121435,Idanotae,1214
+121501,Sitelu Tali Urang Jehe,1215
+121502,Kerajaan,1215
+121503,Salak,1215
+121504,Sitelu Tali Urang Julu,1215
+121505,Pergetteng Getteng Sengkut,1215
+121506,Pagindar,1215
+121507,Tinada,1215
+121508,Siempat Rube,1215
+121601,Parlilitan,1216
+121602,Pollung,1216
+121603,Baktiraja,1216
+121604,Paranginan,1216
+121605,Lintong Nihuta,1216
+121606,Dolok Sanggul,1216
+121607,Sijamapolang,1216
+121608,Onan Ganjang,1216
+121609,Pakkat,1216
+121610,Tarabintang,1216
+121701,Simanindo,1217
+121702,Onan Runggu,1217
+121703,Nainggolan,1217
+121704,Palipi,1217
+121705,Harian,1217
+121706,Sianjur Mula Mula,1217
+121707,Ronggur Nihuta,1217
+121708,Pangururan,1217
+121709,Sitio-tio,1217
+121801,Pantai Cermin,1218
+121802,Perbaungan,1218
+121803,Teluk Mengkudu,1218
+121804,Sei Rampah,1218
+121805,Tanjung Beringin,1218
+121806,Bandar Khalipah,1218
+121807,Dolok Merawan,1218
+121808,Sipispis,1218
+121809,Dolok Masihul,1218
+121810,Kotarih,1218
+121811,Silinda,1218
+121812,Serba Jadi,1218
+121813,Tebing Tinggi,1218
+121814,Pegajahan,1218
+121815,Sei Bamban,1218
+121816,Tebing Syahbandar,1218
+121817,Bintang Bayu,1218
+121901,Medang Deras,1219
+121902,Sei Suka,1219
+121903,Air Putih,1219
+121904,Lima Puluh,1219
+121905,Talawi,1219
+121906,Tanjung Tiram,1219
+121907,Sei Balai,1219
+121908,Laut Tador,1219
+121909,Lima Puluh Pesisir,1219
+121910,Datuk Lima Puluh,1219
+121911,Datuk Tanah Datar,1219
+121912,Nibung Hangus,1219
+122001,Dolok Sigompulon,1220
+122002,Dolok,1220
+122003,Halongonan,1220
+122004,Padang Bolak,1220
+122005,Padang Bolak Julu,1220
+122006,Portibi,1220
+122007,Batang Onang,1220
+122008,Simangambat,1220
+122009,Hulu Sihapas,1220
+122010,Padang Bolak Tenggara,1220
+122011,Halongonan Timur,1220
+122012,Ujung Batu,1220
+122101,Sosopan,1221
+122102,Barumun Tengah,1221
+122103,Huristak,1221
+122104,Lubuk Barumun,1221
+122105,Hutaraja Tinggi,1221
+122106,Ulu Barumun,1221
+122107,Barumun,1221
+122108,Sosa,1221
+122109,Batang Lubu Sutam,1221
+122110,Barumun Selatan,1221
+122111,Aek Nabara Barumun,1221
+122112,Sihapas Barumun,1221
+122113,Barumun Baru,1221
+122114,Ulu Sosa,1221
+122115,Sosa Julu,1221
+122116,Barumun Barat,1221
+122117,Sosa Timur,1221
+122201,Kotapinang,1222
+122202,Kampung Rakyat,1222
+122203,Torgamba,1222
+122204,Sungai Kanan,1222
+122205,Silangkitang,1222
+122301,Kualuh Hulu,1223
+122302,Kualuh Leidong,1223
+122303,Kualuh Hilir,1223
+122304,Aek Kuo,1223
+122305,Marbau,1223
+122306,Na IX - X,1223
+122307,Aek Natas,1223
+122308,Kualuh Selatan,1223
+122401,Lotu,1224
+122402,Sawo,1224
+122403,Tuhemberua,1224
+122404,Sitolu Ori,1224
+122405,Namohalu Esiwa,1224
+122406,Alasa Talumuzoi,1224
+122407,Alasa,1224
+122408,Tugala Oyo,1224
+122409,Afulu,1224
+122410,Lahewa,1224
+122411,Lahewa Timur,1224
+122501,Lahomi,1225
+122502,Sirombu,1225
+122503,Mandrehe Barat,1225
+122504,Moro,1225
+122505,Mandrehe,1225
+122506,Mandrehe Utara,1225
+122507,Lolofitu Moi,1225
+122508,Ulu Moro,1225
+127101,Medan Kota,1271
+127102,Medan Sunggal,1271
+127103,Medan Helvetia,1271
+127104,Medan Denai,1271
+127105,Medan Barat,1271
+127106,Medan Deli,1271
+127107,Medan Tuntungan,1271
+127108,Medan Belawan,1271
+127109,Medan Amplas,1271
+127110,Medan Area,1271
+127111,Medan Johor,1271
+127112,Medan Marelan,1271
+127113,Medan Labuhan,1271
+127114,Medan Tembung,1271
+127115,Medan Maimun,1271
+127116,Medan Polonia,1271
+127117,Medan Baru,1271
+127118,Medan Perjuangan,1271
+127119,Medan Petisah,1271
+127120,Medan Timur,1271
+127121,Medan Selayang,1271
+127201,Siantar Timur,1272
+127202,Siantar Barat,1272
+127203,Siantar Utara,1272
+127204,Siantar Selatan,1272
+127205,Siantar Marihat,1272
+127206,Siantar Martoba,1272
+127207,Siantar Sitalasari,1272
+127208,Siantar Marimbun,1272
+127301,Sibolga Utara,1273
+127302,Sibolga Kota,1273
+127303,Sibolga Selatan,1273
+127304,Sibolga Sambas,1273
+127401,Tanjungbalai Selatan,1274
+127402,Tanjungbalai Utara,1274
+127403,Sei Tualang Raso,1274
+127404,Teluk Nibung,1274
+127405,Datuk Bandar,1274
+127406,Datuk Bandar Timur,1274
+127501,Binjai Utara,1275
+127502,Binjai Kota,1275
+127503,Binjai Barat,1275
+127504,Binjai Timur,1275
+127505,Binjai Selatan,1275
+127601,Padang Hulu,1276
+127602,Rambutan,1276
+127603,Padang Hilir,1276
+127604,Bajenis,1276
+127605,Tebing Tinggi Kota,1276
+127701,Padangsidimpuan Utara,1277
+127702,Padangsidimpuan Selatan,1277
+127703,Padangsidimpuan Batunadua,1277
+127704,Padangsidimpuan Hutaimbaru,1277
+127705,Padangsidimpuan Tenggara,1277
+127706,Padangsidimpuan Angkola Julu,1277
+127801,Gunungsitoli,1278
+127802,Gunungsitoli Selatan,1278
+127803,Gunungsitoli Utara,1278
+127804,Gunungsitoli Idanoi,1278
+127805,Gunungsitoli Alo,1278
+127806,Gunungsitoli Barat,1278

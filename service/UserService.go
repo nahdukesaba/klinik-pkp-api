@@ -2,10 +2,9 @@ package service
 
 import (
 	"errors"
-	"klinik-api/models"
-	"klinik-api/utils"
-
 	"gorm.io/gorm"
+	"klinik-pkp-api/models"
+	"klinik-pkp-api/utils"
 )
 
 type UserService struct {
@@ -20,16 +19,16 @@ func NewUserService(db *gorm.DB) *UserService {
 	}
 }
 
-// RegisterInput represents user registration request
-type RegisterInput struct {
+// REGISTER INPUT STRUCT
+type RegisterPayload struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Phone    string `json:"phone,omitempty"` // Optional
 }
 
-// LoginInput represents user login request
-type LoginInput struct {
+// LOGIN INPUT STRUCT
+type LoginPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -40,9 +39,9 @@ type AuthResponse struct {
 	User  *models.User `json:"user"`
 }
 
-// Register creates new user account (User role by default)
-func (s *UserService) Register(input RegisterInput) (*AuthResponse, error) {
-	// Validate required fields
+// CREATE NEW USER
+func (s *UserService) Register(input RegisterPayload) (*AuthResponse, error) {
+
 	if ok, msg := s.validator.ValidateRequired(input.Name, "Name"); !ok {
 		return nil, errors.New(msg)
 	}
@@ -53,39 +52,40 @@ func (s *UserService) Register(input RegisterInput) (*AuthResponse, error) {
 		return nil, errors.New(msg)
 	}
 
-	// Validate email format
+	// VALIDATE EMAIL FORMAT
 	if !s.validator.ValidateEmail(input.Email) {
 		return nil, errors.New("invalid email format")
 	}
 
-	// Validate phone format if provided
+	// VALIDATE PHONE FORMAT IF PROVIDED
 	if input.Phone != "" && !s.validator.ValidatePhone(input.Phone) {
 		return nil, errors.New("invalid phone number format")
 	}
 
-	// Validate password strength (min 8 chars)
+	// VALIDATE PASSWORD STRENGTH (MIN 8 CHARS)
 	if ok, msg := s.validator.ValidatePasswordStrength(input.Password); !ok {
 		return nil, errors.New(msg)
 	}
 
-	// Check if email already exists
+	// CHECK IF EMAIL ALREADY EXISTS
 	var existingUser models.User
+
 	if err := s.db.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
 		return nil, errors.New("email already registered")
 	}
 
-	// Check if phone already exists (if provided)
+	// CHECK IF PHONE ALREADY EXISTS
 	if input.Phone != "" {
 		if err := s.db.Where("phone = ?", input.Phone).First(&existingUser).Error; err == nil {
 			return nil, errors.New("phone number already registered")
 		}
 	}
 
-	// Create user with User role
+	// CREATE USER RECORD IN DB
 	user := models.User{
 		Name:     input.Name,
 		Email:    input.Email,
-		Password: input.Password, // Will be hashed by BeforeCreate hook
+		Password: input.Password,
 		Phone:    input.Phone,
 		Role:     "User",
 		IsActive: true,
@@ -95,8 +95,9 @@ func (s *UserService) Register(input RegisterInput) (*AuthResponse, error) {
 		return nil, err
 	}
 
-	// Generate token
+	// GENERATE TOKEN
 	token, err := utils.GenerateToken(user.ID, user.Email, user.Role)
+
 	if err != nil {
 		return nil, err
 	}
@@ -107,8 +108,8 @@ func (s *UserService) Register(input RegisterInput) (*AuthResponse, error) {
 	}, nil
 }
 
-// Login authenticates user and returns token
-func (s *UserService) Login(input LoginInput) (*AuthResponse, error) {
+// LOGIN USER
+func (s *UserService) Login(input LoginPayload) (*AuthResponse, error) {
 	// Validate required fields
 	if ok, msg := s.validator.ValidateRequired(input.Email, "Email"); !ok {
 		return nil, errors.New(msg)
@@ -148,19 +149,45 @@ func (s *UserService) Login(input LoginInput) (*AuthResponse, error) {
 	}, nil
 }
 
-// GetProfile returns user profile by ID
+// RETURN ALL USERS
+func (s *UserService) GetAll() ([]models.User, error) {
+	var users []models.User
+
+	if err := s.db.Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	return users, nil
+
+	// users := make([]models.User, 0)
+
+	// err := s.db.
+	// 	Model(&models.User{}).
+	// 	Find(&users).
+	// 	Error
+
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// return users, nil
+}
+
+// GET PROFILE BY ID
 func (s *UserService) GetProfile(userID uint) (*models.User, error) {
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("user not found")
 		}
+
 		return nil, err
 	}
+
 	return &user, nil
 }
 
-// UpdateProfile updates user profile
+// UPDATE PROFILE BY ID
 func (s *UserService) UpdateProfile(userID uint, name string) (*models.User, error) {
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
@@ -180,13 +207,13 @@ func (s *UserService) UpdateProfile(userID uint, name string) (*models.User, err
 	return &user, nil
 }
 
-// ChangePasswordInput represents password change request
+// CHANGE PASSWORD INPUT STRUCT
 type ChangePasswordInput struct {
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
 }
 
-// ChangePassword updates user password with old password validation
+// CHANGE PASSWORD
 func (s *UserService) ChangePassword(userID uint, input ChangePasswordInput) error {
 	// Validate required fields
 	if ok, msg := s.validator.ValidateRequired(input.OldPassword, "Old Password"); !ok {

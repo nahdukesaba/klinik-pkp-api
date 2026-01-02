@@ -2,16 +2,17 @@ package seeders
 
 import (
 	"encoding/csv"
-	"gorm.io/gorm"
 	"io"
-	"klinik-pkp-api/models"
+	"klinik-pkp-api/internal/api/district"
 	"log"
 	"os"
+
+	"gorm.io/gorm"
 )
 
 // SEEDS FROM THE CSV FILE
 func DistrictSeeder(db *gorm.DB) error {
-	file, err := os.Open("script/district.csv")
+	file, err := os.Open("others/district.csv")
 
 	if err != nil {
 		return err
@@ -22,7 +23,7 @@ func DistrictSeeder(db *gorm.DB) error {
 	// SKIP SEED IF TABLE IS NOT EMPTY
 	var count int64
 
-	db.Model(&models.District{}).Count(&count)
+	db.Model(&district.District{}).Count(&count)
 
 	if count > 0 {
 		log.Println("!? District table already seeded, skipping...")
@@ -32,7 +33,7 @@ func DistrictSeeder(db *gorm.DB) error {
 
 	reader := csv.NewReader(file)
 	const batchSize = 100
-	var batch []models.District
+	var batch []district.District
 
 	// _ MEANS EXCLUDE THE RESULT FROM THE FIRST READ (REMOVING HEADER ROW)
 	if _, err := reader.Read(); err != nil {
@@ -55,7 +56,7 @@ func DistrictSeeder(db *gorm.DB) error {
 			continue
 		}
 
-		batch = append(batch, models.District{
+		batch = append(batch, district.District{
 			ID:       record[0],
 			Name:     record[1],
 			RegionID: record[2],

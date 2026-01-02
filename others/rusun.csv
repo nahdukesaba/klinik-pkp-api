@@ -1,0 +1,2 @@
+id,Kelurahan (village_id),Kecamatan (district_id),Kabupaten/Kota (region_id),Provinsi (province_id),Nama Rusun(name),Alamat (Address),Tower,Tipe (unit_type),Lantai (floor),Unit (UnitCount),Tahun (year_given),Latitude,Longitude
+1,1271051005,127105,1271,12,Rusun Kejaksaan Tinggi,Jl. Karya Rakyat,1,Wisama Suralaya 36,2,16,2025,3.6065000,98.6624000

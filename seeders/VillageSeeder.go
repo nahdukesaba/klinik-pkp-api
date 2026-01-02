@@ -2,16 +2,17 @@ package seeders
 
 import (
 	"encoding/csv"
-	"gorm.io/gorm"
 	"io"
-	"klinik-pkp-api/models"
+	"klinik-pkp-api/internal/api/village"
 	"log"
 	"os"
+
+	"gorm.io/gorm"
 )
 
 // SEEDS FROM THE CSV FILE
 func VillageSeeder(db *gorm.DB) error {
-	file, err := os.Open("script/village.csv")
+	file, err := os.Open("others/village.csv")
 
 	if err != nil {
 		return err
@@ -22,7 +23,7 @@ func VillageSeeder(db *gorm.DB) error {
 	// SKIP SEED IF TABLE IS NOT EMPTY
 	var count int64
 
-	db.Model(&models.Village{}).Count(&count)
+	db.Model(&village.Village{}).Count(&count)
 
 	if count > 0 {
 		log.Println("!? Village table already seeded, skipping...")
@@ -32,7 +33,7 @@ func VillageSeeder(db *gorm.DB) error {
 
 	reader := csv.NewReader(file)
 	const batchSize = 1000
-	var batch []models.Village
+	var batch []village.Village
 
 	// TRY TO READ HEADER
 	if _, err := reader.Read(); err != nil {
@@ -58,7 +59,7 @@ func VillageSeeder(db *gorm.DB) error {
 		id := record[0]
 		districtID := record[2]
 
-		batch = append(batch, models.Village{
+		batch = append(batch, village.Village{
 			ID:         id,
 			Name:       record[1],
 			DistrictID: districtID,

@@ -2,15 +2,16 @@ package seeders
 
 import (
 	"encoding/csv"
-	"gorm.io/gorm"
-	"klinik-pkp-api/models"
+	"klinik-pkp-api/internal/api/province"
 	"log"
 	"os"
+
+	"gorm.io/gorm"
 )
 
 // SEEDS FROM THE CSV FILE
 func ProvinceSeeder(db *gorm.DB) error {
-	file, err := os.Open("script/province.csv")
+	file, err := os.Open("others/province.csv")
 
 	if err != nil {
 		return err
@@ -27,9 +28,9 @@ func ProvinceSeeder(db *gorm.DB) error {
 
 	// SKIP SEED IF TABLE IS NOT EMPTY
 	var count int64
-	var data []models.Province
+	var data []province.Province
 
-	db.Model(&models.Province{}).Count(&count)
+	db.Model(&province.Province{}).Count(&count)
 
 	if count > 0 {
 		log.Println("!? Province table already seeded, skipping...")
@@ -45,12 +46,12 @@ func ProvinceSeeder(db *gorm.DB) error {
 
 		id := record[0]
 
-		province := models.Province{
+		prov := province.Province{
 			ID:   id,
 			Name: record[1],
 		}
 
-		data = append(data, province)
+		data = append(data, prov)
 	}
 
 	if len(data) > 0 {

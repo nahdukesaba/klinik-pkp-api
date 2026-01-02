@@ -16,7 +16,7 @@
 #### ✅ RusunService.go
 - XSS sanitization
 - SQL injection prevention (GORM parameterized queries)
-- Input validation
+- payload validation
 - Foreign key validation
 
 #### ✅ Seed Files
@@ -28,15 +28,6 @@
 ## **API Endpoints**
 
 Base URL: `http://localhost:3000/api/v1`
-
-#### Image Upload:
-- `POST /images/upload` - Upload single image
-- `POST /images/upload-multiple` - Upload multiple images
-- `GET /images` - List all images (pagination)
-- `GET /images/:id` - Get image by ID
-- `GET /images/entity?entity_type=rusun&entity_id=1` - Get images by entity
-- `PUT /images/:id` - Update image entity
-- `DELETE /images/:id` - Delete image
 
 #### Rusun:
 - `GET /rusun` - List all rusun
@@ -64,54 +55,29 @@ Base URL: `http://localhost:3000/api/v1`
 - Unique filename generation
 - No executable file upload
 
-✅ **Input Validation:**
+✅ **Payload Validation:**
 - Sanitize semua string input
 - Validate foreign keys
 - Validate ranges (lat/long, units, years)
 - Validate enum values (status)
 
-## **Dokumentasi**
-
-File dokumentasi yang dibuat:
-1. ✅ `README_IMAGE_UPLOAD.md` - Best practices & contoh code
-2. ✅ `POSTMAN_IMAGE_UPLOAD.md` - Complete Postman documentation
-3. ✅ `SUMMARY.md` (file ini)
-
----
-
 ## 📝 Cara Menggunakan
 
 ### 1. Run Migrations & Seeder
 ```bash
-go run . migrate --help
-go run . seed --help 
-go run . migrate villages
-go run . seed villages
+go run cmd/migrate/main.go --help
+go run cmd/seed/main.go --help 
+go run cmd/migrate/main.go villages
+go run cmd/seed/main.g villages
 ```
 
 ### 2. Run Server
 ```bash
-go run .
+go run cmd/server/main.go
 # atau
 go build -o klinik-pkp-api.exe .
 ./klinik-pkp-api.exe
 ```
-
-### 3. Test Upload Image (Postman)
-```
-POST http://localhost:3000/api/v1/images/upload
-Body: form-data
-  - image: [select file]
-  - entity_type: rusun
-  - entity_id: 1
-```
-
-### 4. Access Uploaded Image
-```
-http://localhost:3000/uploads/images/1702123456_uuid.jpg
-```
-
----
 
 ## ✨ Clean Code Principles Applied
 
@@ -137,7 +103,7 @@ http://localhost:3000/uploads/images/1702123456_uuid.jpg
    - Rollback on failure
 
 5. **Security First**
-   - Input validation
+   - payload validation
    - XSS prevention
    - SQL injection prevention
    - File upload security
@@ -147,8 +113,6 @@ http://localhost:3000/uploads/images/1702123456_uuid.jpg
    - Logical file structure
    - Easy to test
    - Easy to extend
-
----
 
 ## 🎯 Testing Checklist
 
@@ -162,8 +126,6 @@ http://localhost:3000/uploads/images/1702123456_uuid.jpg
 - [ ] Login admin berhasil
 - [ ] Login user berhasil
 
----
-
 ## 🔧 Next Steps (Optional)
 
 1. Image compression sebelum simpan
@@ -172,78 +134,3 @@ http://localhost:3000/uploads/images/1702123456_uuid.jpg
 4. Image watermark
 5. Rate limiting untuk upload
 6. Virus scanning untuk file upload
-
----
-
-## 📊 Database Schema
-
-```
-users
-├── id
-├── name
-├── email (unique)
-├── password (hashed)
-├── phone (unique, nullable)
-└── role (admin/user)
-
-provinces
-├── id
-├── name
-└── code (unique)
-
-regencies
-├── id
-├── province_id (FK)
-├── name
-└── code (unique)
-
-districts
-├── id
-├── regency_id (FK)
-├── name
-└── code (unique)
-
-villages
-├── id
-├── district_id (FK)
-├── name
-└── code (unique)
-
-rusun
-├── id
-├── name
-├── address
-├── province_id (FK)
-├── regency_id (FK)
-├── district_id (FK)
-├── village_id (FK)
-├── latitude
-├── longitude
-├── unit_count
-├── tower_count
-├── floor_count
-├── type
-├── build_year
-├── handover_year
-├── occupied_units
-├── contractor
-└── status
-
-images
-├── id
-├── filename
-├── original_name
-├── file_path
-├── file_url
-├── mime_type
-├── file_size
-├── width
-├── height
-├── entity_type
-├── entity_id
-└── uploaded_by (FK)
-```
-
----
-
-**Semua kode sudah diaudit dan mengikuti best practices Go dan clean code!** 🎉

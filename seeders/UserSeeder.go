@@ -2,7 +2,7 @@ package seeders
 
 import (
 	"klinik-pkp-api/config"
-	"klinik-pkp-api/models"
+	"klinik-pkp-api/internal/api/user"
 	"log"
 
 	"github.com/google/uuid"
@@ -11,7 +11,7 @@ import (
 
 // SEEDS FROM PREDEFINED DATA
 func UserSeeder(db *gorm.DB, cfg *config.Config) error {
-	err := createUserIfNotExists(db, models.User{
+	err := createUserIfNotExists(db, user.User{
 		ID:       uuid.New(),
 		Name:     "Administrator",
 		Email:    "admin@klinik.com",
@@ -21,7 +21,7 @@ func UserSeeder(db *gorm.DB, cfg *config.Config) error {
 		IsActive: true,
 	})
 
-	err = createUserIfNotExists(db, models.User{
+	err = createUserIfNotExists(db, user.User{
 		ID:       uuid.New(),
 		Name:     "User Demo",
 		Email:    "user@klinik.com",
@@ -34,19 +34,19 @@ func UserSeeder(db *gorm.DB, cfg *config.Config) error {
 	return err
 }
 
-func createUserIfNotExists(db *gorm.DB, user models.User) error {
+func createUserIfNotExists(db *gorm.DB, u user.User) error {
 	var count int64
-	db.Model(&models.User{}).Where("email = ?", user.Email).Count(&count)
+	db.Model(&user.User{}).Where("email = ?", u.Email).Count(&count)
 
 	if count == 0 {
-		if err := db.Create(&user).Error; err != nil {
+		if err := db.Create(&u).Error; err != nil {
 			log.Printf("✗%v", err)
 			return err
 		} else {
-			log.Printf("✓ User seeded: %s (role: %s)", user.Email, user.Role)
+			log.Printf("✓ User seeded: %s (role: %s)", u.Email, u.Role)
 		}
 	} else {
-		log.Printf("User already exists: %s", user.Email)
+		log.Printf("User already exists: %s", u.Email)
 	}
 
 	return nil

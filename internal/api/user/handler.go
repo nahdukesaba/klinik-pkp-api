@@ -1,0 +1,88 @@
+package user
+
+import (
+	"klinik-pkp-api/utils"
+
+	"github.com/gofiber/fiber/v2"
+)
+
+type Handler struct {
+	service *Service
+}
+
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
+}
+
+// Register handles user registration
+func (h *Handler) Register(ctx *fiber.Ctx) error {
+	var payload RegisterPayload
+
+	if err := ctx.BodyParser(&payload); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body: " + err.Error()))
+	}
+
+	result, err := h.service.Register(payload)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
+	}
+
+	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessMessageResponse("Registration successful", result))
+}
+
+// Login handles user authentication
+func (h *Handler) Login(ctx *fiber.Ctx) error {
+	var payload LoginPayload
+	if err := ctx.BodyParser(&payload); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body: " + err.Error()))
+	}
+
+	result, err := h.service.Login(payload)
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(utils.ErrorResponse(err.Error()))
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Login successful", result))
+}
+
+// GetAllUsers returns all users in the database
+func (h *Handler) GetAllUsers(ctx *fiber.Ctx) error {
+	users, err := h.service.GetAll()
+
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse("Failed to fetch users"))
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Success", users))
+}
+
+// GetProfile returns current user profile
+func (h *Handler) GetProfile(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("userID").(uint)
+
+	user, err := h.service.GetProfile(userID)
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse("User not found"))
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Success", user))
+}
+
+// UpdateProfile updates current user profile
+func (h *Handler) UpdateProfile(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("userID").(uint)
+
+	var payload struct {
+		Name string `json:"name"`
+	}
+	if err := ctx.BodyParser(&payload); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body"))
+	}
+
+	user, err := h.service.UpdateProfile(userID, payload.Name)
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Profile updated successfully", user))
+}

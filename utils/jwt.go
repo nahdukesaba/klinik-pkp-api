@@ -2,20 +2,19 @@ package utils
 
 import (
 	"errors"
-	"os"
-	"time"
-
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"os"
+	"time"
 )
 
 var jwtSecret = []byte(getJWTSecret())
 
 // Claims represents JWT claims
 type Claims struct {
-	UserID uuid.UUID   `json:"user_id"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
+	UserID uuid.UUID `json:"user_id"`
+	Email  string    `json:"email"`
+	Role   string    `json:"role"`
 	jwt.RegisteredClaims
 }
 

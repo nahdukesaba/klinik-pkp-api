@@ -2,14 +2,14 @@ package utils
 
 // Response represents standard API response structure
 type Response struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
+	Success bool   `json:"success"`
+	Message string `json:"message,omitempty"`
+	Data    any    `json:"data,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 // SuccessResponse creates a success response
-func SuccessResponse(data interface{}) Response {
+func SuccessResponse(data any) Response {
 	return Response{
 		Success: true,
 		Data:    data,
@@ -17,7 +17,7 @@ func SuccessResponse(data interface{}) Response {
 }
 
 // SuccessMessageResponse creates a success response with message
-func SuccessMessageResponse(message string, data interface{}) Response {
+func SuccessMessageResponse(message string, data any) Response {
 	return Response{
 		Success: true,
 		Message: message,

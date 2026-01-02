@@ -1,9 +1,23 @@
 package utils
 
-import "regexp"
+import (
+	"errors"
+	"regexp"
+)
 
 // STRUCT TO INDICATE VALIDATOR UTILITIES
 type Validator struct{}
+
+// HELPER TO VALIDATE REQUIRED FIELDS AT ONCE
+func (v *Validator) ValidateRequiredFields(fields map[string]any) error {
+	for name, value := range fields {
+		if ok, message := v.validateRequired(value, name); !ok {
+			return errors.New(message)
+		}
+	}
+
+	return nil
+}
 
 // VALIDATE EMAIL FORMAT
 func (v *Validator) ValidateEmail(email string) bool {
@@ -28,10 +42,18 @@ func (v *Validator) ValidatePhone(phone string) bool {
 	return phoneRegex.MatchString(phone)
 }
 
-// ValidateRequired checks if value is not empty
-func (v *Validator) ValidateRequired(value any, fieldName string) (bool, string) {
-	if value == "" {
+// REQUIRED FIELD VALIDATION
+func (v *Validator) validateRequired(value any, fieldName string) (bool, string) {
+	if value == nil {
 		return false, fieldName + " is required"
 	}
+
+	switch v := value.(type) {
+	case string:
+		if v == "" {
+			return false, fieldName + " is required"
+		}
+	}
+
 	return true, ""
 }

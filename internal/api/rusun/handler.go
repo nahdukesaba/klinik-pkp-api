@@ -1,97 +1,98 @@
 package rusun
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
 )
 
-// Handler struct
+// CURRENT INSTANCE
 type Handler struct {
 	service *Service
 }
 
-// NewHandler constructor
+// CONSTRUCTOR
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) GetAllRusun(ctx *fiber.Ctx) error {
-	rusun, err := h.service.GetAll()
+func (h *Handler) GetRusunHandler(ctx *fiber.Ctx) error {
+	rusun, err := h.service.GetRusun()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse("Failed to fetch rusun data"))
+		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Success", rusun))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", rusun))
 }
 
-func (h *Handler) GetRusunByID(ctx *fiber.Ctx) error {
+func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.Atoi(ctx.Params("id"))
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid rusun id"))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	rusun, err := h.service.GetByID(id)
+	rusun, err := h.service.GetRusunById(id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err.Error()))
+		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Success", rusun))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", rusun))
 }
 
-func (h *Handler) CreateRusun(ctx *fiber.Ctx) error {
+func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
 	var payload RusunPayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body"))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	rusun, err := h.service.Create(payload)
+	rusun, err := h.service.AddRusun(payload)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessMessageResponse("Rusun created", rusun))
+	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("Rusun created", rusun))
 }
 
-func (h *Handler) UpdateRusun(ctx *fiber.Ctx) error {
+func (h *Handler) PutRusunByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.Atoi(ctx.Params("id"))
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid rusun id"))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
 	var payload RusunPayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body"))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	rusun, err := h.service.Update(id, payload)
+	rusun, err := h.service.EditRusunById(id, payload)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Rusun updated", rusun))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Rusun updated", rusun))
 }
 
-func (h *Handler) DeleteRusun(ctx *fiber.Ctx) error {
+func (h *Handler) DeleteRusunByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.Atoi(ctx.Params("id"))
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid rusun id"))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	err = h.service.Delete(id)
+	err = h.service.DeleteRusunById(id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Rusun deleted", nil))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Rusun deleted", nil))
 }

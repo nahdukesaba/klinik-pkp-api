@@ -1,16 +1,14 @@
 package seeders
 
 import (
-	"klinik-pkp-api/config"
-	"klinik-pkp-api/internal/api/user"
-	"log"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"klinik-pkp-api/internal/api/user"
+	"log"
 )
 
 // SEEDS FROM PREDEFINED DATA
-func UserSeeder(db *gorm.DB, cfg *config.Config) error {
+func UserSeeder(db *gorm.DB) error {
 	err := createUserIfNotExists(db, user.User{
 		ID:       uuid.New(),
 		Name:     "Administrator",
@@ -46,7 +44,7 @@ func createUserIfNotExists(db *gorm.DB, u user.User) error {
 			log.Printf("✓ User seeded: %s (role: %s)", u.Email, u.Role)
 		}
 	} else {
-		log.Printf("User already exists: %s", u.Email)
+		log.Printf("!? User already exists: %s", u.Email)
 	}
 
 	return nil

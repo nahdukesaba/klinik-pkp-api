@@ -2,24 +2,24 @@ package main
 
 import (
 	"fmt"
+	"gorm.io/gorm"
 	"klinik-pkp-api/config"
 	"klinik-pkp-api/seeders"
 	"log"
 	"os"
 	"strings"
-	"gorm.io/gorm"
 )
 
 // RUN SEED FOR ALL MODELS OR SPECIFIC MODELS
-func runSeeders(db *gorm.DB, cfg *config.Config, seedNames ...string) {
+func runSeeders(db *gorm.DB, seedNames ...string) {
 	err := error(nil)
 
 	// IF NO SEEDS SPECIFIED, SEED ALL
 	if len(seedNames) == 0 {
-		err = seedAll(db, cfg)
+		err = seedAll(db)
 	} else {
 		for _, name := range seedNames {
-			err = seedOnly(db, cfg, strings.ToLower(name))
+			err = seedOnly(db, strings.ToLower(name))
 
 			if err != nil {
 				break
@@ -55,12 +55,12 @@ func displayAvailableSeeders() {
 }
 
 // SEED ALL MODELS
-func seedAll(db *gorm.DB, cfg *config.Config) error {
+func seedAll(db *gorm.DB) error {
 	err := seeders.ProvinceSeeder(db)
 	err = seeders.RegionSeeder(db)
 	err = seeders.DistrictSeeder(db)
 	err = seeders.VillageSeeder(db)
-	err = seeders.UserSeeder(db, cfg)
+	// err = seeders.UserSeeder(db)
 	err = seeders.RusunSeeder(db)
 	err = seeders.BSPSSeeder(db)
 
@@ -68,7 +68,7 @@ func seedAll(db *gorm.DB, cfg *config.Config) error {
 }
 
 // SEED A SPECIFIC MODEL
-func seedOnly(db *gorm.DB, cfg *config.Config, modelName string) error {
+func seedOnly(db *gorm.DB, modelName string) error {
 	switch modelName {
 	case "province", "provinces":
 		if err := seeders.ProvinceSeeder(db); err != nil {
@@ -87,7 +87,7 @@ func seedOnly(db *gorm.DB, cfg *config.Config, modelName string) error {
 			return err
 		}
 	case "user", "users":
-		if err := seeders.UserSeeder(db, cfg); err != nil {
+		if err := seeders.UserSeeder(db); err != nil {
 			return err
 		}
 	case "rusun", "rusuns":
@@ -99,8 +99,7 @@ func seedOnly(db *gorm.DB, cfg *config.Config, modelName string) error {
 			return err
 		}
 	default:
-		log.Printf("✗ Unknown seed %s. Available seeders: province, region, district, village, user, rusun, bsps\n", modelName)
-		return fmt.Errorf("✗ Unknown seed %s", modelName)
+		return fmt.Errorf("Unknown seed %s. Available seeders: province, region, district, village, user, rusun, bsps\n", modelName)
 	}
 
 	return nil
@@ -114,11 +113,12 @@ func main() {
 	db := config.ConnectDatabase(cfg.GetDSN())
 
 	// HANDLE HELP FLAG
-	if len(os.Args) > 1 && (os.Args[1] == "--help" || os.Args[1] == "-h") {
+	if len(os.Args) == 2 && (os.Args[1] == "--help" || os.Args[1] == "-h" || os.Args[1] == "help") {
 		displayAvailableSeeders()
-		return
-	}
 
-	// RUN SEEDER
-	runSeeders(db, &cfg, os.Args[1:]...)
+		return
+	} else {
+		// RUN SEEDER
+		runSeeders(db, os.Args[1:]...)
+	}
 }

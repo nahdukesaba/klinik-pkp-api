@@ -64,16 +64,52 @@ Base URL: `http://localhost:3000/api/v1`
 ## 📝 Cara Menggunakan
 
 ### 1. Run Migrations & Seeder
+
+#### Quick Migration Commands
+
+| Command | Description | Data Loss |
+|---------|-------------|-----------|
+| `go run cmd/migrate/main.go` | Migrate all tables | ❌ No |
+| `go run cmd/migrate/main.go user` | Migrate specific table | ❌ No |
+| `go run cmd/migrate/main.go drop` | Drop all tables | ⚠️ **YES** |
+| `go run cmd/migrate/main.go truncate bsps` | Truncate specific table | ⚠️ **YES** (table only) |
+| `go run cmd/migrate/main.go 20260104_...` | Run custom migration | ❌ No |
+| `go run cmd/migrate/main.go rollback 20260104_...` | Rollback migration | ⚠️ Maybe |
+
+#### Detailed Examples
+
 ```bash
-go run cmd/migrate/main.go --help
+# See all migration commands
+go run cmd/migrate/main.go help
+
+# Migrate all tables (safe - no data loss)
+go run cmd/migrate/main.go
+
+# Migrate specific tables
+go run cmd/migrate/main.go user province region
+
+# Drop all tables (⚠️ WARNING: Deletes all data!)
+go run cmd/migrate/main.go drop
+
+# Truncate specific table (⚠️ WARNING: Deletes table data!)
+go run cmd/migrate/main.go truncate bsps
+
+# Run custom migration
+go run cmd/migrate/main.go 20260104_add_example_column_to_bsps
+
+# Rollback custom migration
+go run cmd/migrate/main.go rollback 20260104_add_example_column_to_bsps
+
+# Run seeders
 go run cmd/seed/main.go --help 
-go run cmd/migrate/main.go villages
-go run cmd/seed/main.g villages
+go run cmd/seed/main.go
 ```
+
+📚 **Full Documentation:** See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for complete migration system documentation.
 
 ### 2. Run Server
 ```bash
-go run cmd/server/main.go
+fiber dev
 # atau
 go build -o klinik-pkp-api.exe .
 ./klinik-pkp-api.exe

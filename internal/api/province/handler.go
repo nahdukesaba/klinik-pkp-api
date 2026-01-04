@@ -20,10 +20,10 @@ func (h *Handler) GetAllProvinces(ctx *fiber.Ctx) error {
 	provinces, err := h.service.GetAll()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse("Failed to fetch provinces"))
+		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("success", provinces))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("success", provinces))
 }
 
 func (h *Handler) GetProvinceByID(ctx *fiber.Ctx) error {
@@ -31,24 +31,24 @@ func (h *Handler) GetProvinceByID(ctx *fiber.Ctx) error {
 	province, err := h.service.GetByID(id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err.Error()))
+		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Success", province))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", province))
 }
 
 func (h *Handler) CreateProvince(ctx *fiber.Ctx) error {
 	var payload ProvincePayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body"))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
 	province, err := h.service.Create(payload)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessMessageResponse("Province created", province))
+	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("Province created", province))
 }
 
 func (h *Handler) UpdateProvince(ctx *fiber.Ctx) error {
@@ -56,24 +56,24 @@ func (h *Handler) UpdateProvince(ctx *fiber.Ctx) error {
 	var payload ProvincePayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse("Invalid request body"))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
 	province, err := h.service.Update(id, payload)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Province updated", province))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Province updated", province))
 }
 
 func (h *Handler) DeleteProvince(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
 	if err := h.service.Delete(id); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessMessageResponse("Province deleted", nil))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Province deleted", nil))
 }

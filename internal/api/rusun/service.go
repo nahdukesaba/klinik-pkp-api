@@ -4,24 +4,22 @@ import (
 	"errors"
 	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
-	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/utils"
 )
 
-// Service struct
+// CURRENT INSTANCE
 type Service struct {
 	db        *gorm.DB
 	validator *utils.Validator
 }
 
-// RusunPayload represents data from input
+// PAYLOAD FROM REQUEST BODY
 type RusunPayload struct {
 	VillageID   string             `json:"village_id"`
 	DistrictID  string             `json:"district_id"`
 	RegionID    string             `json:"region_id"`
-	ProvinceID  string             `json:"province_id"`
 	Name        string             `json:"name"`
 	Address     string             `json:"address"`
 	Tower       int                `json:"tower"`
@@ -32,19 +30,18 @@ type RusunPayload struct {
 	Coordinates []utils.Coordinate `json:"coordinates"`
 }
 
-// NewService constructor
+// CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-func (s *Service) GetAll() ([]Rusun, error) {
+func (s *Service) GetRusun() ([]Rusun, error) {
 	var rusuns []Rusun
 
 	if err := s.db.
 		Preload("Village").
 		Preload("District").
 		Preload("Region").
-		Preload("Province").
 		Find(&rusuns).Error; err != nil {
 		return nil, err
 	}
@@ -52,13 +49,13 @@ func (s *Service) GetAll() ([]Rusun, error) {
 	return rusuns, nil
 }
 
-func (s *Service) GetByID(id int) (*Rusun, error) {
+func (s *Service) GetRusunById(id int) (*Rusun, error) {
 	var rusun Rusun
+
 	if err := s.db.
 		Preload("Village").
 		Preload("District").
 		Preload("Region").
-		Preload("Province").
 		First(&rusun, id).Error; err != nil {
 		return nil, err
 	}
@@ -66,13 +63,12 @@ func (s *Service) GetByID(id int) (*Rusun, error) {
 	return &rusun, nil
 }
 
-func (s *Service) Create(payload RusunPayload) (*Rusun, error) {
+func (s *Service) AddRusun(payload RusunPayload) (*Rusun, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"VillageID":   payload.VillageID,
 		"DistrictID":  payload.DistrictID,
 		"RegionID":    payload.RegionID,
-		"ProvinceID":  payload.ProvinceID,
 		"Name":        payload.Name,
 		"Address":     payload.Address,
 		"Tower":       payload.Tower,
@@ -87,20 +83,21 @@ func (s *Service) Create(payload RusunPayload) (*Rusun, error) {
 		return nil, err
 	}
 
-	// ENSURE RELATIONS EXIST
-	var vill village.Village
+	// ENSURE RELATED VILLAGE EXISTS
+	var village village.Village
 
-	if err := s.db.First(&vill, payload.VillageID).Error; err != nil {
+	if err := s.db.First(&village, payload.VillageID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("Village not found")
 		}
+
 		return nil, err
 	}
 
 	// ENSURE RELATED DISTRICT EXISTS
-	var dist district.District
+	var district district.District
 
-	if err := s.db.First(&dist, payload.DistrictID).Error; err != nil {
+	if err := s.db.First(&district, payload.DistrictID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("District not found")
 		}
@@ -108,22 +105,13 @@ func (s *Service) Create(payload RusunPayload) (*Rusun, error) {
 	}
 
 	// ENSURE RELATED REGION EXISTS
-	var reg region.Region
+	var region region.Region
 
-	if err := s.db.First(&reg, payload.RegionID).Error; err != nil {
+	if err := s.db.First(&region, payload.RegionID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("Region not found")
 		}
-		return nil, err
-	}
 
-	// ENSURE RELATED PROVINCE EXISTS
-	var prov province.Province
-
-	if err := s.db.First(&prov, payload.ProvinceID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Province not found")
-		}
 		return nil, err
 	}
 
@@ -131,7 +119,6 @@ func (s *Service) Create(payload RusunPayload) (*Rusun, error) {
 		VillageID:   payload.VillageID,
 		DistrictID:  payload.DistrictID,
 		RegionID:    payload.RegionID,
-		ProvinceID:  payload.ProvinceID,
 		Name:        payload.Name,
 		Address:     payload.Address,
 		Tower:       payload.Tower,
@@ -149,13 +136,12 @@ func (s *Service) Create(payload RusunPayload) (*Rusun, error) {
 	return &rusun, nil
 }
 
-func (s *Service) Update(id int, payload RusunPayload) (*Rusun, error) {
+func (s *Service) EditRusunById(id int, payload RusunPayload) (*Rusun, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"VillageID":   payload.VillageID,
 		"DistrictID":  payload.DistrictID,
 		"RegionID":    payload.RegionID,
-		"ProvinceID":  payload.ProvinceID,
 		"Name":        payload.Name,
 		"Address":     payload.Address,
 		"Tower":       payload.Tower,
@@ -182,9 +168,9 @@ func (s *Service) Update(id int, payload RusunPayload) (*Rusun, error) {
 	}
 
 	// ENSURE RELATED VILLAGE EXISTS
-	var vill village.Village
+	var village village.Village
 
-	if err := s.db.First(&vill, payload.VillageID).Error; err != nil {
+	if err := s.db.First(&village, payload.VillageID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("Village not found")
 		}
@@ -192,9 +178,9 @@ func (s *Service) Update(id int, payload RusunPayload) (*Rusun, error) {
 	}
 
 	// ENSURE RELATED DISTRICT EXISTS
-	var dist district.District
+	var district district.District
 
-	if err := s.db.First(&dist, payload.DistrictID).Error; err != nil {
+	if err := s.db.First(&district, payload.DistrictID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("District not found")
 		}
@@ -202,22 +188,11 @@ func (s *Service) Update(id int, payload RusunPayload) (*Rusun, error) {
 	}
 
 	// ENSURE RELATED REGION EXISTS
-	var reg region.Region
+	var region region.Region
 
-	if err := s.db.First(&reg, payload.RegionID).Error; err != nil {
+	if err := s.db.First(&region, payload.RegionID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, errors.New("Region not found")
-		}
-
-		return nil, err
-	}
-
-	// ENSURE RELATED PROVINCE EXISTS
-	var prov province.Province
-
-	if err := s.db.First(&prov, payload.ProvinceID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Province not found")
 		}
 
 		return nil, err
@@ -226,7 +201,6 @@ func (s *Service) Update(id int, payload RusunPayload) (*Rusun, error) {
 	rusun.VillageID = payload.VillageID
 	rusun.DistrictID = payload.DistrictID
 	rusun.RegionID = payload.RegionID
-	rusun.ProvinceID = payload.ProvinceID
 	rusun.Name = payload.Name
 	rusun.Address = payload.Address
 	rusun.Coordinates = payload.Coordinates
@@ -242,7 +216,7 @@ func (s *Service) Update(id int, payload RusunPayload) (*Rusun, error) {
 	return &rusun, nil
 }
 
-func (s *Service) Delete(id int) error {
+func (s *Service) DeleteRusunById(id int) error {
 	var rusun Rusun
 
 	if err := s.db.First(&rusun, id).Error; err != nil {

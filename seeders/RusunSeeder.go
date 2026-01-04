@@ -3,6 +3,7 @@ package seeders
 import (
 	"encoding/csv"
 	"fmt"
+	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/rusun"
 	"klinik-pkp-api/utils"
@@ -10,8 +11,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"gorm.io/gorm"
 )
 
 // SEEDS FROM PREDEFINED DATA
@@ -56,20 +55,19 @@ func RusunSeeder(db *gorm.DB) error {
 			continue
 		}
 
-		if len(record) < 9 {
+		if len(record) < 12 {
 			continue
 		}
 
-		id, _ := strconv.ParseUint(record[0], 10, 64)
-		tower, _ := strconv.Atoi(record[7])
-		floor, _ := strconv.Atoi(record[9])
-		unitCount, _ := strconv.Atoi(record[10])
-		yearGiven, _ := strconv.Atoi(record[11])
+		tower, _ := strconv.Atoi(record[5])
+		floor, _ := strconv.Atoi(record[7])
+		unitCount, _ := strconv.Atoi(record[8])
+		yearGiven, _ := strconv.Atoi(record[9])
 
 		var coordinates []utils.Coordinate
 
-		// PARSE COORDINATES FROM COLUMN[12] ONWARDS
-		for i := 12; i+1 < len(record); i += 2 {
+		// PARSE COORDINATES FROM COLUMN[10] ONWARDS
+		for i := 10; i+1 < len(record); i += 2 {
 			stringLatitude := strings.TrimSpace(record[i])
 			stringLongitude := strings.TrimSpace(record[i+1])
 
@@ -84,6 +82,11 @@ func RusunSeeder(db *gorm.DB) error {
 				return fmt.Errorf("invalid coordinate at column %d", i)
 			}
 
+			utils.ValidateCoordinate(utils.Coordinate{
+				Latitude:  latitude,
+				Longitude: longitude,
+			})
+
 			coordinates = append(coordinates, utils.Coordinate{
 				Latitude:  latitude,
 				Longitude: longitude,
@@ -91,15 +94,13 @@ func RusunSeeder(db *gorm.DB) error {
 		}
 
 		batch = append(batch, rusun.Rusun{
-			ID:          uint(id),
-			VillageID:   record[1],
-			DistrictID:  record[2],
-			RegionID:    record[3],
-			ProvinceID:  record[4],
-			Name:        record[5],
-			Address:     record[6],
+			VillageID:   record[0],
+			DistrictID:  record[1],
+			RegionID:    record[2],
+			Name:        record[3],
+			Address:     record[4],
 			Tower:       tower,
-			UnitType:    record[8],
+			UnitType:    record[6],
 			Floor:       floor,
 			UnitCount:   unitCount,
 			YearGiven:   yearGiven,

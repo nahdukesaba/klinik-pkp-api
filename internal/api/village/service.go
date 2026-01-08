@@ -2,31 +2,30 @@ package village
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/utils"
-
-	"gorm.io/gorm"
 )
 
-// Service struct
+// CURRENT INSTANCE
 type Service struct {
 	db        *gorm.DB
 	validator *utils.Validator
 }
 
-// NewService constructor
+// CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-// VillagePayload struct
+// PAYLOAD FROM REQUEST BODY
 type VillagePayload struct {
 	ID         string `json:"id"`
 	Name       string `json:"name"`
 	DistrictID string `json:"district_id"`
 }
 
-func (s *Service) GetAll() ([]Village, error) {
+func (s *Service) GetVillages() ([]Village, error) {
 	var villages []Village
 
 	if err := s.db.
@@ -38,7 +37,7 @@ func (s *Service) GetAll() ([]Village, error) {
 	return villages, nil
 }
 
-func (s *Service) GetByID(id string) (*Village, error) {
+func (s *Service) GetVillageById(id string) (*Village, error) {
 	var village Village
 
 	if err := s.db.
@@ -54,7 +53,7 @@ func (s *Service) GetByID(id string) (*Village, error) {
 	return &village, nil
 }
 
-func (s *Service) Create(payload VillagePayload) (*Village, error) {
+func (s *Service) AddVillage(payload VillagePayload) (*Village, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"ID":         payload.ID,
@@ -89,7 +88,7 @@ func (s *Service) Create(payload VillagePayload) (*Village, error) {
 	return &village, nil
 }
 
-func (s *Service) Update(id string, payload VillagePayload) (*Village, error) {
+func (s *Service) EditVillageById(id string, payload VillagePayload) (*Village, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"DistrictID": payload.DistrictID,
@@ -133,7 +132,7 @@ func (s *Service) Update(id string, payload VillagePayload) (*Village, error) {
 }
 
 // SOFT DELETE
-func (s *Service) Delete(id string) error {
+func (s *Service) DeleteVillageById(id string) error {
 	var village Village
 
 	if err := s.db.First(&village, id).Error; err != nil {

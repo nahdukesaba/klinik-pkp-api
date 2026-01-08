@@ -7,24 +7,24 @@ import (
 	"gorm.io/gorm"
 )
 
-// Service struct
+// CURRENT INSTANCE
 type Service struct {
 	db        *gorm.DB
 	validator *utils.Validator
 }
 
-// ProvincePayload represents data from input
+// PAYLOAD FROM REQUEST BODY
 type ProvincePayload struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
-// NewService constructor
+// CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-func (s *Service) GetAll() ([]Province, error) {
+func (s *Service) GetProvinces() ([]Province, error) {
 	var provinces []Province
 
 	if err := s.db.Find(&provinces).Error; err != nil {
@@ -34,7 +34,7 @@ func (s *Service) GetAll() ([]Province, error) {
 	return provinces, nil
 }
 
-func (s *Service) GetByID(id string) (*Province, error) {
+func (s *Service) GetProvinceById(id string) (*Province, error) {
 	var province Province
 
 	if err := s.db.First(&province, id).Error; err != nil {
@@ -47,7 +47,7 @@ func (s *Service) GetByID(id string) (*Province, error) {
 	return &province, nil
 }
 
-func (s *Service) Create(payload ProvincePayload) (*Province, error) {
+func (s *Service) AddProvince(payload ProvincePayload) (*Province, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"ID":   payload.ID,
@@ -70,7 +70,7 @@ func (s *Service) Create(payload ProvincePayload) (*Province, error) {
 	return &province, nil
 }
 
-func (s *Service) Update(id string, payload ProvincePayload) (*Province, error) {
+func (s *Service) EditProvinceById(id string, payload ProvincePayload) (*Province, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"Name": payload.Name,
@@ -99,7 +99,7 @@ func (s *Service) Update(id string, payload ProvincePayload) (*Province, error) 
 	return &province, nil
 }
 
-func (s *Service) Delete(id string) error {
+func (s *Service) DeleteProvinceById(id string) error {
 	var province Province
 
 	if err := s.db.First(&province, id).Error; err != nil {

@@ -4,11 +4,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// SetupRoutes configures village routes
 func SetupRoutes(app fiber.Router, handler *Handler) {
-	app.Get("/villages", handler.GetAllVillages)
-	app.Get("/village/:id", handler.GetVillageByID)
-	app.Post("/village", handler.CreateVillage)
-	app.Put("/village/:id", handler.UpdateVillage)
-	app.Delete("/village/:id", handler.DeleteVillage)
+	app.Get("/villages", handler.GetVillagesHandler)
+	app.Get("/village/:id", handler.GetVillageByIdHandler)
+	app.Post("/village", handler.PostVillageHandler)
+	app.Put("/village/:id", handler.PutVillageByIdHandler)
+	app.Delete("/village/:id", handler.DeleteVillageByIdHandler)
 }

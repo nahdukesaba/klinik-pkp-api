@@ -2,31 +2,30 @@ package region
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/utils"
-
-	"gorm.io/gorm"
 )
 
-// Service struct
+// CURRENT INSTANCE
 type Service struct {
 	db        *gorm.DB
 	validator *utils.Validator
 }
 
-// RegionPayload represents data from input
+// PAYLOAD FROM REQUEST BODY
 type RegionPayload struct {
 	ID         string `json:"id"`
 	Name       string `json:"name"`
 	ProvinceID string `json:"province_id"`
 }
 
-// NewService constructor
+// CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-func (s *Service) GetAll() ([]Region, error) {
+func (s *Service) GetRegions() ([]Region, error) {
 	var regions []Region
 
 	if err := s.db.Preload("Province").Find(&regions).Error; err != nil {
@@ -36,7 +35,7 @@ func (s *Service) GetAll() ([]Region, error) {
 	return regions, nil
 }
 
-func (s *Service) GetByID(id string) (*Region, error) {
+func (s *Service) GetRegionById(id string) (*Region, error) {
 	var region Region
 
 	if err := s.db.Preload("Province").First(&region, id).Error; err != nil {
@@ -49,7 +48,7 @@ func (s *Service) GetByID(id string) (*Region, error) {
 	return &region, nil
 }
 
-func (s *Service) Create(payload RegionPayload) (*Region, error) {
+func (s *Service) AddRegion(payload RegionPayload) (*Region, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"ID":         payload.ID,
@@ -85,7 +84,7 @@ func (s *Service) Create(payload RegionPayload) (*Region, error) {
 	return &region, nil
 }
 
-func (s *Service) Update(id string, payload RegionPayload) (*Region, error) {
+func (s *Service) EditRegionById(id string, payload RegionPayload) (*Region, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"ProvinceID": payload.ProvinceID,
@@ -129,7 +128,7 @@ func (s *Service) Update(id string, payload RegionPayload) (*Region, error) {
 }
 
 // SOFT DELETE
-func (s *Service) Delete(id string) error {
+func (s *Service) DeleteRegionById(id string) error {
 	var region Region
 
 	if err := s.db.First(&region, id).Error; err != nil {

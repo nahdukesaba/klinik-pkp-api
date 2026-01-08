@@ -2,31 +2,30 @@ package district
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/utils"
-
-	"gorm.io/gorm"
 )
 
-// Service struct
+// CURRENT INSTANCE
 type Service struct {
 	db        *gorm.DB
 	validator *utils.Validator
 }
 
-// DistrictPayload represents data from input
+// PAYLOAD FROM REQUEST BODY
 type DistrictPayload struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	RegionID string `json:"region_id"`
 }
 
-// NewService constructor
+// CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-func (s *Service) GetAll() ([]District, error) {
+func (s *Service) GetDistricts() ([]District, error) {
 	var districts []District
 
 	if err := s.db.Preload("Region.Province").Find(&districts).Error; err != nil {
@@ -36,7 +35,7 @@ func (s *Service) GetAll() ([]District, error) {
 	return districts, nil
 }
 
-func (s *Service) GetByID(id string) (*District, error) {
+func (s *Service) GetDistrictById(id string) (*District, error) {
 	var district District
 
 	if err := s.db.Preload("Region.Province").First(&district, id).Error; err != nil {
@@ -50,7 +49,7 @@ func (s *Service) GetByID(id string) (*District, error) {
 	return &district, nil
 }
 
-func (s *Service) Create(payload DistrictPayload) (*District, error) {
+func (s *Service) AddDistrict(payload DistrictPayload) (*District, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"ID":       payload.ID,
@@ -86,7 +85,7 @@ func (s *Service) Create(payload DistrictPayload) (*District, error) {
 	return &district, nil
 }
 
-func (s *Service) Update(id string, payload DistrictPayload) (*District, error) {
+func (s *Service) EditDistrictById(id string, payload DistrictPayload) (*District, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"RegionID": payload.RegionID,
@@ -130,7 +129,7 @@ func (s *Service) Update(id string, payload DistrictPayload) (*District, error) 
 }
 
 // SOFT DELETE
-func (s *Service) Delete(id string) error {
+func (s *Service) DeleteDistrictById(id string) error {
 	var district District
 
 	if err := s.db.First(&district, id).Error; err != nil {

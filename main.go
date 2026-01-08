@@ -1,16 +1,18 @@
 package main
 
 import (
+	"github.com/gofiber/fiber/v2"
 	"klinik-pkp-api/config"
+	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/internal/api/district"
+	"klinik-pkp-api/internal/api/kumuh"
 	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/rusun"
-	"klinik-pkp-api/internal/api/village"
-	"klinik-pkp-api/internal/api/bsps"
+	"klinik-pkp-api/internal/api/sosialisasi"
 	"klinik-pkp-api/internal/api/user"
+	"klinik-pkp-api/internal/api/village"
 	"log"
-	"github.com/gofiber/fiber/v2"
 )
 
 // HANDLES FIBER ERRORS GLOBALLY
@@ -34,21 +36,25 @@ func main() {
 
 	// INIT SERVICE FOR EACH MODULE
 	userService := user.NewService(db)
-	rusunService := rusun.NewService(db)
 	provinceService := province.NewService(db)
 	regionService := region.NewService(db)
 	districtService := district.NewService(db)
 	villageService := village.NewService(db)
 	bspsService := bsps.NewService(db)
+	rusunService := rusun.NewService(db)
+	kumuhService := kumuh.NewService(db)
+	sosialisasiService := sosialisasi.NewService(db)
 
 	// INIT HANDLER FOR EACH SERVICE
 	userHandler := user.NewHandler(userService)
-	rusunHandler := rusun.NewHandler(rusunService)
 	provinceHandler := province.NewHandler(provinceService)
 	regionHandler := region.NewHandler(regionService)
 	districtHandler := district.NewHandler(districtService)
 	villageHandler := village.NewHandler(villageService)
 	bspsHandler := bsps.NewHandler(bspsService)
+	rusunHandler := rusun.NewHandler(rusunService)
+	kumuhHandler := kumuh.NewHandler(kumuhService)
+	sosialisasiHandler := sosialisasi.NewHandler(sosialisasiService)
 
 	// INIT HTTP SERVER
 	app := fiber.New(fiber.Config{
@@ -65,12 +71,14 @@ func main() {
 
 	// ALL ROUTES
 	user.SetupRoutes(api, userHandler)
-	rusun.SetupRoutes(api, rusunHandler)
 	province.SetupRoutes(api, provinceHandler)
 	region.SetupRoutes(api, regionHandler)
 	district.SetupRoutes(api, districtHandler)
 	village.SetupRoutes(api, villageHandler)
 	bsps.SetupRoutes(api, bspsHandler)
+	rusun.SetupRoutes(api, rusunHandler)
+	kumuh.SetupRoutes(api, kumuhHandler)
+	sosialisasi.SetupRoutes(api, sosialisasiHandler)
 
 	// MAIN ROUTE
 	api.Get("/", func(c *fiber.Ctx) error {

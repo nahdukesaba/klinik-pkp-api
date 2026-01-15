@@ -5,101 +5,91 @@ import (
 	"mime/multipart"
 	"path/filepath"
 	"strings"
-	"time"
-	"github.com/google/uuid"
 )
 
-// AllowedImageTypes daftar MIME types yang diizinkan
-var AllowedImageTypes = map[string]bool{
-	"image/jpeg": true,
-	"image/jpg":  true,
-	"image/png":  true,
-	"image/gif":  true,
-	"image/webp": true,
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+
+var AllowedMimeTypes = map[string]bool{
+	"image/jpeg":      true,
+	"image/jpg":       true,
+	"image/png":       true,
+	"image/gif":       true,
+	"image/webp":      true,
+	"image/x-icon":    true,
+	"image/svg+xml":   true,
+	"application/pdf": true,
 }
 
-// AllowedImageExtensions daftar ekstensi yang diizinkan
 var AllowedImageExtensions = map[string]bool{
-	".jpg":  true,
 	".jpeg": true,
+	".jpg":  true,
 	".png":  true,
 	".gif":  true,
 	".webp": true,
 }
 
-// ImageUploadConfig konfigurasi untuk upload image
-type ImageUploadConfig struct {
-	MaxFileSize      int64  // dalam bytes
-	UploadDir        string // direktori penyimpanan
-	AllowedMimeTypes map[string]bool
-}
-
-// DefaultImageConfig konfigurasi default untuk upload image
-func DefaultImageConfig() ImageUploadConfig {
-	return ImageUploadConfig{
-		MaxFileSize:      5 * 1024 * 1024, // 5MB
-		UploadDir:        "./uploads/images",
-		AllowedMimeTypes: AllowedImageTypes,
-	}
-}
-
-// ValidateImageFile validasi file image yang diupload
-func ValidateImageFile(file *multipart.FileHeader, config ImageUploadConfig) error {
-	// Validasi ukuran file
-	if file.Size > config.MaxFileSize {
-		maxMB := float64(config.MaxFileSize) / (1024 * 1024)
-		return fmt.Errorf("ukuran file terlalu besar, maksimal %.1f MB", maxMB)
+func ValidateImageFile(file *multipart.FileHeader) error {
+	if file.Size > MAX_FILE_SIZE {
+		return fmt.Errorf("ukuran file terlalu besar, maksimal %.1f MB", float64(MAX_FILE_SIZE)/(1024*1024))
 	}
 
-	// Validasi MIME type
-	contentType := file.Header.Get("Content-Type")
-	if !config.AllowedMimeTypes[contentType] {
-		return fmt.Errorf("tipe file tidak diizinkan, hanya %v", getAllowedTypesString(config.AllowedMimeTypes))
+	if !AllowedMimeTypes[file.Header.Get("Content-Type")] {
+		return fmt.Errorf("tipe file tidak diizinkan, hanya %v", getAllowedTypesString(AllowedMimeTypes))
 	}
 
-	// Validasi ekstensi file
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if !AllowedImageExtensions[ext] {
+	if !AllowedImageExtensions[strings.ToLower(filepath.Ext(file.Filename))] {
 		return fmt.Errorf("ekstensi file tidak diizinkan")
 	}
 
 	return nil
 }
 
-// GenerateUniqueFilename membuat nama file yang unik
-func GenerateUniqueFilename(originalFilename string) string {
-	ext := filepath.Ext(originalFilename)
-	// Gunakan UUID untuk nama file unik
-	uniqueName := uuid.New().String()
-	timestamp := time.Now().Unix()
-	return fmt.Sprintf("%d_%s%s", timestamp, uniqueName, ext)
+func ValidateImageCategory(category string) (string, error) {
+	var formattedCategory string = strings.ToLower(strings.TrimSpace(category))
+
+	if formattedCategory == "" {
+		return "", fmt.Errorf("category is required")
+	}
+
+	if !isValidCategory(formattedCategory) {
+		return "", fmt.Errorf("category contains invalid characters")
+	}
+
+	return formattedCategory, nil
 }
 
-// SanitizeFilename membersihkan nama file dari karakter berbahaya
-func SanitizeFilename(filename string) string {
-	// Hapus karakter yang tidak aman
-	filename = strings.ReplaceAll(filename, "..", "")
-	filename = strings.ReplaceAll(filename, "/", "")
-	filename = strings.ReplaceAll(filename, "\\", "")
-	filename = strings.ReplaceAll(filename, " ", "_")
-	return filename
+func ValidateImageExtension(filename string) (string, error) {
+	extension := strings.ToLower(filepath.Ext(filename))
+
+	if extension == "" {
+		return "", fmt.Errorf("file must have an extension")
+	}
+
+	if !AllowedImageExtensions[extension] {
+		return "", fmt.Errorf("extension %s is not allowed", extension)
+	}
+
+	return extension, nil
 }
 
-// GetFileExtension mendapatkan ekstensi file
-func GetFileExtension(filename string) string {
-	return strings.ToLower(filepath.Ext(filename))
-}
-
-// getAllowedTypesString helper untuk mendapatkan daftar tipe yang diizinkan
+// HELPER TO GET ALLOWED MIME TYPES AS STRING
 func getAllowedTypesString(types map[string]bool) string {
 	var allowed []string
+
 	for t := range types {
 		allowed = append(allowed, t)
 	}
+
 	return strings.Join(allowed, ", ")
 }
 
-// IsImageFile cek apakah file adalah image
-func IsImageFile(mimeType string) bool {
-	return AllowedImageTypes[mimeType]
+// CHECK IF CATEGORY ONLY CONTAINS ALPHANUMERIC CHARACTERS AND UNDERSCORES
+func isValidCategory(category string) bool {
+	for _, char := range category {
+		if !((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '_') {
+			return false
+		}
+	}
+
+	return len(category) > 0
 }

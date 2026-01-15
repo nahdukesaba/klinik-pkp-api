@@ -5,13 +5,12 @@ import (
 	"klinik-pkp-api/internal/api/region"
 	"log"
 	"os"
-
 	"gorm.io/gorm"
 )
 
 // SEEDS FROM THE CSV FILE
 func RegionSeeder(db *gorm.DB) error {
-	file, err := os.Open("others/region.csv")
+	file, err := os.Open("seeders/data/region.csv")
 
 	if err != nil {
 		return err

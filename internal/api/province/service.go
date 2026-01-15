@@ -1,10 +1,9 @@
 package province
 
 import (
-	"errors"
-	"klinik-pkp-api/utils"
-
+	"fmt"
 	"gorm.io/gorm"
+	"klinik-pkp-api/utils"
 )
 
 // CURRENT INSTANCE
@@ -39,7 +38,7 @@ func (s *Service) GetProvinceById(id string) (*Province, error) {
 
 	if err := s.db.First(&province, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Province not found")
+			return nil, fmt.Errorf("province with id %s is not found", id)
 		}
 		return nil, err
 	}
@@ -49,12 +48,10 @@ func (s *Service) GetProvinceById(id string) (*Province, error) {
 
 func (s *Service) AddProvince(payload ProvincePayload) (*Province, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	if err := s.validator.ValidateRequiredFields(map[string]any{
 		"ID":   payload.ID,
 		"Name": payload.Name,
-	})
-
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -72,11 +69,9 @@ func (s *Service) AddProvince(payload ProvincePayload) (*Province, error) {
 
 func (s *Service) EditProvinceById(id string, payload ProvincePayload) (*Province, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	if err := s.validator.ValidateRequiredFields(map[string]any{
 		"Name": payload.Name,
-	})
-
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -84,7 +79,7 @@ func (s *Service) EditProvinceById(id string, payload ProvincePayload) (*Provinc
 
 	if err := s.db.First(&province, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Province not found")
+			return nil, fmt.Errorf("province with id %s is not found", id)
 		}
 
 		return nil, err
@@ -104,7 +99,7 @@ func (s *Service) DeleteProvinceById(id string) error {
 
 	if err := s.db.First(&province, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return errors.New("Province not found")
+			return fmt.Errorf("province with id %s is not found", id)
 		}
 		return err
 	}

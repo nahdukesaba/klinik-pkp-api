@@ -6,13 +6,12 @@ import (
 	"klinik-pkp-api/internal/api/district"
 	"log"
 	"os"
-
 	"gorm.io/gorm"
 )
 
 // SEEDS FROM THE CSV FILE
 func DistrictSeeder(db *gorm.DB) error {
-	file, err := os.Open("others/district.csv")
+	file, err := os.Open("seeders/data/district.csv")
 
 	if err != nil {
 		return err

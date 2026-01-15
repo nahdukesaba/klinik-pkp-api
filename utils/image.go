@@ -28,7 +28,7 @@ var AllowedImageExtensions = map[string]bool{
 	".webp": true,
 }
 
-func ValidateImageFile(file *multipart.FileHeader) error {
+func ValidateImage(file *multipart.FileHeader) error {
 	if file.Size > MAX_FILE_SIZE {
 		return fmt.Errorf("ukuran file terlalu besar, maksimal %.1f MB", float64(MAX_FILE_SIZE)/(1024*1024))
 	}
@@ -56,20 +56,6 @@ func ValidateImageCategory(category string) (string, error) {
 	}
 
 	return formattedCategory, nil
-}
-
-func ValidateImageExtension(filename string) (string, error) {
-	extension := strings.ToLower(filepath.Ext(filename))
-
-	if extension == "" {
-		return "", fmt.Errorf("file must have an extension")
-	}
-
-	if !AllowedImageExtensions[extension] {
-		return "", fmt.Errorf("extension %s is not allowed", extension)
-	}
-
-	return extension, nil
 }
 
 // HELPER TO GET ALLOWED MIME TYPES AS STRING

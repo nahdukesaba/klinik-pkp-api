@@ -112,7 +112,7 @@ func main() {
 	// SET DATABASE CONNECTION
 	db := config.ConnectDatabase(cfg.GetDSN())
 
-	// HANDLE HELP FLAG
+	// HANDLE EXECUTION BASED ON FLAGS
 	if len(os.Args) == 2 && (os.Args[1] == "--help" || os.Args[1] == "-h" || os.Args[1] == "help") {
 		displayAvailableSeeders()
 

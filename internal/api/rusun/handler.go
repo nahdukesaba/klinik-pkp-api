@@ -28,7 +28,7 @@ func (h *Handler) GetRusunHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
@@ -56,11 +56,11 @@ func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("Rusun created", rusun))
+	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("rusun created", rusun))
 }
 
 func (h *Handler) PutRusunByIdHandler(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
@@ -82,7 +82,7 @@ func (h *Handler) PutRusunByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteRusunByIdHandler(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
@@ -94,5 +94,5 @@ func (h *Handler) DeleteRusunByIdHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Rusun deleted", nil))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("rusun deleted", nil))
 }

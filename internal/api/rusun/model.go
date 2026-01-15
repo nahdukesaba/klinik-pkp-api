@@ -1,16 +1,17 @@
 package rusun
 
 import (
-	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/utils"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Rusun struct {
-	ID          uint               `gorm:"primaryKey" json:"id"`
+	ID          uint64               `gorm:"primaryKey" json:"id"`
 	VillageID   string             `gorm:"column:village_id;not null" json:"village_id"`
 	DistrictID  string             `gorm:"column:district_id;not null" json:"district_id"`
 	RegionID    string             `gorm:"column:region_id;not null" json:"region_id"`
@@ -21,6 +22,7 @@ type Rusun struct {
 	Floor       int                `json:"floor"`
 	UnitCount   int                `json:"unit_count"`
 	YearGiven   int                `json:"year_given"`
+	ImageURLs   []string           `gorm:"column:image_urls;serializer:json" json:"image_urls"`
 	Coordinates []utils.Coordinate `gorm:"serializer:json" json:"coordinates"`
 
 	CreatedAt time.Time      `json:"created_at"`

@@ -8,7 +8,7 @@ type Response struct {
 	Error   string `json:"error,omitempty"`
 }
 
-// RETURNS A SUCCESS RESPONSE
+// SUCCESS RESPONSE
 func SuccessResponse(message string, data any) Response {
 	return Response{
 		Success: true,
@@ -17,7 +17,7 @@ func SuccessResponse(message string, data any) Response {
 	}
 }
 
-// RETURNS AN ERROR RESPONSE
+// ERROR RESPONSE
 func ErrorResponse(err error) Response {
 	return Response{
 		Success: false,

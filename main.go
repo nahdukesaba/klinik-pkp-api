@@ -10,6 +10,7 @@ import (
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/rusun"
 	"klinik-pkp-api/internal/api/sosialisasi"
+	"klinik-pkp-api/internal/api/uploads"
 	"klinik-pkp-api/internal/api/user"
 	"klinik-pkp-api/internal/api/village"
 	"log"
@@ -34,28 +35,6 @@ func main() {
 	// SET DATABASE CONNECTION
 	db := config.ConnectDatabase(cfg.GetDSN())
 
-	// INIT SERVICE FOR EACH MODULE
-	userService := user.NewService(db)
-	provinceService := province.NewService(db)
-	regionService := region.NewService(db)
-	districtService := district.NewService(db)
-	villageService := village.NewService(db)
-	bspsService := bsps.NewService(db)
-	rusunService := rusun.NewService(db)
-	kumuhService := kumuh.NewService(db)
-	sosialisasiService := sosialisasi.NewService(db)
-
-	// INIT HANDLER FOR EACH SERVICE
-	userHandler := user.NewHandler(userService)
-	provinceHandler := province.NewHandler(provinceService)
-	regionHandler := region.NewHandler(regionService)
-	districtHandler := district.NewHandler(districtService)
-	villageHandler := village.NewHandler(villageService)
-	bspsHandler := bsps.NewHandler(bspsService)
-	rusunHandler := rusun.NewHandler(rusunService)
-	kumuhHandler := kumuh.NewHandler(kumuhService)
-	sosialisasiHandler := sosialisasi.NewHandler(sosialisasiService)
-
 	// INIT HTTP SERVER
 	app := fiber.New(fiber.Config{
 		AppName:      "Klinik PKP Sumatera Utara API",
@@ -63,22 +42,20 @@ func main() {
 		BodyLimit:    4 * 1024 * 1024, // 4MB max body size
 	})
 
-	// SERVE STATIC FILES FOR UPLOADS
-	app.Static("/uploads", "./uploads")
-
 	// GROUP ROUTES WITH /api/v1 PREFIX
 	api := app.Group("/api/v1")
 
 	// ALL ROUTES
-	user.SetupRoutes(api, userHandler)
-	province.SetupRoutes(api, provinceHandler)
-	region.SetupRoutes(api, regionHandler)
-	district.SetupRoutes(api, districtHandler)
-	village.SetupRoutes(api, villageHandler)
-	bsps.SetupRoutes(api, bspsHandler)
-	rusun.SetupRoutes(api, rusunHandler)
-	kumuh.SetupRoutes(api, kumuhHandler)
-	sosialisasi.SetupRoutes(api, sosialisasiHandler)
+	user.SetupRoutes(api, user.NewHandler(user.NewService(db)))
+	province.SetupRoutes(api, province.NewHandler(province.NewService(db)))
+	region.SetupRoutes(api, region.NewHandler(region.NewService(db)))
+	district.SetupRoutes(api, district.NewHandler(district.NewService(db)))
+	village.SetupRoutes(api, village.NewHandler(village.NewService(db)))
+	bsps.SetupRoutes(api, bsps.NewHandler(bsps.NewService(db)))
+	rusun.SetupRoutes(api, rusun.NewHandler(rusun.NewService(db)))
+	kumuh.SetupRoutes(api, kumuh.NewHandler(kumuh.NewService(db)))
+	sosialisasi.SetupRoutes(api, sosialisasi.NewHandler(sosialisasi.NewService(db, uploads.NewService("./storage"))))
+	uploads.SetupRoutes(api)
 
 	// MAIN ROUTE
 	api.Get("/", func(c *fiber.Ctx) error {

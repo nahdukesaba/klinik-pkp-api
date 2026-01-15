@@ -1,9 +1,10 @@
 package bsps
 
 import (
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
-	"github.com/gofiber/fiber/v2"
 )
 
 // CURRENT INSTANCE
@@ -27,7 +28,8 @@ func (h *Handler) GetBSPSHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	// PARSE ID TO UINT64
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
@@ -36,7 +38,11 @@ func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {
 	bsps, err := h.service.GetBSPSById(id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		if err == gorm.ErrRecordNotFound {
+			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		}
+
+		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", bsps))
@@ -52,6 +58,10 @@ func (h *Handler) PostBSPSHandler(ctx *fiber.Ctx) error {
 	bsps, err := h.service.AddBSPS(payload)
 
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		}
+
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
@@ -59,7 +69,8 @@ func (h *Handler) PostBSPSHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) PutBSPSByIdHandler(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	// PARSE ID TO UINT64
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
@@ -74,6 +85,10 @@ func (h *Handler) PutBSPSByIdHandler(ctx *fiber.Ctx) error {
 	bsps, err := h.service.EditBSPSById(id, payload)
 
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		}
+
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
@@ -81,7 +96,8 @@ func (h *Handler) PutBSPSByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteBSPSByIdHandler(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+	// PARSE ID TO UINT64
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
@@ -90,6 +106,10 @@ func (h *Handler) DeleteBSPSByIdHandler(ctx *fiber.Ctx) error {
 	err = h.service.DeleteBSPSById(id)
 
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		}
+
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 

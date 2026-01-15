@@ -1,8 +1,9 @@
 package village
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"klinik-pkp-api/utils"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // CURRENT INSTANCE
@@ -16,24 +17,24 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetVillagesHandler(ctx *fiber.Ctx) error {
-	villages, err := h.service.GetVillages()
+	response, err := h.service.GetVillages()
 
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(fiber.ErrBadRequest))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", villages))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", response))
 }
 
 func (h *Handler) GetVillageByIdHandler(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	village, err := h.service.GetVillageById(id)
+	response, err := h.service.GetVillageById(id)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", village))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", response))
 }
 
 func (h *Handler) PostVillageHandler(ctx *fiber.Ctx) error {
@@ -43,13 +44,13 @@ func (h *Handler) PostVillageHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	village, err := h.service.AddVillage(payload)
+	response, err := h.service.AddVillage(payload)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("Village created", village))
+	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("village created", response))
 }
 
 func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
@@ -60,13 +61,13 @@ func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	village, err := h.service.EditVillageById(id, payload)
+	response, err := h.service.EditVillageById(id, payload)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Village updated", village))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Village updated", response))
 }
 
 func (h *Handler) DeleteVillageByIdHandler(ctx *fiber.Ctx) error {
@@ -76,5 +77,5 @@ func (h *Handler) DeleteVillageByIdHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Village deleted", nil))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("village deleted", nil))
 }

@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"klinik-pkp-api/config"
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/rusun"
+	"klinik-pkp-api/internal/api/sosialisasi"
 	"klinik-pkp-api/internal/api/user"
 	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/migrations"
@@ -16,6 +16,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 // CREATE TABLES BASED ON MODELS ARGUMENTS
@@ -32,21 +34,20 @@ func createTables(db *gorm.DB, models ...string) error {
 			&user.User{},
 			&rusun.Rusun{},
 			&bsps.BSPS{},
+			&sosialisasi.Sosialisasi{},
 		)
 
 		if err != nil {
 			return err
 		}
 
+		log.Println("✓ User table migrated")
 		log.Println("✓ Province table migrated")
 		log.Println("✓ Region table migrated")
 		log.Println("✓ District table migrated")
 		log.Println("✓ Village table migrated")
-		log.Println("✓ User table migrated")
 		log.Println("✓ Rusun table migrated")
 		log.Println("✓ BSPS table migrated")
-
-		return err
 	} else {
 		// CREATE SPECIFIC MODELS
 		for _, model := range models {
@@ -57,7 +58,31 @@ func createTables(db *gorm.DB, models ...string) error {
 				}
 
 				log.Println("✓ User table migrated")
-			case "rusun", "rusuns":
+			case "province":
+				if err := db.AutoMigrate(&province.Province{}); err != nil {
+					return err
+				}
+
+				log.Println("✓ Province table migrated")
+			case "region":
+				if err := db.AutoMigrate(&region.Region{}); err != nil {
+					return err
+				}
+
+				log.Println("✓ Region table migrated")
+			case "district":
+				if err := db.AutoMigrate(&district.District{}); err != nil {
+					return err
+				}
+
+				log.Println("✓ District table migrated")
+			case "village":
+				if err := db.AutoMigrate(&village.Village{}); err != nil {
+					return err
+				}
+
+				log.Println("✓ Village table migrated")
+			case "rusun":
 				if err := db.AutoMigrate(&rusun.Rusun{}); err != nil {
 					return err
 				}
@@ -69,40 +94,24 @@ func createTables(db *gorm.DB, models ...string) error {
 				}
 
 				log.Println("✓ BSPS table migrated")
-			case "province", "provinces":
-				if err := db.AutoMigrate(&province.Province{}); err != nil {
+			case "sosialisasi":
+				if err := db.AutoMigrate(&sosialisasi.Sosialisasi{}); err != nil {
 					return err
 				}
 
-				log.Println("✓ Province table migrated")
-			case "region", "regions":
-				if err := db.AutoMigrate(&region.Region{}); err != nil {
-					return err
-				}
-
-				log.Println("✓ Region table migrated")
-			case "district", "districts":
-				if err := db.AutoMigrate(&district.District{}); err != nil {
-					return err
-				}
-
-				log.Println("✓ District table migrated")
-			case "village", "villages":
-				if err := db.AutoMigrate(&village.Village{}); err != nil {
-					return err
-				}
-
-				log.Println("✓ Village table migrated")
+				log.Println("✓ Sosialisasi table migrated")
 			default:
 				return fmt.Errorf("Unknown migration %s. Available migrations: user, rusun, bsps, province, region, district, village\n", strings.ToLower(model))
 			}
 		}
 	}
 
+	log.Println("Table(s) creation completed")
+
 	return err
 }
 
-// DROP TABLES AND RESET SEQUENCES BASED ON MODELS ARGUMENTS
+// DROP TABLES AND RESET SEQUENCES BASED ON TABLES ARGUMENTS
 func dropTables(db *gorm.DB, tables ...string) error {
 	var err error
 
@@ -114,22 +123,30 @@ func dropTables(db *gorm.DB, tables ...string) error {
 			return fmt.Errorf("failed to get table names: %v", err)
 		}
 
+		if len(tablesFromDatabase) == 0 {
+			return fmt.Errorf("no tables found in database")
+		}
+
 		for _, table := range tablesFromDatabase {
-			err = utils.DropTable(db, table)
+			if err = utils.DropTable(db, table); err != nil {
+				return err
+			}
 		}
 	} else {
 		// DROP SPECIFIC TABLES
 		for _, table := range tables {
-			err = utils.DropTable(db, table)
+			if err = utils.DropTable(db, table); err != nil {
+				return err
+			}
 		}
 	}
 
 	log.Println("Table(s) deletion completed")
 
-	return err
+	return nil
 }
 
-// TRUNCATE A SPECIFIC TABLE BASED ON MODELS ARGUMENT
+// TRUNCATE A SPECIFIC TABLE BASED ON TABLES ARGUMENT
 func truncateTables(db *gorm.DB, tables ...string) error {
 	var err error
 
@@ -138,22 +155,30 @@ func truncateTables(db *gorm.DB, tables ...string) error {
 		var tablesFromDatabase []string
 
 		if err = db.Raw(`SELECT tablename FROM pg_tables WHERE schemaname = 'public'`).Scan(&tablesFromDatabase).Error; err != nil {
-			return fmt.Errorf("failed to get table names: %v", err)
+			return fmt.Errorf("%v", err)
+		}
+
+		if len(tablesFromDatabase) == 0 {
+			return fmt.Errorf("no tables found in database")
 		}
 
 		for _, table := range tablesFromDatabase {
-			err = utils.TruncateTable(db, table)
+			if err = utils.TruncateTable(db, table); err != nil {
+				return err
+			}
 		}
 	} else {
-		// DROP SPECIFIC TABLES
+		// TRUNCATE SPECIFIC TABLES
 		for _, table := range tables {
-			err = utils.TruncateTable(db, table)
+			if err = utils.TruncateTable(db, table); err != nil {
+				return err
+			}
 		}
 	}
 
-	log.Printf("✓ Table(s) truncated successfully")
+	log.Printf("Table(s) truncation completed")
 
-	return err
+	return nil
 }
 
 // RUN MODIFICATION BASED ON MIGRATION FILE
@@ -209,16 +234,6 @@ func displayAvailableMigrations() {
 	fmt.Println("6. Rollback a migration:")
 	fmt.Println("   > go run cmd/migrate/main.go rollback 20260104_add_example_column_to_bsps")
 	fmt.Println()
-
-	fmt.Println("📦 Available Models:")
-	fmt.Println("   ✓ user      - User accounts")
-	fmt.Println("   ✓ rusun     - Rusun data")
-	fmt.Println("   ✓ province  - Province data")
-	fmt.Println("   ✓ region    - Region data")
-	fmt.Println("   ✓ district  - District data")
-	fmt.Println("   ✓ village   - Village data")
-	fmt.Println("   ✓ bsps      - BSPS data")
-	fmt.Println()
 }
 
 func main() {
@@ -228,47 +243,47 @@ func main() {
 	// SET DATABASE CONNECTION
 	db := config.ConnectDatabase(cfg.GetDSN())
 
+	command := ""
+
+	if len(os.Args) >= 2 {
+		command = strings.ToLower(os.Args[1])
+	}
+
 	// HANDLE EXECUTION BASED ON FLAGS
-	if len(os.Args) == 2 && (strings.ToLower(os.Args[1]) == "--help" || strings.ToLower(os.Args[1]) == "-h" || strings.ToLower(os.Args[1]) == "help") {
+	if len(os.Args) == 2 && (command == "--help" || command == "-h" || command == "help") {
 		displayAvailableMigrations()
 
 		return
-	} else if len(os.Args) >= 2 && (strings.ToLower(os.Args[1]) == "drop" || strings.ToLower(os.Args[1]) == "truncate" || strings.ToLower(os.Args[1]) == "rollback" || strings.ToLower(os.Args[1]) == "modify") {
-		switch strings.ToLower(os.Args[1]) {
+	} else if len(os.Args) >= 2 && (command == "drop" || command == "truncate" || command == "rollback" || command == "modify") {
+		switch command {
 		case "drop":
 			if err := dropTables(db, os.Args[2:]...); err != nil {
-				log.Fatal("Failed to drop tables:", err)
+				log.Fatal("✗ Failed to drop tables: ", err)
 			}
 		case "truncate":
 			if err := truncateTables(db, os.Args[2:]...); err != nil {
-				log.Fatal("Failed to truncate table:", err)
+				log.Fatal("✗ Failed to truncate table: ", err)
 			}
 		case "rollback":
 			if len(os.Args) < 3 {
-				log.Fatal("Please specify a file name. Usage: go run cmd/migrate/main.go rollback <file_name>")
+				log.Fatal("✗ Please specify a file name. Usage: go run cmd/migrate/main.go rollback <file_name>")
 			}
 
-			fileName := os.Args[2]
-
-			if err := rollbackTable(db, fileName); err != nil {
-				log.Fatal("Failed to rollback migration:", err)
+			if err := rollbackTable(db, os.Args[2]); err != nil {
+				log.Fatal("✗ Failed to rollback migration: ", err)
 			}
 		case "modify":
 			if len(os.Args) < 3 {
-				log.Fatal("Please specify a file name. Usage: go run cmd/migrate/main.go modify <file_name>")
+				log.Fatal("✗ Please specify a file name. Usage: go run cmd/migrate/main.go modify <file_name>")
 			}
 
-			fileName := os.Args[2]
-
-			if err := modifyTable(db, fileName); err != nil {
-				log.Fatal("Failed to run migration:", err)
+			if err := modifyTable(db, os.Args[2]); err != nil {
+				log.Fatal("✗ Failed to run migration: ", err)
 			}
 		}
 	} else {
 		if err := createTables(db, os.Args[1:]...); err != nil {
 			log.Println("✗", err)
-		} else {
-			log.Println("Database creation completed")
 		}
 	}
 }

@@ -17,24 +17,24 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetProvincesHandler(ctx *fiber.Ctx) error {
-	provinces, err := h.service.GetProvinces()
+	response, err := h.service.GetProvinces()
 
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("success", provinces))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("success", response))
 }
 
 func (h *Handler) GetProvinceByIdHandler(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	province, err := h.service.GetProvinceById(id)
+	response, err := h.service.GetProvinceById(id)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", province))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", response))
 }
 
 func (h *Handler) PostProvinceHandler(ctx *fiber.Ctx) error {
@@ -44,11 +44,11 @@ func (h *Handler) PostProvinceHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	province, err := h.service.AddProvince(payload)
+	response, err := h.service.AddProvince(payload)
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("Province created", province))
+	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("province created", response))
 }
 
 func (h *Handler) PutProvinceByIdHandler(ctx *fiber.Ctx) error {
@@ -59,13 +59,13 @@ func (h *Handler) PutProvinceByIdHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	province, err := h.service.EditProvinceById(id, payload)
+	response, err := h.service.EditProvinceById(id, payload)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Province updated", province))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Province updated", response))
 }
 
 func (h *Handler) DeleteProvinceByIdHandler(ctx *fiber.Ctx) error {
@@ -75,5 +75,5 @@ func (h *Handler) DeleteProvinceByIdHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Province deleted", nil))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("province deleted", nil))
 }

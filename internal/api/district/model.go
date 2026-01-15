@@ -1,9 +1,9 @@
 package district
 
 import (
+	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/region"
 	"time"
-	"gorm.io/gorm"
 )
 
 type District struct {

@@ -3,7 +3,6 @@ package seeders
 import (
 	"encoding/csv"
 	"fmt"
-	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/rusun"
 	"klinik-pkp-api/utils"
@@ -11,11 +10,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"gorm.io/gorm"
 )
 
 // SEEDS FROM PREDEFINED DATA
 func RusunSeeder(db *gorm.DB) error {
-	file, err := os.Open("others/rusun.csv")
+	file, err := os.Open("seeders/data/rusun.csv")
 
 	if err != nil {
 		return err

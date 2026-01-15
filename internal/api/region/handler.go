@@ -1,8 +1,9 @@
 package region
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"klinik-pkp-api/utils"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // CURRENT INSTANCE
@@ -16,24 +17,24 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetRegionsHandler(ctx *fiber.Ctx) error {
-	regions, err := h.service.GetRegions()
+	response, err := h.service.GetRegions()
 
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", regions))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", response))
 }
 
 func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	region, err := h.service.GetRegionById(id)
+	response, err := h.service.GetRegionById(id)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", region))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", response))
 }
 
 func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
@@ -43,13 +44,13 @@ func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	region, err := h.service.AddRegion(payload)
+	response, err := h.service.AddRegion(payload)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("Region created", region))
+	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("region created", response))
 }
 
 func (h *Handler) PutRegionByIdHandler(ctx *fiber.Ctx) error {
@@ -60,13 +61,13 @@ func (h *Handler) PutRegionByIdHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	region, err := h.service.EditRegionById(id, payload)
+	response, err := h.service.EditRegionById(id, payload)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Region updated", region))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Region updated", response))
 }
 
 func (h *Handler) DeleteRegionByIdHandler(ctx *fiber.Ctx) error {
@@ -76,5 +77,5 @@ func (h *Handler) DeleteRegionByIdHandler(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Region deleted", nil))
+	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("region deleted", nil))
 }

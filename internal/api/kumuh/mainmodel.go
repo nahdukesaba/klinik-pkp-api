@@ -16,6 +16,7 @@ type KumuhMain struct {
 	RegionID    string             `gorm:"column:region_id;not null" json:"region_id"`
 	UnitCount   int                `json:"unit_count"`
 	YearGiven   int                `json:"year_given"`
+	ImageURLs   []string           `gorm:"column:image_urls;serializer:json" json:"image_urls"`
 	Coordinates []utils.Coordinate `gorm:"serializer:json" json:"coordinates"`
 
 	CreatedAt time.Time      `json:"created_at"`

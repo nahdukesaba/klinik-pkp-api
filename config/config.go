@@ -56,7 +56,7 @@ func LoadConfig() Config {
 		AppEnv:       getEnv("APP_ENV", "development"),
 		DockerTarget: getEnv("DOCKER_TARGET", "dev"),
 		DockerCmd:    getEnv("DOCKER_CMD", "air"),
-		AppPort:	getEnv("APP_PORT", "8000"),
+		AppPort:      getEnv("APP_PORT", "8000"),
 
 		// DATABASE
 		DBHost: getEnv("DB_HOST", "127.0.0.1"),

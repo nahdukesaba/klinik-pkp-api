@@ -1,7 +1,7 @@
 package region
 
 import (
-	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/utils"
@@ -40,7 +40,7 @@ func (s *Service) GetRegionById(id string) (*Region, error) {
 
 	if err := s.db.Preload("Province").First(&region, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Region not found")
+			return nil, fmt.Errorf("region with id %s is not found", id)
 		}
 		return nil, err
 	}
@@ -50,13 +50,11 @@ func (s *Service) GetRegionById(id string) (*Region, error) {
 
 func (s *Service) AddRegion(payload RegionPayload) (*Region, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	if err := s.validator.ValidateRequiredFields(map[string]any{
 		"ID":         payload.ID,
 		"ProvinceID": payload.ProvinceID,
 		"Name":       payload.Name,
-	})
-
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -65,7 +63,7 @@ func (s *Service) AddRegion(payload RegionPayload) (*Region, error) {
 
 	if err := s.db.First(&prov, payload.ProvinceID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Province not found")
+			return nil, fmt.Errorf("province with id %s is not found", payload.ProvinceID)
 		}
 
 		return nil, err
@@ -86,12 +84,10 @@ func (s *Service) AddRegion(payload RegionPayload) (*Region, error) {
 
 func (s *Service) EditRegionById(id string, payload RegionPayload) (*Region, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	if err := s.validator.ValidateRequiredFields(map[string]any{
 		"ProvinceID": payload.ProvinceID,
 		"Name":       payload.Name,
-	})
-
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -100,7 +96,7 @@ func (s *Service) EditRegionById(id string, payload RegionPayload) (*Region, err
 	// ENSURE REGION EXISTS
 	if err := s.db.First(&region, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Region not found")
+			return nil, fmt.Errorf("region with id %s is not found", id)
 		}
 
 		return nil, err
@@ -111,7 +107,7 @@ func (s *Service) EditRegionById(id string, payload RegionPayload) (*Region, err
 
 	if err := s.db.First(&prov, payload.ProvinceID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Province not found")
+			return nil, fmt.Errorf("province with id %s is not found", payload.ProvinceID)
 		}
 
 		return nil, err
@@ -133,7 +129,7 @@ func (s *Service) DeleteRegionById(id string) error {
 
 	if err := s.db.First(&region, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return errors.New("Region not found")
+			return fmt.Errorf("region with id %s is not found", id)
 		}
 
 		return err

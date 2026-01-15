@@ -1,7 +1,7 @@
 package bsps
 
 import (
-	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/region"
@@ -44,7 +44,7 @@ func (s *Service) GetBSPS() ([]BSPS, error) {
 	return bsps, nil
 }
 
-func (s *Service) GetBSPSById(id int) (*BSPS, error) {
+func (s *Service) GetBSPSById(id uint64) (*BSPS, error) {
 	var bsps BSPS
 
 	if err := s.db.
@@ -52,7 +52,9 @@ func (s *Service) GetBSPSById(id int) (*BSPS, error) {
 		Preload("District").
 		Preload("Region").
 		First(&bsps, id).Error; err != nil {
-		return nil, err
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("BSPS with id %d is not found", id)
+		}
 	}
 
 	return &bsps, nil
@@ -80,7 +82,7 @@ func (s *Service) AddBSPS(payload BSPSPayload) (*BSPS, error) {
 
 	if err := s.db.First(&village, "id = ?", payload.VillageID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Village not found")
+			return nil, fmt.Errorf("village with id %s is not found", payload.VillageID)
 		}
 
 		return nil, err
@@ -91,7 +93,7 @@ func (s *Service) AddBSPS(payload BSPSPayload) (*BSPS, error) {
 
 	if err := s.db.First(&district, "id = ?", payload.DistrictID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("District not found")
+			return nil, fmt.Errorf("district with id %s is not found", payload.DistrictID)
 		}
 
 		return nil, err
@@ -102,7 +104,7 @@ func (s *Service) AddBSPS(payload BSPSPayload) (*BSPS, error) {
 
 	if err := s.db.First(&region, "id = ?", payload.RegionID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Region not found")
+			return nil, fmt.Errorf("region with id %s is not found", payload.RegionID)
 		}
 
 		return nil, err
@@ -122,7 +124,7 @@ func (s *Service) AddBSPS(payload BSPSPayload) (*BSPS, error) {
 	return &bsps, nil
 }
 
-func (s *Service) EditBSPSById(id int, payload BSPSPayload) (*BSPS, error) {
+func (s *Service) EditBSPSById(id uint64, payload BSPSPayload) (*BSPS, error) {
 	// VALIDATIONS
 	err := s.validator.ValidateRequiredFields(map[string]any{
 		"VillageID":   payload.VillageID,
@@ -140,9 +142,9 @@ func (s *Service) EditBSPSById(id int, payload BSPSPayload) (*BSPS, error) {
 	var bsps BSPS
 
 	// ENSURE BSPS EXISTS
-	if err := s.db.First(&bsps, id).Error; err != nil {
+	if err := s.db.First(&bsps, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("BSPS not found")
+			return nil, fmt.Errorf("BSPS with id %d is not found", id)
 		}
 
 		return nil, err
@@ -153,7 +155,7 @@ func (s *Service) EditBSPSById(id int, payload BSPSPayload) (*BSPS, error) {
 
 	if err := s.db.First(&village, "id = ?", payload.VillageID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Village not found")
+			return nil, fmt.Errorf("village with id %s is not found", payload.VillageID)
 		}
 
 		return nil, err
@@ -164,7 +166,7 @@ func (s *Service) EditBSPSById(id int, payload BSPSPayload) (*BSPS, error) {
 
 	if err := s.db.First(&district, "id = ?", payload.DistrictID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("District not found")
+			return nil, fmt.Errorf("district with id %s is not found", payload.DistrictID)
 		}
 
 		return nil, err
@@ -175,11 +177,10 @@ func (s *Service) EditBSPSById(id int, payload BSPSPayload) (*BSPS, error) {
 
 	if err := s.db.First(&region, "id = ?", payload.RegionID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("Region not found")
+			return nil, fmt.Errorf("region with id %s is not found", payload.RegionID)
 		}
 
 		return nil, err
-
 	}
 
 	bsps.VillageID = payload.VillageID
@@ -196,12 +197,12 @@ func (s *Service) EditBSPSById(id int, payload BSPSPayload) (*BSPS, error) {
 	return &bsps, nil
 }
 
-func (s *Service) DeleteBSPSById(id int) error {
+func (s *Service) DeleteBSPSById(id uint64) error {
 	var bsps BSPS
 
 	if err := s.db.First(&bsps, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return errors.New("BSPS not found")
+			return fmt.Errorf("BSPS with id %d is not found", id)
 		}
 
 		return err

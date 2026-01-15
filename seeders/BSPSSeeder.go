@@ -3,7 +3,6 @@ package seeders
 import (
 	"encoding/csv"
 	"fmt"
-	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/utils"
@@ -11,11 +10,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"gorm.io/gorm"
 )
 
 // SEEDS FROM PREDEFINED DATA
 func BSPSSeeder(db *gorm.DB) error {
-	file, err := os.Open("others/bsps.csv")
+	file, err := os.Open("seeders/data/bsps.csv")
 
 	if err != nil {
 		return err

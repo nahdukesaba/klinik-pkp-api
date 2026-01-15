@@ -11,7 +11,7 @@ import (
 
 // SEEDS FROM THE CSV FILE
 func ProvinceSeeder(db *gorm.DB) error {
-	file, err := os.Open("others/province.csv")
+	file, err := os.Open("seeders/data/province.csv")
 
 	if err != nil {
 		return err

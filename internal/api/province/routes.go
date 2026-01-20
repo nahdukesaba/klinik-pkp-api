@@ -6,8 +6,8 @@ import (
 
 func SetupRoutes(app fiber.Router, handler *Handler) {
 	app.Get("/provinces", handler.GetProvincesHandler)
-	app.Get("/province/:id", handler.GetProvinceByIdHandler)
-	app.Post("/province", handler.PostProvinceHandler)
-	app.Put("/province/:id", handler.PutProvinceByIdHandler)
-	app.Delete("/province/:id", handler.DeleteProvinceByIdHandler)
+	app.Get("/provinces/:id", handler.GetProvinceByIdHandler)
+	app.Post("/provinces", handler.PostProvinceHandler)
+	app.Put("/provinces/:id", handler.PutProvinceByIdHandler)
+	app.Delete("/provinces/:id", handler.DeleteProvinceByIdHandler)
 }

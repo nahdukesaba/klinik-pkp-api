@@ -1,22 +1,26 @@
 package utils
 
 import (
-	"errors"
+	"github.com/go-playground/validator/v10"
 	"regexp"
+	"errors"
 )
 
 // STRUCT TO INDICATE VALIDATOR UTILITIES
-type Validator struct{}
+type Validator struct {
+	validate *validator.Validate
+}
+
+// CONSTRUCTOR
+func NewValidator() *Validator {
+	v := validator.New()
+
+	return &Validator{validate: v}
+}
 
 // HELPER TO VALIDATE REQUIRED FIELDS AT ONCE
-func (v *Validator) ValidateRequiredFields(fields map[string]any) error {
-	for name, value := range fields {
-		if ok, message := v.validateRequired(value, name); !ok {
-			return errors.New(message)
-		}
-	}
-
-	return nil
+func (v *Validator) ValidateStruct(payload any) error {
+	return v.validate.Struct(payload)
 }
 
 // VALIDATE EMAIL FORMAT
@@ -46,18 +50,14 @@ func (v *Validator) ValidatePhone(phone string) bool {
 	return phoneRegex.MatchString(phone)
 }
 
-// REQUIRED FIELD VALIDATION
-func (v *Validator) validateRequired(value any, fieldName string) (bool, string) {
-	if value == nil {
-		return false, fieldName + " is required"
-	}
+func FormatValidationError(err error) string {
+	var validationErrors validator.ValidationErrors
 
-	switch v := value.(type) {
-	case string:
-		if v == "" {
-			return false, fieldName + " is required"
+	if errors.As(err, &validationErrors) {
+		for _, e := range validationErrors {
+			return e.Field() + " is " + e.Tag()
 		}
 	}
 
-	return true, ""
+	return err.Error()
 }

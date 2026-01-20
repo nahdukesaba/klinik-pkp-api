@@ -1,4 +1,4 @@
-# Binaries
+# BINARIES
 *.exe
 *.exe~
 *.dll
@@ -7,13 +7,14 @@
 klinik-pkp-api
 klinik-pkp-api.exe
 
-# Environment files
+# ENVIRONMENT
 .env
 
 # IDE
 .tmp/
 .vscode/
 .idea/
+.storage/**/*
 *.swp
 *.swo
 *~
@@ -22,6 +23,10 @@ klinik-pkp-api.exe
 .DS_Store
 Thumbs.db
 
-# Go
+# GO
 go.work
 go.work.sum
+
+# FOLDERS
+storage/sosialisasi
+storage/rusun

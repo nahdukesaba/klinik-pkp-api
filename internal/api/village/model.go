@@ -17,7 +17,7 @@ type Village struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 
 	// RELATIONSHIPS
-	District *district.District `gorm:"foreignKey:DistrictID" json:"district,omitempty"`
+	District *district.District `gorm:"foreignKey:DistrictID;constraint:OnDelete:CASCADE;" json:"district,omitempty"`
 }
 
 func (Village) TableName() string {

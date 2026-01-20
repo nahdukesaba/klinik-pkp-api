@@ -21,10 +21,10 @@ func (h *Handler) GetSosialisasiHandler(ctx *fiber.Ctx) error {
 	sosialisasi, err := h.service.GetSosialisasi()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("success", sosialisasi))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", sosialisasi, false)
 }
 
 func (h *Handler) GetSosialisasiByIdHandler(ctx *fiber.Ctx) error {
@@ -33,17 +33,17 @@ func (h *Handler) GetSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 	sosialisasi, err := h.service.GetSosialisasiById(id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("success", sosialisasi))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", sosialisasi, false)
 }
 
 func (h *Handler) AddSosialisasiHandler(ctx *fiber.Ctx) error {
 	form, err := ctx.MultipartForm()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	payload := &SosialisasiPayload{
@@ -61,10 +61,10 @@ func (h *Handler) AddSosialisasiHandler(ctx *fiber.Ctx) error {
 	sosialisasi, err := h.service.AddSosialisasi(payload)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("sosialisasi created", sosialisasi))
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "sosialisasi created", sosialisasi, false)
 }
 
 func (h *Handler) PutSosialisasiByIdHandler(ctx *fiber.Ctx) error {
@@ -72,14 +72,14 @@ func (h *Handler) PutSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	// PARSE MULTIPART FORM
 	form, err := ctx.MultipartForm()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	payload := &SosialisasiPayload{
@@ -98,13 +98,13 @@ func (h *Handler) PutSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 		}
 
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("sosialisasi updated successfully", sosialisasi))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "sosialisasi updated", sosialisasi, false)
 }
 
 func (h *Handler) DeleteSosialisasiByIdHandler(ctx *fiber.Ctx) error {
@@ -112,16 +112,16 @@ func (h *Handler) DeleteSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	if err := h.service.DeleteSosialisasiById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 		}
 
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("sosialisasi deleted", nil))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "sosialisasi deleted", nil, false)
 }

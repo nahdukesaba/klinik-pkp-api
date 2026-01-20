@@ -11,7 +11,7 @@ import (
 )
 
 type Rusun struct {
-	ID          uint64               `gorm:"primaryKey" json:"id"`
+	ID          uint64             `gorm:"primaryKey" json:"id"`
 	VillageID   string             `gorm:"column:village_id;not null" json:"village_id"`
 	DistrictID  string             `gorm:"column:district_id;not null" json:"district_id"`
 	RegionID    string             `gorm:"column:region_id;not null" json:"region_id"`

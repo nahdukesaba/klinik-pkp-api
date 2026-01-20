@@ -16,11 +16,11 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetKumuhHandler(ctx *fiber.Ctx) error {
-	kumuh, err := h.service.GetKumuh()
+	data, err := h.service.GetKumuh()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("success", kumuh))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }

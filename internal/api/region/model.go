@@ -1,10 +1,9 @@
 package region
 
 import (
+	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/province"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Region struct {
@@ -17,7 +16,7 @@ type Region struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 
 	// RELATIONSHIPS
-	Province *province.Province `gorm:"foreignKey:ProvinceID" json:"province,omitempty"`
+	Province *province.Province `gorm:"foreignKey:ProvinceID;constraint:OnDelete:CASCADE;" json:"province,omitempty"`
 }
 
 // TABLE NAME

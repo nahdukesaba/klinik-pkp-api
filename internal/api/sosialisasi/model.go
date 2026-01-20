@@ -5,6 +5,7 @@ import (
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/village"
+	"klinik-pkp-api/utils"
 	"time"
 )
 
@@ -17,7 +18,9 @@ type Sosialisasi struct {
 	Location    string   `gorm:"column:location" json:"location"`
 	Description string   `gorm:"column:description" json:"description"`
 	ImageURLs   []string `gorm:"column:image_urls;serializer:json" json:"image_urls"`
+	Coordinates []utils.Coordinate `gorm:"serializer:json" json:"coordinates"`
 
+	// TIMESTAMPS
 	ScheduledAtStart time.Time      `gorm:"column:scheduled_at_start" json:"scheduled_at_start"`
 	ScheduledAtEnd   time.Time      `gorm:"column:scheduled_at_end" json:"scheduled_at_end"`
 	CreatedAt        time.Time      `json:"created_at"`

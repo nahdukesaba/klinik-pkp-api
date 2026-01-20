@@ -16,7 +16,7 @@ type District struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 
 	// RELATIONSHIPS
-	Region *region.Region `gorm:"foreignKey:RegionID" json:"region,omitempty"`
+	Region *region.Region `gorm:"foreignKey:RegionID;constraint:OnDelete:CASCADE;" json:"region,omitempty"`
 }
 
 func (District) TableName() string {

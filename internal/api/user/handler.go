@@ -19,30 +19,30 @@ func (h *Handler) Register(ctx *fiber.Ctx) error {
 	var payload RegisterPayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	result, err := h.service.Register(payload)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("Registration successful", result))
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "Registration successful", result, false)
 }
 
 // Login handles user authentication
 func (h *Handler) Login(ctx *fiber.Ctx) error {
 	var payload LoginPayload
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	result, err := h.service.Login(payload)
 	if err != nil {
-		return ctx.Status(fiber.StatusUnauthorized).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Login successful", result))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "Login successful", result, false)
 }
 
 // GetAllUsers returns all users in the database
@@ -50,10 +50,10 @@ func (h *Handler) GetAllUsers(ctx *fiber.Ctx) error {
 	users, err := h.service.GetAll()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", users))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "Success", users, false)
 }
 
 // GetProfile returns current user profile
@@ -62,10 +62,10 @@ func (h *Handler) GetProfile(ctx *fiber.Ctx) error {
 
 	user, err := h.service.GetProfile(userID)
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", user))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "Success", user, false)
 }
 
 // UpdateProfile updates current user profile
@@ -76,13 +76,13 @@ func (h *Handler) UpdateProfile(ctx *fiber.Ctx) error {
 		Name string `json:"name"`
 	}
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	user, err := h.service.UpdateProfile(userID, payload.Name)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Profile updated successfully", user))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "Profile updated successfully", user, false)
 }

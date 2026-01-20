@@ -74,7 +74,7 @@ func (s *Service) GetSosialisasiById(id int) (*Sosialisasi, error) {
 
 func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"VillageID":        payload.VillageID,
 		"DistrictID":       payload.DistrictID,
 		"RegionID":         payload.RegionID,
@@ -176,7 +176,7 @@ func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, err
 
 func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) (*Sosialisasi, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"VillageID":        payload.VillageID,
 		"DistrictID":       payload.DistrictID,
 		"RegionID":         payload.RegionID,
@@ -208,8 +208,8 @@ func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) (*
 	sosialisasi.Title = payload.Title
 	sosialisasi.Location = payload.Location
 	sosialisasi.Description = payload.Description
-	sosialisasi.ScheduledAtStart, err = time.Parse(time.RFC3339, payload.ScheduledAtStart)
-	sosialisasi.ScheduledAtEnd, err = time.Parse(time.RFC3339, payload.ScheduledAtEnd)
+	sosialisasi.ScheduledAtStart, _ = time.Parse(time.RFC3339, payload.ScheduledAtStart)
+	sosialisasi.ScheduledAtEnd, _ = time.Parse(time.RFC3339, payload.ScheduledAtEnd)
 
 	if len(payload.Images) > 0 {
 		// UPLOAD NEW IMAGES

@@ -3,7 +3,7 @@ package rusun
 import (
 	"klinik-pkp-api/utils"
 	"strconv"
-
+	"gorm.io/gorm"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -21,78 +21,82 @@ func (h *Handler) GetRusunHandler(ctx *fiber.Ctx) error {
 	rusun, err := h.service.GetRusun()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", rusun))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", rusun, false)
 }
 
 func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	rusun, err := h.service.GetRusunById(id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", rusun))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", rusun, false)
 }
 
 func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
 	var payload RusunPayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	rusun, err := h.service.AddRusun(payload)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("rusun created", rusun))
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "rusun created", rusun, false)
 }
 
 func (h *Handler) PutRusunByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	var payload RusunPayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	rusun, err := h.service.EditRusunById(id, payload)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Rusun updated", rusun))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "Rusun updated", rusun, false)
 }
 
 func (h *Handler) DeleteRusunByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	err = h.service.DeleteRusunById(id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("rusun deleted", nil))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "rusun deleted", nil, false)
 }

@@ -1,7 +1,6 @@
 package province
 
 import (
-	"fmt"
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 )
@@ -12,10 +11,15 @@ type Service struct {
 	validator *utils.Validator
 }
 
-// PAYLOAD FROM REQUEST BODY
-type ProvincePayload struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+// POST PROVINCE PAYLOAD FROM REQUEST BODY
+type PostProvincePayload struct {
+	ID   string `json:"id" validate:"required,min=2,max=3"`
+	Name string `json:"name" validate:"required"`
+}
+
+// PUT PROVINCE PAYLOAD FROM REQUEST BODY
+type PutProvincePayload struct {
+	Name string `json:"name" validate:"required"`
 }
 
 // CONSTRUCTOR
@@ -37,24 +41,13 @@ func (s *Service) GetProvinceById(id string) (*Province, error) {
 	var province Province
 
 	if err := s.db.First(&province, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("province with id %s is not found", id)
-		}
 		return nil, err
 	}
 
 	return &province, nil
 }
 
-func (s *Service) AddProvince(payload ProvincePayload) (*Province, error) {
-	// VALIDATIONS
-	if err := s.validator.ValidateRequiredFields(map[string]any{
-		"ID":   payload.ID,
-		"Name": payload.Name,
-	}); err != nil {
-		return nil, err
-	}
-
+func (s *Service) AddProvince(payload PostProvincePayload) (*Province, error) {
 	province := Province{
 		ID:   payload.ID,
 		Name: payload.Name,
@@ -67,45 +60,33 @@ func (s *Service) AddProvince(payload ProvincePayload) (*Province, error) {
 	return &province, nil
 }
 
-func (s *Service) EditProvinceById(id string, payload ProvincePayload) (*Province, error) {
-	// VALIDATIONS
-	if err := s.validator.ValidateRequiredFields(map[string]any{
-		"Name": payload.Name,
-	}); err != nil {
-		return nil, err
+func (s *Service) EditProvinceById(id string, payload PutProvincePayload) error {
+	// USE .Update() FOR SINGLE FIELD UPDATE
+	// AVOID .Save() TO PREVENT OVERWRITING OTHER FIELDS WITH ZERO VALUES
+	result := s.db.Model(&Province{}).Where("id = ?", id).Update("name", payload.Name)
+
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	var province Province
-
-	if err := s.db.First(&province, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("province with id %s is not found", id)
-		}
-
-		return nil, err
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
-	province.Name = payload.Name
-
-	if err := s.db.Save(&province).Error; err != nil {
-		return nil, err
-	}
-
-	return &province, nil
+	return nil
 }
 
 func (s *Service) DeleteProvinceById(id string) error {
-	var province Province
+	result := s.db.Delete(&Province{}, id)
 
-	if err := s.db.First(&province, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("province with id %s is not found", id)
-		}
-		return err
+	if result.Error != nil {
+		return result.Error
 	}
 
-	if err := s.db.Delete(&province).Error; err != nil {
-		return err
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil

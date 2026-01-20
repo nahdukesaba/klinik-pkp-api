@@ -42,7 +42,7 @@ type AuthResponse struct {
 // CREATE NEW USER
 func (s *Service) Register(payload RegisterPayload) (*AuthResponse, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"Name":     payload.Name,
 		"Email":    payload.Email,
 		"Password": payload.Password,
@@ -111,7 +111,7 @@ func (s *Service) Register(payload RegisterPayload) (*AuthResponse, error) {
 // LOGIN USER
 func (s *Service) Login(payload LoginPayload) (*AuthResponse, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"Email":    payload.Email,
 		"Password": payload.Password,
 	})
@@ -179,7 +179,7 @@ func (s *Service) GetProfile(userID uint) (*User, error) {
 // UPDATE PROFILE BY ID
 func (s *Service) UpdateProfile(userID uint, name string) (*User, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"Name": name,
 	})
 

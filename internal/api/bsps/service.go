@@ -2,11 +2,12 @@ package bsps
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/utils"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -54,6 +55,8 @@ func (s *Service) GetBSPSById(id uint64) (*BSPS, error) {
 		First(&bsps, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("BSPS with id %d is not found", id)
+		} else {
+			return nil, err
 		}
 	}
 
@@ -62,7 +65,7 @@ func (s *Service) GetBSPSById(id uint64) (*BSPS, error) {
 
 func (s *Service) AddBSPS(payload BSPSPayload) (*BSPS, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"VillageID":   payload.VillageID,
 		"DistrictID":  payload.DistrictID,
 		"RegionID":    payload.RegionID,
@@ -126,7 +129,7 @@ func (s *Service) AddBSPS(payload BSPSPayload) (*BSPS, error) {
 
 func (s *Service) EditBSPSById(id uint64, payload BSPSPayload) (*BSPS, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"VillageID":   payload.VillageID,
 		"DistrictID":  payload.DistrictID,
 		"RegionID":    payload.RegionID,

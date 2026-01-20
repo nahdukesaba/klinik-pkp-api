@@ -1,9 +1,9 @@
 package region
 
 import (
-	"klinik-pkp-api/utils"
-
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
+	"klinik-pkp-api/utils"
 )
 
 // CURRENT INSTANCE
@@ -20,10 +20,10 @@ func (h *Handler) GetRegionsHandler(ctx *fiber.Ctx) error {
 	response, err := h.service.GetRegions()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", response))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", response, false)
 }
 
 func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
@@ -31,51 +31,79 @@ func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
 	response, err := h.service.GetRegionById(id)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "region not found", err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", response))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", response, false)
 }
 
 func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
-	var payload RegionPayload
+	var payload PostRegionPayload
+	validator := utils.NewValidator()
 
+	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	response, err := h.service.AddRegion(payload)
+	// VALIDATE PAYLOAD STRUCT
+	if err := validator.ValidateStruct(payload); err != nil {
+		message := utils.FormatValidationError(err)
+
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
+	}
+
+	data, err := h.service.AddRegion(payload)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("region created", response))
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "region created", data, false)
 }
 
 func (h *Handler) PutRegionByIdHandler(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	var payload RegionPayload
+	var payload PutRegionPayload
+	validator := utils.NewValidator()
 
+	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	response, err := h.service.EditRegionById(id, payload)
+	// VALIDATE PAYLOAD STRUCT
+	if err := validator.ValidateStruct(payload); err != nil {
+		message := utils.FormatValidationError(err)
 
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Region updated", response))
+	if err := h.service.EditRegionById(id, payload); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "region not found", err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
+	}
+
+	return utils.JSONResponse(ctx, fiber.StatusOK, "region updated", nil, false)
 }
 
 func (h *Handler) DeleteRegionByIdHandler(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
 	if err := h.service.DeleteRegionById(id); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "region not found", err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("region deleted", nil))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "region deleted", nil, false)
 }

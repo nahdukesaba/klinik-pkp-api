@@ -1,9 +1,7 @@
 package district
 
 import (
-	"fmt"
 	"gorm.io/gorm"
-	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/utils"
 )
 
@@ -13,11 +11,17 @@ type Service struct {
 	validator *utils.Validator
 }
 
-// PAYLOAD FROM REQUEST BODY
-type DistrictPayload struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	RegionID string `json:"region_id"`
+// POST DISTRICT PAYLOAD FROM REQUEST BODY
+type PostDistrictPayload struct {
+	ID       string `json:"id" validate:"required,min=6,max=6"`
+	Name     string `json:"name" validate:"required"`
+	RegionID string `json:"region_id" validate:"required"`
+}
+
+// PUT DISTRICT PAYLOAD FROM REQUEST BODY
+type PutDistrictPayload struct {
+	Name     string `json:"name" validate:"required"`
+	RegionID string `json:"region_id" validate:"required"`
 }
 
 // CONSTRUCTOR
@@ -39,37 +43,13 @@ func (s *Service) GetDistrictById(id string) (*District, error) {
 	var district District
 
 	if err := s.db.Preload("Region.Province").First(&district, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("district with id %s is not found", id)
-		}
-
 		return nil, err
 	}
 
 	return &district, nil
 }
 
-func (s *Service) AddDistrict(payload DistrictPayload) (*District, error) {
-	// VALIDATIONS
-	if err := s.validator.ValidateRequiredFields(map[string]any{
-		"ID":       payload.ID,
-		"RegionID": payload.RegionID,
-		"Name":     payload.Name,
-	}); err != nil {
-		return nil, err
-	}
-
-	// ENSURE RELATED REGION EXISTS
-	var reg region.Region
-
-	if err := s.db.First(&reg, payload.RegionID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("region with id %s is not found", payload.RegionID)
-		}
-
-		return nil, err
-	}
-
+func (s *Service) AddDistrict(payload PostDistrictPayload) (*District, error) {
 	district := District{
 		ID:       payload.ID,
 		Name:     payload.Name,
@@ -83,61 +63,34 @@ func (s *Service) AddDistrict(payload DistrictPayload) (*District, error) {
 	return &district, nil
 }
 
-func (s *Service) EditDistrictById(id string, payload DistrictPayload) (*District, error) {
-	// VALIDATIONS
-	if err := s.validator.ValidateRequiredFields(map[string]any{
-		"RegionID": payload.RegionID,
-		"Name":     payload.Name,
-	}); err != nil {
-		return nil, err
+func (s *Service) EditDistrictById(id string, payload PutDistrictPayload) error {
+	result := s.db.Model(&District{}).Where("id = ?", id).Updates(payload)
+
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	var district District
-
-	// ENSURE DISTRICT EXISTS
-	if err := s.db.First(&district, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("district with id %s is not found", id)
-		}
-
-		return nil, err
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
-	// ENSURE RELATED REGION EXISTS
-	var reg region.Region
-
-	if err := s.db.First(&reg, payload.RegionID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("region with id %s is not found", payload.RegionID)
-		}
-
-		return nil, err
-	}
-
-	district.Name = payload.Name
-	district.RegionID = payload.RegionID
-
-	if err := s.db.Save(&district).Error; err != nil {
-		return nil, err
-	}
-
-	return &district, nil
+	return nil
 }
 
 // SOFT DELETE
 func (s *Service) DeleteDistrictById(id string) error {
-	var district District
+	result := s.db.Delete(&District{}, id)
 
-	if err := s.db.First(&district, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("district with id %s is not found", id)
-		}
-
-		return err
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	if err := s.db.Delete(&district).Error; err != nil {
-		return err
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil

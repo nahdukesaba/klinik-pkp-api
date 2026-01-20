@@ -1,9 +1,7 @@
 package region
 
 import (
-	"fmt"
 	"gorm.io/gorm"
-	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/utils"
 )
 
@@ -13,11 +11,17 @@ type Service struct {
 	validator *utils.Validator
 }
 
-// PAYLOAD FROM REQUEST BODY
-type RegionPayload struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	ProvinceID string `json:"province_id"`
+// POST REGION PAYLOAD FROM REQUEST BODY
+type PostRegionPayload struct {
+	ID         string `json:"id" validate:"required,min=4,max=4"`
+	Name       string `json:"name" validate:"required"`
+	ProvinceID string `json:"province_id" validate:"required"`
+}
+
+// PUT REGION PAYLOAD FROM REQUEST BODY
+type PutRegionPayload struct {
+	Name       string `json:"name" validate:"required"`
+	ProvinceID string `json:"province_id" validate:"required"`
 }
 
 // CONSTRUCTOR
@@ -39,36 +43,13 @@ func (s *Service) GetRegionById(id string) (*Region, error) {
 	var region Region
 
 	if err := s.db.Preload("Province").First(&region, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("region with id %s is not found", id)
-		}
 		return nil, err
 	}
 
 	return &region, nil
 }
 
-func (s *Service) AddRegion(payload RegionPayload) (*Region, error) {
-	// VALIDATIONS
-	if err := s.validator.ValidateRequiredFields(map[string]any{
-		"ID":         payload.ID,
-		"ProvinceID": payload.ProvinceID,
-		"Name":       payload.Name,
-	}); err != nil {
-		return nil, err
-	}
-
-	// ENSURE RELATED PROVINCE EXISTS
-	var prov province.Province
-
-	if err := s.db.First(&prov, payload.ProvinceID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("province with id %s is not found", payload.ProvinceID)
-		}
-
-		return nil, err
-	}
-
+func (s *Service) AddRegion(payload PostRegionPayload) (*Region, error) {
 	region := Region{
 		ID:         payload.ID,
 		Name:       payload.Name,
@@ -82,61 +63,34 @@ func (s *Service) AddRegion(payload RegionPayload) (*Region, error) {
 	return &region, nil
 }
 
-func (s *Service) EditRegionById(id string, payload RegionPayload) (*Region, error) {
-	// VALIDATIONS
-	if err := s.validator.ValidateRequiredFields(map[string]any{
-		"ProvinceID": payload.ProvinceID,
-		"Name":       payload.Name,
-	}); err != nil {
-		return nil, err
+func (s *Service) EditRegionById(id string, payload PutRegionPayload) (error) {
+	result := s.db.Model(&Region{}).Where("id = ?", id).Updates(payload)
+
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	var region Region
-
-	// ENSURE REGION EXISTS
-	if err := s.db.First(&region, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("region with id %s is not found", id)
-		}
-
-		return nil, err
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
-	// ENSURE RELATED PROVINCE EXISTS
-	var prov province.Province
-
-	if err := s.db.First(&prov, payload.ProvinceID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("province with id %s is not found", payload.ProvinceID)
-		}
-
-		return nil, err
-	}
-
-	region.Name = payload.Name
-	region.ProvinceID = payload.ProvinceID
-
-	if err := s.db.Save(&region).Error; err != nil {
-		return nil, err
-	}
-
-	return &region, nil
+	return nil
 }
 
 // SOFT DELETE
 func (s *Service) DeleteRegionById(id string) error {
-	var region Region
+	result := s.db.Delete(&Region{}, id)
 
-	if err := s.db.First(&region, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("region with id %s is not found", id)
-		}
-
-		return err
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	if err := s.db.Delete(&region).Error; err != nil {
-		return err
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil

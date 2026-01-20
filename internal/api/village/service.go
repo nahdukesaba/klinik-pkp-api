@@ -1,9 +1,7 @@
 package village
 
 import (
-	"fmt"
 	"gorm.io/gorm"
-	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/utils"
 )
 
@@ -18,19 +16,23 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-// PAYLOAD FROM REQUEST BODY
-type VillagePayload struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	DistrictID string `json:"district_id"`
+// POST VILLAGE PAYLOAD FROM REQUEST BODY
+type PostVillagePayload struct {
+	ID         string `json:"id" validate:"required,min=10,max=10"`
+	Name       string `json:"name" validate:"required"`
+	DistrictID string `json:"district_id" validate:"required"`
+}
+
+// PUT VILLAGE PAYLOAD FROM REQUEST BODY
+type PutVillagePayload struct {
+	Name       string `json:"name" validate:"required"`
+	DistrictID string `json:"district_id" validate:"required"`
 }
 
 func (s *Service) GetVillages() ([]Village, error) {
 	var villages []Village
 
-	if err := s.db.
-		Preload("District.Region.Province").
-		Find(&villages).Error; err != nil {
+	if err := s.db.Preload("District.Region.Province").Find(&villages).Error; err != nil {
 		return nil, err
 	}
 
@@ -40,39 +42,14 @@ func (s *Service) GetVillages() ([]Village, error) {
 func (s *Service) GetVillageById(id string) (*Village, error) {
 	var village Village
 
-	if err := s.db.
-		Preload("District.Region.Province").
-		First(&village, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("village with id %s is not found", id)
-		}
-
+	if err := s.db.Preload("District.Region.Province").First(&village, id).Error; err != nil {
 		return nil, err
 	}
 
 	return &village, nil
 }
 
-func (s *Service) AddVillage(payload VillagePayload) (*Village, error) {
-	// VALIDATIONS
-	if err := s.validator.ValidateRequiredFields(map[string]any{
-		"ID":         payload.ID,
-		"DistrictID": payload.DistrictID,
-		"Name":       payload.Name,
-	}); err != nil {
-		return nil, err
-	}
-
-	// ENSURE RELATED DISTRICT EXISTS
-	var district district.District
-
-	if err := s.db.First(&district, payload.DistrictID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("district with id %s is not found", payload.DistrictID)
-		}
-		return nil, err
-	}
-
+func (s *Service) AddVillage(payload PostVillagePayload) (*Village, error) {
 	village := Village{
 		ID:         payload.ID,
 		Name:       payload.Name,
@@ -86,61 +63,34 @@ func (s *Service) AddVillage(payload VillagePayload) (*Village, error) {
 	return &village, nil
 }
 
-func (s *Service) EditVillageById(id string, payload VillagePayload) (*Village, error) {
-	// VALIDATIONS
-	if err := s.validator.ValidateRequiredFields(map[string]any{
-		"DistrictID": payload.DistrictID,
-		"Name":       payload.Name,
-	}); err != nil {
-		return nil, err
+func (s *Service) EditVillageById(id string, payload PutVillagePayload) error {
+	result := s.db.Model(&Village{}).Where("id = ?", id).Updates(payload)
+
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	var village Village
-
-	// ENSURE VILLAGE EXISTS
-	if err := s.db.First(&village, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("village with id %s is not found", id)
-		}
-
-		return nil, err
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
-	// ENSURE RELATED DISTRICT EXISTS
-	var district district.District
-
-	if err := s.db.First(&district, payload.DistrictID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("district with id %s is not found", payload.DistrictID)
-		}
-
-		return nil, err
-	}
-
-	village.Name = payload.Name
-	village.DistrictID = payload.DistrictID
-
-	if err := s.db.Save(&village).Error; err != nil {
-		return nil, err
-	}
-
-	return &village, nil
+	return nil
 }
 
 // SOFT DELETE
 func (s *Service) DeleteVillageById(id string) error {
-	var village Village
+	result := s.db.Delete(&Village{}, id)
 
-	if err := s.db.First(&village, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("village with id %s is not found", id)
-		}
-
-		return err
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	if err := s.db.Delete(&village).Error; err != nil {
-		return err
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil

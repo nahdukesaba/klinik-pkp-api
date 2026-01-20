@@ -18,13 +18,13 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetBSPSHandler(ctx *fiber.Ctx) error {
-	bsps, err := h.service.GetBSPS()
+	data, err := h.service.GetBSPS()
 
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", bsps))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {
@@ -32,40 +32,40 @@ func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	bsps, err := h.service.GetBSPSById(id)
+	data, err := h.service.GetBSPSById(id)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 		}
 
-		return ctx.Status(fiber.StatusInternalServerError).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("Success", bsps))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostBSPSHandler(ctx *fiber.Ctx) error {
 	var payload BSPSPayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	bsps, err := h.service.AddBSPS(payload)
+	data, err := h.service.AddBSPS(payload)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 		}
 
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(utils.SuccessResponse("BSPS created", bsps))
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "BSPS created", data, false)
 }
 
 func (h *Handler) PutBSPSByIdHandler(ctx *fiber.Ctx) error {
@@ -73,26 +73,26 @@ func (h *Handler) PutBSPSByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	var payload BSPSPayload
 
 	if err := ctx.BodyParser(&payload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	bsps, err := h.service.EditBSPSById(id, payload)
+	data, err := h.service.EditBSPSById(id, payload)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 		}
 
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("BSPS updated", bsps))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "BSPS updated", data, false)
 }
 
 func (h *Handler) DeleteBSPSByIdHandler(ctx *fiber.Ctx) error {
@@ -100,18 +100,18 @@ func (h *Handler) DeleteBSPSByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
 	err = h.service.DeleteBSPSById(id)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return ctx.Status(fiber.StatusNotFound).JSON(utils.ErrorResponse(err))
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
 		}
 
-		return ctx.Status(fiber.StatusBadRequest).JSON(utils.ErrorResponse(err))
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(utils.SuccessResponse("BSPS deleted", nil))
+	return utils.JSONResponse(ctx, fiber.StatusOK, "BSPS deleted", nil, false)
 }

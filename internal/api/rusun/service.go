@@ -2,11 +2,12 @@ package rusun
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/utils"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -68,7 +69,7 @@ func (s *Service) GetRusunById(id uint64) (*Rusun, error) {
 
 func (s *Service) AddRusun(payload RusunPayload) (*Rusun, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"VillageID":   payload.VillageID,
 		"DistrictID":  payload.DistrictID,
 		"RegionID":    payload.RegionID,
@@ -141,7 +142,7 @@ func (s *Service) AddRusun(payload RusunPayload) (*Rusun, error) {
 
 func (s *Service) EditRusunById(id uint64, payload RusunPayload) (*Rusun, error) {
 	// VALIDATIONS
-	err := s.validator.ValidateRequiredFields(map[string]any{
+	err := s.validator.ValidateStruct(map[string]any{
 		"VillageID":   payload.VillageID,
 		"DistrictID":  payload.DistrictID,
 		"RegionID":    payload.RegionID,

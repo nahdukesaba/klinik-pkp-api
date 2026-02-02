@@ -3,6 +3,7 @@ package district
 import (
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
+	"strconv"
 )
 
 // CURRENT INSTANCE
@@ -11,16 +12,9 @@ type Service struct {
 	validator *utils.Validator
 }
 
-// POST DISTRICT PAYLOAD FROM REQUEST BODY
-type PostDistrictPayload struct {
-	ID       string `json:"id" validate:"required,min=6,max=6"`
-	Name     string `json:"name" validate:"required"`
-	RegionID string `json:"region_id" validate:"required"`
-}
-
-// PUT DISTRICT PAYLOAD FROM REQUEST BODY
-type PutDistrictPayload struct {
-	Name     string `json:"name" validate:"required"`
+// PAYLOAD FROM REQUEST BODY
+type DistrictPayload struct {
+	Name     string `json:"name" validate:"required,ne=null,ne=NULL,ne=Null"`
 	RegionID string `json:"region_id" validate:"required"`
 }
 
@@ -39,7 +33,7 @@ func (s *Service) GetDistricts() ([]District, error) {
 	return districts, nil
 }
 
-func (s *Service) GetDistrictById(id string) (*District, error) {
+func (s *Service) GetDistrictById(id uint64) (*District, error) {
 	var district District
 
 	if err := s.db.Preload("Region.Province").First(&district, id).Error; err != nil {
@@ -49,22 +43,38 @@ func (s *Service) GetDistrictById(id string) (*District, error) {
 	return &district, nil
 }
 
-func (s *Service) AddDistrict(payload PostDistrictPayload) (*District, error) {
-	district := District{
-		ID:       payload.ID,
-		Name:     payload.Name,
-		RegionID: payload.RegionID,
-	}
+func (s *Service) AddDistrict(payload DistrictPayload) (*District, error) {
+	regionID, err := strconv.ParseUint(payload.RegionID, 10, 64)
 
-	if err := s.db.Create(&district).Error; err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	return &district, nil
+	newDistrict := District{
+		Name:     payload.Name,
+		RegionID: regionID,
+	}
+
+	if err := s.db.Create(&newDistrict).Error; err != nil {
+		return nil, err
+	}
+
+	return &newDistrict, nil
 }
 
-func (s *Service) EditDistrictById(id string, payload PutDistrictPayload) error {
-	result := s.db.Model(&District{}).Where("id = ?", id).Updates(payload)
+func (s *Service) EditDistrictById(id uint64, payload DistrictPayload) error {
+	regionID, err := strconv.ParseUint(payload.RegionID, 10, 64)
+
+	if err != nil {
+		return err
+	}
+
+	newDistrict := District{
+		Name:     payload.Name,
+		RegionID: regionID,
+	}
+
+	result := s.db.Model(&District{}).Where("id = ?", id).Updates(&newDistrict)
 
 	// SERVER ERRORS
 	if result.Error != nil {
@@ -80,7 +90,7 @@ func (s *Service) EditDistrictById(id string, payload PutDistrictPayload) error 
 }
 
 // SOFT DELETE
-func (s *Service) DeleteDistrictById(id string) error {
+func (s *Service) DeleteDistrictById(id uint64) error {
 	result := s.db.Delete(&District{}, id)
 
 	// SERVER ERRORS

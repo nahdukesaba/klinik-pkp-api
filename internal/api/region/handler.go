@@ -4,6 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
+	"strconv"
+	"fmt"
 )
 
 // CURRENT INSTANCE
@@ -27,7 +29,12 @@ func (h *Handler) GetRegionsHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region id", err, true)
+	}
+
 	response, err := h.service.GetRegionById(id)
 
 	if err != nil {
@@ -42,7 +49,7 @@ func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
-	var payload PostRegionPayload
+	var payload RegionPayload
 	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
@@ -51,9 +58,7 @@ func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if err := validator.ValidateStruct(payload); err != nil {
-		message := utils.FormatValidationError(err)
-
+	if message, err := validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -63,12 +68,19 @@ func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "region created", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "region created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
+	}, false)
 }
 
 func (h *Handler) PutRegionByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	var payload PutRegionPayload
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region id", err, true)
+	}
+
+	var payload RegionPayload
 	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
@@ -77,9 +89,7 @@ func (h *Handler) PutRegionByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if err := validator.ValidateStruct(payload); err != nil {
-		message := utils.FormatValidationError(err)
-
+	if message, err := validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -95,7 +105,11 @@ func (h *Handler) PutRegionByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteRegionByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
+		id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region id", err, true)
+	}
 
 	if err := h.service.DeleteRegionById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {

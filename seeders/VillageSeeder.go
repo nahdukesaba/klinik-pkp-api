@@ -2,11 +2,12 @@ package seeders
 
 import (
 	"encoding/csv"
+	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/village"
 	"log"
 	"os"
-	"gorm.io/gorm"
+	"strconv"
 )
 
 // SEEDS FROM THE CSV FILE
@@ -48,6 +49,7 @@ func VillageSeeder(db *gorm.DB) error {
 
 		if err != nil {
 			log.Println("Error reading village.csv:", err)
+
 			continue
 		}
 
@@ -55,8 +57,21 @@ func VillageSeeder(db *gorm.DB) error {
 			continue
 		}
 
-		id := record[0]
-		districtID := record[2]
+		id, err := strconv.ParseUint(record[0], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing ID:", err)
+
+			continue
+		}
+
+		districtID, err := strconv.ParseUint(record[2], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing DistrictID:", err)
+
+			continue
+		}
 
 		batch = append(batch, village.Village{
 			ID:         id,

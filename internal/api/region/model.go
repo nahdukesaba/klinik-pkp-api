@@ -7,13 +7,13 @@ import (
 )
 
 type Region struct {
-	ID         string `gorm:"primaryKey;autoIncrement:false" json:"id"`
-	ProvinceID string `gorm:"column:province_id" json:"province_id"`
+	ID         uint64 `gorm:"primaryKey" json:"id,string"`
+	ProvinceID uint64 `gorm:"column:province_id" json:"province_id,string"`
 	Name       string `gorm:"column:name" json:"name"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
 
 	// RELATIONSHIPS
 	Province *province.Province `gorm:"foreignKey:ProvinceID;constraint:OnDelete:CASCADE;" json:"province,omitempty"`

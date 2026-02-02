@@ -4,6 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
+	"strconv"
+	"fmt"
 )
 
 // CURRENT INSTANCE
@@ -27,7 +29,12 @@ func (h *Handler) GetVillagesHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) GetVillageByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+	}
+
 	data, err := h.service.GetVillageById(id)
 
 	if err != nil {
@@ -42,18 +49,16 @@ func (h *Handler) GetVillageByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) PostVillageHandler(ctx *fiber.Ctx) error {
-	var payload PostVillagePayload
+	var payload VillagePayload
 	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if err := validator.ValidateStruct(payload); err != nil {
-		message := utils.FormatValidationError(err)
-
+	if message, err := validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -63,12 +68,19 @@ func (h *Handler) PostVillageHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "village created", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "village created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
+	}, false)
 }
 
 func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	var payload PutVillagePayload
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village id", err, true)
+	}
+
+	var payload VillagePayload
 	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
@@ -77,9 +89,7 @@ func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if err := validator.ValidateStruct(payload); err != nil {
-		message := utils.FormatValidationError(err)
-
+	if message, err := validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -95,7 +105,11 @@ func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteVillageByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village id", err, true)
+	}
 
 	if err := h.service.DeleteVillageById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {

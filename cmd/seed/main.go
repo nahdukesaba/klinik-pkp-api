@@ -60,9 +60,9 @@ func seedAll(db *gorm.DB) error {
 	err = seeders.RegionSeeder(db)
 	err = seeders.DistrictSeeder(db)
 	err = seeders.VillageSeeder(db)
-	// err = seeders.UserSeeder(db)
 	err = seeders.RusunSeeder(db)
 	err = seeders.BSPSSeeder(db)
+	// err = seeders.UserSeeder(db)
 
 	return err
 }

@@ -10,7 +10,7 @@ import (
 
 // User represents user account in the system
 type User struct {
-	ID       uuid.UUID `gorm:"primaryKey;autoIncrement:false" json:"id"`
+	ID       uuid.UUID `gorm:"primaryKey" json:"id"`
 	Name     string    `gorm:"size:255;not null" json:"name"`
 	Email    string    `gorm:"size:255;uniqueIndex;not null" json:"email"`
 	Password string    `gorm:"size:255;not null" json:"-"`                 // HIDE FROM JSON

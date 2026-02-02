@@ -17,12 +17,14 @@ import (
 )
 
 // HANDLES FIBER ERRORS GLOBALLY
-func customErrorHandler(c *fiber.Ctx, err error) error {
+func customErrorHandler(ctx *fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
+
 	if e, ok := err.(*fiber.Error); ok {
 		code = e.Code
 	}
-	return c.Status(code).JSON(fiber.Map{
+
+	return ctx.Status(code).JSON(fiber.Map{
 		"success": false,
 		"error":   err.Error(),
 	})
@@ -52,7 +54,7 @@ func main() {
 	district.SetupRoutes(api, district.NewHandler(district.NewService(db)))
 	village.SetupRoutes(api, village.NewHandler(village.NewService(db)))
 	bsps.SetupRoutes(api, bsps.NewHandler(bsps.NewService(db)))
-	rusun.SetupRoutes(api, rusun.NewHandler(rusun.NewService(db)))
+	rusun.SetupRoutes(api, rusun.NewHandler(rusun.NewService(db, uploads.NewService("./storage"))))
 	kumuh.SetupRoutes(api, kumuh.NewHandler(kumuh.NewService(db)))
 	sosialisasi.SetupRoutes(api, sosialisasi.NewHandler(sosialisasi.NewService(db, uploads.NewService("./storage"))))
 	uploads.SetupRoutes(api)

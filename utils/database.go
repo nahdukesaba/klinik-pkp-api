@@ -5,8 +5,26 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"gorm.io/gorm"
+	"klinik-pkp-api/migrations"
 	"log"
 )
+
+// MIGRATION FUNCTION TYPE
+type MigrationFunction func(*gorm.DB) error
+
+// MAPS MIGRATION FILENAMES TO THEIR FUNCTIONS
+var MigrationRegistry = map[string]MigrationFunction{
+	"20260104_add_example_column_to_bsps": migrations.Migration20260104AddExampleColumn,
+	"20260104_add_indexes_to_bsps":        migrations.Migration20260104AddIndexesToBSPS,
+	"20260201_add_status_column_to_bsps":  migrations.Migration20260201AddStatusColumnToBSPS,
+}
+
+// MAPS ROLLBACK FILENAMES TO THEIR FUNCTIONS
+var RollbackRegistry = map[string]MigrationFunction{
+	"20260104_add_example_column_to_bsps": migrations.Migration20260104AddExampleColumnRollback,
+	"20260104_add_indexes_to_bsps":        migrations.Migration20260104AddIndexesToBSPSRollback,
+	"20260201_add_status_column_to_bsps":  migrations.Migration20260201AddStatusColumnToBSPSRollback,
+}
 
 func DropTable(db *gorm.DB, table string) error {
 	// CHECK IF TABLE EXISTS FIRST
@@ -65,3 +83,27 @@ func TruncateTable(db *gorm.DB, table string) error {
 
 	return nil
 }
+
+// EXECUTE MIGRATION FOR SPECIFIC FILE NAME
+func RunModification(db *gorm.DB, filename string) error {
+	if migration, exists := MigrationRegistry[filename]; exists {
+		return migration(db)
+	}
+
+	return fmt.Errorf("migration %s not found", filename)
+}
+
+// EXECUTE ROLLBACK FOR SPECIFIC FILE NAME
+func RunRollback(db *gorm.DB, filename string) error {
+	if rollback, exists := RollbackRegistry[filename]; exists {
+		return rollback(db)
+	}
+
+	return nil
+}
+
+// P.S
+// IN if migration, exists := MigrationRegistry[name]; exists {
+// 		return migration(db)
+// 	}
+// THE "exists" IS A SPECIAL GO LANGUAGE FEATURE WHICH DATA TYPE IS BOOLEAN AND RETURNED AUTOMATICALLY BY GO

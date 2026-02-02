@@ -27,9 +27,9 @@ func KumuhMainSeeder(db *gorm.DB) error {
 
 	// SKIP SEED IF TABLE IS NOT EMPTY
 	var count int64
-	var data []kumuh.KumuhMain
+	var data []kumuh.KawasanKumuh
 
-	db.Model(&kumuh.KumuhMain{}).Count(&count)
+	db.Model(&kumuh.KawasanKumuh{}).Count(&count)
 
 	if count > 0 {
 		log.Println("!? Kawasan Kumuh table already seeded, skipping...")
@@ -45,7 +45,7 @@ func KumuhMainSeeder(db *gorm.DB) error {
 
 		// id := record[0]
 
-		kumuh := kumuh.KumuhMain{
+		kumuh := kumuh.KawasanKumuh{
 			// ID:   id,
 			// Name: record[1],
 		}

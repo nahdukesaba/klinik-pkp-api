@@ -2,9 +2,8 @@ package user
 
 import (
 	"errors"
-	"klinik-pkp-api/utils"
-
 	"gorm.io/gorm"
+	"klinik-pkp-api/utils"
 )
 
 type Service struct {
@@ -41,17 +40,6 @@ type AuthResponse struct {
 
 // CREATE NEW USER
 func (s *Service) Register(payload RegisterPayload) (*AuthResponse, error) {
-	// VALIDATIONS
-	err := s.validator.ValidateStruct(map[string]any{
-		"Name":     payload.Name,
-		"Email":    payload.Email,
-		"Password": payload.Password,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
 	// VALIDATE EMAIL FORMAT
 	if !s.validator.ValidateEmail(payload.Email) {
 		return nil, errors.New("invalid email format")
@@ -110,16 +98,6 @@ func (s *Service) Register(payload RegisterPayload) (*AuthResponse, error) {
 
 // LOGIN USER
 func (s *Service) Login(payload LoginPayload) (*AuthResponse, error) {
-	// VALIDATIONS
-	err := s.validator.ValidateStruct(map[string]any{
-		"Email":    payload.Email,
-		"Password": payload.Password,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
 	// Find user by email
 	var user User
 	if err := s.db.Where("email = ?", payload.Email).First(&user).Error; err != nil {
@@ -178,15 +156,6 @@ func (s *Service) GetProfile(userID uint) (*User, error) {
 
 // UPDATE PROFILE BY ID
 func (s *Service) UpdateProfile(userID uint, name string) (*User, error) {
-	// VALIDATIONS
-	err := s.validator.ValidateStruct(map[string]any{
-		"Name": name,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
 	var user User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return nil, errors.New("user not found")

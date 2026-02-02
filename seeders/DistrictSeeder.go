@@ -2,11 +2,12 @@ package seeders
 
 import (
 	"encoding/csv"
+	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/district"
 	"log"
 	"os"
-	"gorm.io/gorm"
+	"strconv"
 )
 
 // SEEDS FROM THE CSV FILE
@@ -55,10 +56,26 @@ func DistrictSeeder(db *gorm.DB) error {
 			continue
 		}
 
+		id, err := strconv.ParseUint(record[0], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing ID:", err)
+
+			continue
+		}
+
+		regionID, err := strconv.ParseUint(record[2], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing RegionID:", err)
+
+			continue
+		}
+
 		batch = append(batch, district.District{
-			ID:       record[0],
+			ID:       id,
 			Name:     record[1],
-			RegionID: record[2],
+			RegionID: regionID,
 		})
 	}
 

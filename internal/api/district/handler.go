@@ -1,9 +1,11 @@
 package district
 
 import (
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
+	"strconv"
 )
 
 // CURRENT INSTANCE
@@ -27,18 +29,27 @@ func (h *Handler) GetDistrictsHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) GetDistrictByIDHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid district id", err, true)
+	}
+
 	data, err := h.service.GetDistrictById(id)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusNotFound, "district not found", err, true)
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "district not found", err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostDistrictHandler(ctx *fiber.Ctx) error {
-	var payload PostDistrictPayload
+	var payload DistrictPayload
 	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
@@ -47,9 +58,7 @@ func (h *Handler) PostDistrictHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if err := validator.ValidateStruct(payload); err != nil {
-		message := utils.FormatValidationError(err)
-
+	if message, err := validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -59,12 +68,19 @@ func (h *Handler) PostDistrictHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "district created", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "district created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
+	}, false)
 }
 
 func (h *Handler) PutDistrictByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	var payload PutDistrictPayload
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid district id", err, true)
+	}
+
+	var payload DistrictPayload
 	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
@@ -73,9 +89,7 @@ func (h *Handler) PutDistrictByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if err := validator.ValidateStruct(payload); err != nil {
-		message := utils.FormatValidationError(err)
-
+	if message, err := validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -91,7 +105,11 @@ func (h *Handler) PutDistrictByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteDistrictByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village id", err, true)
+	}
 
 	if err := h.service.DeleteDistrictById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {

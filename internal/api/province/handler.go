@@ -1,9 +1,11 @@
 package province
 
 import (
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
+	"strconv"
 )
 
 // CURRENT INSTANCE
@@ -27,7 +29,12 @@ func (h *Handler) GetProvincesHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) GetProvinceByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid province id", err, true)
+	}
+
 	data, err := h.service.GetProvinceById(id)
 
 	if err != nil {
@@ -42,18 +49,16 @@ func (h *Handler) GetProvinceByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) PostProvinceHandler(ctx *fiber.Ctx) error {
-	var payload PostProvincePayload
+	var payload ProvincePayload
 	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid content-type", err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if err := validator.ValidateStruct(payload); err != nil {
-		message := utils.FormatValidationError(err)
-
+	if message, err := validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -63,23 +68,28 @@ func (h *Handler) PostProvinceHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "province created", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "province created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
+	}, false)
 }
 
 func (h *Handler) PutProvinceByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-	var payload PutProvincePayload
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid province id", err, true)
+	}
+
+	var payload ProvincePayload
 	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid content-type", err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if err := validator.ValidateStruct(payload); err != nil {
-		message := utils.FormatValidationError(err)
-
+	if message, err := validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -95,7 +105,11 @@ func (h *Handler) PutProvinceByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteProvinceByIdHandler(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid province id", err, true)
+	}
 
 	if err := h.service.DeleteProvinceById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {

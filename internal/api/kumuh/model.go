@@ -9,13 +9,14 @@ import (
 	"time"
 )
 
-type KumuhDetail struct {
-	ID          uint               `gorm:"primaryKey" json:"id"`
-	VillageID   string             `gorm:"column:village_id;not null" json:"village_id"`
-	DistrictID  string             `gorm:"column:district_id;not null" json:"district_id"`
-	RegionID    string             `gorm:"column:region_id;not null" json:"region_id"`
-	UnitCount   int                `json:"unit_count"`
-	YearGiven   int                `json:"year_given"`
+type KawasanKumuh struct {
+	ID          uint64             `gorm:"primaryKey" json:"id"`
+	VillageID   uint64             `gorm:"column:village_id;not null" json:"village_id"`
+	DistrictID  uint64             `gorm:"column:district_id;not null" json:"district_id"`
+	RegionID    uint64             `gorm:"column:region_id;not null" json:"region_id"`
+	UnitCount   uint64             `json:"unit_count"`
+	YearGiven   uint64             `json:"year_given"`
+	ImageURLs   []string           `gorm:"column:image_urls;serializer:json" json:"image_urls"`
 	Coordinates []utils.Coordinate `gorm:"serializer:json" json:"coordinates"`
 
 	CreatedAt time.Time      `json:"created_at"`
@@ -28,6 +29,6 @@ type KumuhDetail struct {
 	Region   *region.Region     `gorm:"foreignKey:RegionID" json:"region,omitempty"`
 }
 
-func (KumuhDetail) TableName() string {
-	return "kawasan_kumuh_detail"
+func (KawasanKumuh) TableName() string {
+	return "kawasan_kumuh"
 }

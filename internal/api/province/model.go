@@ -1,19 +1,19 @@
 package province
 
 import (
-	"time"
-
 	"gorm.io/gorm"
+	"time"
 )
 
 type Province struct {
-	ID   string `gorm:"primaryKey;autoIncrement:false" json:"id"`
+	ID   uint64 `gorm:"primaryKey" json:"id,string"`
 	Name string `gorm:"column:name" json:"name"`
 
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
 	// USE omitzero TO AVOID "null" IN JSON RESPONSE
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
 }
 
 func (Province) TableName() string {

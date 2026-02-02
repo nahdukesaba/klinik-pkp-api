@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gorm.io/gorm"
 	"klinik-pkp-api/config"
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/internal/api/district"
@@ -11,13 +12,10 @@ import (
 	"klinik-pkp-api/internal/api/sosialisasi"
 	"klinik-pkp-api/internal/api/user"
 	"klinik-pkp-api/internal/api/village"
-	"klinik-pkp-api/migrations"
 	"klinik-pkp-api/utils"
 	"log"
 	"os"
 	"strings"
-
-	"gorm.io/gorm"
 )
 
 // CREATE TABLES BASED ON MODELS ARGUMENTS
@@ -48,6 +46,7 @@ func createTables(db *gorm.DB, models ...string) error {
 		log.Println("✓ Village table migrated")
 		log.Println("✓ Rusun table migrated")
 		log.Println("✓ BSPS table migrated")
+		log.Println("✓ Sosialisasi table migrated")
 	} else {
 		// CREATE SPECIFIC MODELS
 		for _, model := range models {
@@ -183,55 +182,49 @@ func truncateTables(db *gorm.DB, tables ...string) error {
 
 // RUN MODIFICATION BASED ON MIGRATION FILE
 func modifyTable(db *gorm.DB, filename string) error {
-	log.Printf("Looking for migration: %s", filename)
-
-	if err := migrations.RunModification(db, filename); err != nil {
+	if err := utils.RunModification(db, filename); err != nil {
 		return fmt.Errorf("failed to run migration %s: %v", filename, err)
 	}
 
-	log.Printf("✓ Migration %s completed successfully", filename)
+	log.Printf("Table(s) modification completed")
 
 	return nil
 }
 
 // ROLLBACK A SPECIFIC MODIFICATION BASED ON MIGRATION FILE
 func rollbackTable(db *gorm.DB, filename string) error {
-	log.Printf("Looking for rollback: %s", filename)
-
-	if err := migrations.RunRollback(db, filename); err != nil {
+	if err := utils.RunRollback(db, filename); err != nil {
 		return fmt.Errorf("failed to rollback migration %s: %v", filename, err)
 	}
 
-	log.Printf("✓ Rollback %s completed successfully", filename)
+	log.Printf("Table(s) rollback completed")
 
 	return nil
 }
 
 // DISPLAY AVAILABLE MIGRATIONS
 func displayAvailableMigrations() {
-	fmt.Println("1. Migrate all tables:")
+	fmt.Println("1. Creating table(s):")
 	fmt.Println("   > go run cmd/migrate/main.go")
+	fmt.Println("   > go run cmd/migrate/main.go user rusun bsps province region district village")
 	fmt.Println()
 
-	fmt.Println("2. Migrate specific tables:")
-	fmt.Println("   > go run cmd/migrate/main.go user province region")
-	fmt.Println()
-
-	fmt.Println("3. Drop all tables and sequences:")
+	fmt.Println("2. Dropping table(s):")
 	fmt.Println("   > go run cmd/migrate/main.go drop")
+	fmt.Println("   > go run cmd/migrate/main.go drop user rusun bsps")
 	fmt.Println()
 
-	fmt.Println("4. Truncate a specific table:")
-	fmt.Println("   > go run cmd/migrate/main.go truncate bsps")
-	fmt.Println("   > go run cmd/migrate/main.go truncate user")
+	fmt.Println("3. Truncating table(s):")
+	fmt.Println("   > go run cmd/migrate/main.go truncate")
+	fmt.Println("   > go run cmd/migrate/main.go truncate user rusun bsps")
 	fmt.Println()
 
-	fmt.Println("5. Run custom migration file:")
-	fmt.Println("   > go run cmd/migrate/main.go 20260104_add_example_column_to_bsps")
-	fmt.Println("   > go run cmd/migrate/main.go 20260104_add_indexes_to_bsps")
+	fmt.Println("4. Modifying table(s):")
+	fmt.Println("   > go run cmd/migrate/main.go modify 20260104_add_example_column_to_bsps")
+	fmt.Println("   > go run cmd/migrate/main.go modify 20260104_add_indexes_to_bsps")
 	fmt.Println()
 
-	fmt.Println("6. Rollback a migration:")
+	fmt.Println("5. Rolling back table(s):")
 	fmt.Println("   > go run cmd/migrate/main.go rollback 20260104_add_example_column_to_bsps")
 	fmt.Println()
 }

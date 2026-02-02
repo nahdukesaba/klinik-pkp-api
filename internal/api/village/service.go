@@ -3,6 +3,7 @@ package village
 import (
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
+	"strconv"
 )
 
 // CURRENT INSTANCE
@@ -11,22 +12,15 @@ type Service struct {
 	validator *utils.Validator
 }
 
+// PAYLOAD FROM REQUEST BODY
+type VillagePayload struct {
+	Name       string `json:"name" validate:"required,ne=null,ne=NULL,ne=Null"`
+	DistrictID string `json:"district_id" validate:"required"`
+}
+
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
-}
-
-// POST VILLAGE PAYLOAD FROM REQUEST BODY
-type PostVillagePayload struct {
-	ID         string `json:"id" validate:"required,min=10,max=10"`
-	Name       string `json:"name" validate:"required"`
-	DistrictID string `json:"district_id" validate:"required"`
-}
-
-// PUT VILLAGE PAYLOAD FROM REQUEST BODY
-type PutVillagePayload struct {
-	Name       string `json:"name" validate:"required"`
-	DistrictID string `json:"district_id" validate:"required"`
 }
 
 func (s *Service) GetVillages() ([]Village, error) {
@@ -39,7 +33,7 @@ func (s *Service) GetVillages() ([]Village, error) {
 	return villages, nil
 }
 
-func (s *Service) GetVillageById(id string) (*Village, error) {
+func (s *Service) GetVillageById(id uint64) (*Village, error) {
 	var village Village
 
 	if err := s.db.Preload("District.Region.Province").First(&village, id).Error; err != nil {
@@ -49,22 +43,38 @@ func (s *Service) GetVillageById(id string) (*Village, error) {
 	return &village, nil
 }
 
-func (s *Service) AddVillage(payload PostVillagePayload) (*Village, error) {
-	village := Village{
-		ID:         payload.ID,
-		Name:       payload.Name,
-		DistrictID: payload.DistrictID,
-	}
+func (s *Service) AddVillage(payload VillagePayload) (*Village, error) {
+	districtID, err := strconv.ParseUint(payload.DistrictID, 10, 64)
 
-	if err := s.db.Create(&village).Error; err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	return &village, nil
+	newVillage := Village{
+		Name:       payload.Name,
+		DistrictID: districtID,
+	}
+
+	if err := s.db.Create(&newVillage).Error; err != nil {
+		return nil, err
+	}
+
+	return &newVillage, nil
 }
 
-func (s *Service) EditVillageById(id string, payload PutVillagePayload) error {
-	result := s.db.Model(&Village{}).Where("id = ?", id).Updates(payload)
+func (s *Service) EditVillageById(id uint64, payload VillagePayload) error {
+	districtID, err := strconv.ParseUint(payload.DistrictID, 10, 64)
+
+	if err != nil {
+		return err
+	}
+
+	newVillage := Village{
+		Name:       payload.Name,
+		DistrictID: districtID,
+	}
+
+	result := s.db.Model(&Village{}).Where("id = ?", id).Updates(&newVillage)
 
 	// SERVER ERRORS
 	if result.Error != nil {
@@ -80,7 +90,7 @@ func (s *Service) EditVillageById(id string, payload PutVillagePayload) error {
 }
 
 // SOFT DELETE
-func (s *Service) DeleteVillageById(id string) error {
+func (s *Service) DeleteVillageById(id uint64) error {
 	result := s.db.Delete(&Village{}, id)
 
 	// SERVER ERRORS

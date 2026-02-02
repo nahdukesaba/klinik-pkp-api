@@ -11,15 +11,9 @@ type Service struct {
 	validator *utils.Validator
 }
 
-// POST PROVINCE PAYLOAD FROM REQUEST BODY
-type PostProvincePayload struct {
-	ID   string `json:"id" validate:"required,min=2,max=3"`
-	Name string `json:"name" validate:"required"`
-}
-
-// PUT PROVINCE PAYLOAD FROM REQUEST BODY
-type PutProvincePayload struct {
-	Name string `json:"name" validate:"required"`
+// PAYLOAD FROM REQUEST BODY
+type ProvincePayload struct {
+	Name string `json:"name" validate:"required,ne=null,ne=NULL,ne=Null"`
 }
 
 // CONSTRUCTOR
@@ -37,7 +31,7 @@ func (s *Service) GetProvinces() ([]Province, error) {
 	return provinces, nil
 }
 
-func (s *Service) GetProvinceById(id string) (*Province, error) {
+func (s *Service) GetProvinceById(id uint64) (*Province, error) {
 	var province Province
 
 	if err := s.db.First(&province, id).Error; err != nil {
@@ -47,20 +41,19 @@ func (s *Service) GetProvinceById(id string) (*Province, error) {
 	return &province, nil
 }
 
-func (s *Service) AddProvince(payload PostProvincePayload) (*Province, error) {
-	province := Province{
-		ID:   payload.ID,
+func (s *Service) AddProvince(payload ProvincePayload) (*Province, error) {
+	newProvince := Province{
 		Name: payload.Name,
 	}
 
-	if err := s.db.Create(&province).Error; err != nil {
+	if err := s.db.Create(&newProvince).Error; err != nil {
 		return nil, err
 	}
 
-	return &province, nil
+	return &newProvince, nil
 }
 
-func (s *Service) EditProvinceById(id string, payload PutProvincePayload) error {
+func (s *Service) EditProvinceById(id uint64, payload ProvincePayload) error {
 	// USE .Update() FOR SINGLE FIELD UPDATE
 	// AVOID .Save() TO PREVENT OVERWRITING OTHER FIELDS WITH ZERO VALUES
 	result := s.db.Model(&Province{}).Where("id = ?", id).Update("name", payload.Name)
@@ -78,7 +71,7 @@ func (s *Service) EditProvinceById(id string, payload PutProvincePayload) error 
 	return nil
 }
 
-func (s *Service) DeleteProvinceById(id string) error {
+func (s *Service) DeleteProvinceById(id uint64) error {
 	result := s.db.Delete(&Province{}, id)
 
 	if result.Error != nil {

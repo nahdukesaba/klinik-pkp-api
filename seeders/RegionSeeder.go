@@ -5,6 +5,7 @@ import (
 	"klinik-pkp-api/internal/api/region"
 	"log"
 	"os"
+	"strconv"
 	"gorm.io/gorm"
 )
 
@@ -43,8 +44,21 @@ func RegionSeeder(db *gorm.DB) error {
 			continue
 		}
 
-		id := record[0]
-		provinceID := record[2]
+		id, err := strconv.ParseUint(record[0], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing ID:", err)
+
+			continue
+		}
+
+		provinceID, err := strconv.ParseUint(record[2], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing ProvinceID:", err)
+
+			continue
+		}
 
 		reg := region.Region{
 			ID:         id,

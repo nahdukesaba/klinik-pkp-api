@@ -3,6 +3,7 @@ package region
 import (
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
+	"strconv"
 )
 
 // CURRENT INSTANCE
@@ -11,16 +12,9 @@ type Service struct {
 	validator *utils.Validator
 }
 
-// POST REGION PAYLOAD FROM REQUEST BODY
-type PostRegionPayload struct {
-	ID         string `json:"id" validate:"required,min=4,max=4"`
-	Name       string `json:"name" validate:"required"`
-	ProvinceID string `json:"province_id" validate:"required"`
-}
-
-// PUT REGION PAYLOAD FROM REQUEST BODY
-type PutRegionPayload struct {
-	Name       string `json:"name" validate:"required"`
+// PAYLOAD FROM REQUEST BODY
+type RegionPayload struct {
+	Name       string `json:"name" validate:"required,ne=null,ne=NULL,ne=Null"`
 	ProvinceID string `json:"province_id" validate:"required"`
 }
 
@@ -39,7 +33,7 @@ func (s *Service) GetRegions() ([]Region, error) {
 	return regions, nil
 }
 
-func (s *Service) GetRegionById(id string) (*Region, error) {
+func (s *Service) GetRegionById(id uint64) (*Region, error) {
 	var region Region
 
 	if err := s.db.Preload("Province").First(&region, id).Error; err != nil {
@@ -49,22 +43,38 @@ func (s *Service) GetRegionById(id string) (*Region, error) {
 	return &region, nil
 }
 
-func (s *Service) AddRegion(payload PostRegionPayload) (*Region, error) {
-	region := Region{
-		ID:         payload.ID,
-		Name:       payload.Name,
-		ProvinceID: payload.ProvinceID,
-	}
+func (s *Service) AddRegion(payload RegionPayload) (*Region, error) {
+	provinceID, err := strconv.ParseUint(payload.ProvinceID, 10, 64)
 
-	if err := s.db.Create(&region).Error; err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	return &region, nil
+	newRegion := Region{
+		Name:       payload.Name,
+		ProvinceID: provinceID,
+	}
+
+	if err := s.db.Create(&newRegion).Error; err != nil {
+		return nil, err
+	}
+
+	return &newRegion, nil
 }
 
-func (s *Service) EditRegionById(id string, payload PutRegionPayload) (error) {
-	result := s.db.Model(&Region{}).Where("id = ?", id).Updates(payload)
+func (s *Service) EditRegionById(id uint64, payload RegionPayload) error {
+	provinceID, err := strconv.ParseUint(payload.ProvinceID, 10, 64)
+
+	if err != nil {
+		return err
+	}
+
+	newRegion := Region{
+		Name:       payload.Name,
+		ProvinceID: provinceID,
+	}
+
+	result := s.db.Model(&Region{}).Where("id = ?", id).Updates(&newRegion)
 
 	// SERVER ERRORS
 	if result.Error != nil {
@@ -80,7 +90,7 @@ func (s *Service) EditRegionById(id string, payload PutRegionPayload) (error) {
 }
 
 // SOFT DELETE
-func (s *Service) DeleteRegionById(id string) error {
+func (s *Service) DeleteRegionById(id uint64) error {
 	result := s.db.Delete(&Region{}, id)
 
 	// SERVER ERRORS

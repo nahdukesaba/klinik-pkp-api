@@ -1,16 +1,13 @@
 package sosialisasi
 
 import (
-	"errors"
 	"fmt"
-	"klinik-pkp-api/internal/api/district"
-	"klinik-pkp-api/internal/api/region"
+	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/uploads"
-	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/utils"
 	"mime/multipart"
+	"strconv"
 	"time"
-	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -22,15 +19,19 @@ type Service struct {
 
 // PAYLOAD FROM REQUEST BODY
 type SosialisasiPayload struct {
-	VillageID        string                  `form:"village_id"`
-	DistrictID       string                  `form:"district_id"`
-	RegionID         string                  `form:"region_id"`
-	Title            string                  `form:"title"`
-	Location         string                  `form:"location"`
-	Description      string                  `form:"description"`
-	ScheduledAtStart string                  `form:"scheduled_at_start"`
-	ScheduledAtEnd   string                  `form:"scheduled_at_end"`
-	Images           []*multipart.FileHeader `form:"images"`
+	VillageID        string                  `form:"village_id" validate:"required"`
+	DistrictID       string                  `form:"district_id" validate:"required"`
+	RegionID         string                  `form:"region_id" validate:"required"`
+	Title            string                  `form:"title" validate:"required,ne=Null,ne=null,ne=NULL"`
+	Location         string                  `form:"location" validate:"required,ne=Null,ne=null,ne=NULL"`
+	Description      string                  `form:"description" validate:"required,ne=Null,ne=null,ne=NULL"`
+	ScheduledAtStart string                  `form:"scheduled_at_start" validate:"required"`
+	ScheduledAtEnd   string                  `form:"scheduled_at_end" validate:"required"`
+	Images           []*multipart.FileHeader `form:"images" validate:"-"`
+
+	// FIBER CANNOT PROCESS JSON ARRAYS IN FORM DATA, NEED TO UNMARSHALL MANUALLY
+	CoordinatesRaw string             `form:"coordinates" validate:"required"`
+	Coordinates    []utils.Coordinate `gorm:"-"`
 }
 
 // CONSTRUCTOR
@@ -45,109 +46,69 @@ func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 func (s *Service) GetSosialisasi() ([]Sosialisasi, error) {
 	var sosialisasi []Sosialisasi
 
-	if err := s.db.
-		Preload("Village").
-		Preload("District").
-		Preload("Region").
-		Find(&sosialisasi).Error; err != nil {
+	if err := s.db.Preload("Village").Preload("District").Preload("Region.Province").Find(&sosialisasi).Error; err != nil {
 		return nil, err
 	}
 
 	return sosialisasi, nil
 }
 
-func (s *Service) GetSosialisasiById(id int) (*Sosialisasi, error) {
+func (s *Service) GetSosialisasiById(id uint64) (*Sosialisasi, error) {
 	var sosialisasi Sosialisasi
 
-	if err := s.db.
-		Preload("Village").
-		Preload("District").
-		Preload("Region").
-		First(&sosialisasi, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, err
-		}
+	if err := s.db.Preload("Village").Preload("District").Preload("Region.Province").First(&sosialisasi, id).Error; err != nil {
+		return nil, err
 	}
 
 	return &sosialisasi, nil
 }
 
 func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, error) {
-	// VALIDATIONS
-	err := s.validator.ValidateStruct(map[string]any{
-		"VillageID":        payload.VillageID,
-		"DistrictID":       payload.DistrictID,
-		"RegionID":         payload.RegionID,
-		"Title":            payload.Title,
-		"Location":         payload.Location,
-		"Description":      payload.Description,
-		"ScheduledAtStart": payload.ScheduledAtStart,
-		"ScheduledAtEnd":   payload.ScheduledAtEnd,
-	})
+	villageID, err := strconv.ParseUint(payload.VillageID, 10, 64)
 
 	if err != nil {
 		return nil, err
 	}
 
-	// ENSURE RELATED VILLAGE EXISTS
-	var village village.Village
+	districtID, err := strconv.ParseUint(payload.DistrictID, 10, 64)
 
-	if err := s.db.First(&village, "id = ?", payload.VillageID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("village with id %s not found", payload.VillageID)
-		}
-
+	if err != nil {
 		return nil, err
 	}
 
-	// ENSURE RELATED DISTRICT EXISTS
-	var district district.District
+	regionID, err := strconv.ParseUint(payload.RegionID, 10, 64)
 
-	if err := s.db.First(&district, "id = ?", payload.DistrictID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("district with id %s not found", payload.DistrictID)
-		}
-
+	if err != nil {
 		return nil, err
 	}
 
-	// ENSURE RELATED REGION EXISTS
-	var region region.Region
-
-	if err := s.db.First(&region, "id = ?", payload.RegionID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("region not found")
-		}
-
-		return nil, err
-	}
-
-	// PARSE SCHEDULED AT
+	// PARSE TIME
 	scheduledAtStart, err := time.Parse(time.RFC3339, payload.ScheduledAtStart)
 
 	if err != nil {
-		return nil, fmt.Errorf("invalid scheduled_at_start format: %w", err)
+		return nil, err
 	}
 
 	scheduledAtEnd, err := time.Parse(time.RFC3339, payload.ScheduledAtEnd)
 
 	if err != nil {
-		return nil, fmt.Errorf("invalid scheduled_at_end format: %w", err)
+		return nil, err
 	}
 
-	// CREATE RECORD FIRST TO GET THE ID
-	sosialisasi := Sosialisasi{
-		VillageID:        payload.VillageID,
-		DistrictID:       payload.DistrictID,
-		RegionID:         payload.RegionID,
+	// CREATE RECORD FIRST TO GET ID
+	newSosialisasi := Sosialisasi{
+		VillageID:        villageID,
+		DistrictID:       districtID,
+		RegionID:         regionID,
 		Title:            payload.Title,
 		Location:         payload.Location,
 		Description:      payload.Description,
+		Coordinates:      payload.Coordinates,
 		ScheduledAtStart: scheduledAtStart,
 		ScheduledAtEnd:   scheduledAtEnd,
 	}
 
-	if err := s.db.Create(&sosialisasi).Error; err != nil {
+	if err := s.db.Create(&newSosialisasi).Error; err != nil {
 		return nil, err
 	}
 
@@ -155,63 +116,83 @@ func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, err
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
 			Category: "sosialisasi",
-			RecordID: sosialisasi.ID,
+			RecordID: newSosialisasi.ID,
 		})
 
 		if err != nil {
-			s.db.Delete(&sosialisasi)
+			s.db.Delete(&newSosialisasi)
 
 			return nil, fmt.Errorf("failed to upload images: %w", err)
 		}
 
-		sosialisasi.ImageURLs = imageResponses
+		newSosialisasi.ImageURLs = imageResponses
 	}
 
-	if err := s.db.Save(&sosialisasi).Error; err != nil {
+	if err := s.db.Save(&newSosialisasi).Error; err != nil {
 		return nil, err
 	}
 
-	return &sosialisasi, nil
+	return &newSosialisasi, nil
 }
 
-func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) (*Sosialisasi, error) {
-	// VALIDATIONS
-	err := s.validator.ValidateStruct(map[string]any{
-		"VillageID":        payload.VillageID,
-		"DistrictID":       payload.DistrictID,
-		"RegionID":         payload.RegionID,
-		"Title":            payload.Title,
-		"Location":         payload.Location,
-		"Description":      payload.Description,
-		"ScheduledAtStart": payload.ScheduledAtStart,
-		"ScheduledAtEnd":   payload.ScheduledAtEnd,
-	})
+func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) error {
+	villageID, err := strconv.ParseUint(payload.VillageID, 10, 64)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// ENSURE SOSIALISASI EXISTS
-	var sosialisasi Sosialisasi
+	districtID, err := strconv.ParseUint(payload.DistrictID, 10, 64)
 
-	if err := s.db.First(&sosialisasi, "id = ?", id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, gorm.ErrRecordNotFound
-		}
-
-		return nil, err
+	if err != nil {
+		return err
 	}
 
-	sosialisasi.VillageID = payload.VillageID
-	sosialisasi.DistrictID = payload.DistrictID
-	sosialisasi.RegionID = payload.RegionID
-	sosialisasi.Title = payload.Title
-	sosialisasi.Location = payload.Location
-	sosialisasi.Description = payload.Description
-	sosialisasi.ScheduledAtStart, _ = time.Parse(time.RFC3339, payload.ScheduledAtStart)
-	sosialisasi.ScheduledAtEnd, _ = time.Parse(time.RFC3339, payload.ScheduledAtEnd)
+	regionID, err := strconv.ParseUint(payload.RegionID, 10, 64)
+
+	if err != nil {
+		return err
+	}
+
+	// CHECK IF RECORD EXISTS
+	existingSosialisasi := Sosialisasi{}
+
+	if err := s.db.First(&existingSosialisasi, id).Error; err != nil {
+		return err
+	}
+
+	// PARSE TIME
+	scheduledAtStart, err := time.Parse(time.RFC3339, payload.ScheduledAtStart)
+
+	if err != nil {
+		return err
+	}
+
+	scheduledAtEnd, err := time.Parse(time.RFC3339, payload.ScheduledAtEnd)
+
+	if err != nil {
+		return err
+	}
+
+	// CREATE UPDATE STRUCT (TO STORE IMAGE URLS LATER)
+	newSosialisasi := Sosialisasi{
+		VillageID:        villageID,
+		DistrictID:       districtID,
+		RegionID:         regionID,
+		Title:            payload.Title,
+		Location:         payload.Location,
+		Description:      payload.Description,
+		Coordinates:      payload.Coordinates,
+		ScheduledAtStart: scheduledAtStart,
+		ScheduledAtEnd:   scheduledAtEnd,
+	}
 
 	if len(payload.Images) > 0 {
+		// DELETE OLD IMAGES
+		if err := s.uploadService.DeleteImages("sosialisasi", id); err != nil {
+			fmt.Printf("Warning: failed to delete old images: %v\n", err)
+		}
+
 		// UPLOAD NEW IMAGES
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
@@ -219,46 +200,39 @@ func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) (*
 			RecordID: id,
 		})
 
-		// DELETE OLD IMAGES
-		if err := s.uploadService.DeleteImages("sosialisasi", id); err != nil {
-			fmt.Printf("Warning: failed to delete old images: %v\n", err)
-		}
-
 		if err != nil {
-			return nil, fmt.Errorf("failed to upload new images: %w", err)
+			return fmt.Errorf("failed to upload new images: %w", err)
 		}
 
-		sosialisasi.ImageURLs = imageResponses
+		newSosialisasi.ImageURLs = imageResponses
 	}
 
-	// SAVE UPDATES
-	if err := s.db.Save(&sosialisasi).Error; err != nil {
-		return nil, err
+	result := s.db.Model(&Sosialisasi{}).Where("id = ?", id).Updates(newSosialisasi)
+
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	return &sosialisasi, nil
+	return nil
 }
 
 func (s *Service) DeleteSosialisasiById(id uint64) error {
-	// FIND EXISTING RECORD
-	var sosialisasi Sosialisasi
-
-	if err := s.db.First(&sosialisasi, "id = ?", id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return gorm.ErrRecordNotFound
-		}
-
-		return err
-	}
-
 	// DELETE IMAGES (IF ANY)
 	if err := s.uploadService.DeleteImages("sosialisasi", id); err != nil {
 		fmt.Printf("Warning: failed to delete images: %v\n", err)
 	}
 
-	// DELETE RECORD FROM DATABASE
-	if err := s.db.Delete(&sosialisasi).Error; err != nil {
-		return err
+	result := s.db.Delete(&Sosialisasi{}, id)
+
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil

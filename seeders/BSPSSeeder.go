@@ -55,17 +55,20 @@ func BSPSSeeder(db *gorm.DB) error {
 			continue
 		}
 
-		if len(record) < 7 {
+		if len(record) < 8 {
 			continue
 		}
 
-		unitCount, _ := strconv.Atoi(record[3])
-		yearGiven, _ := strconv.Atoi(record[4])
+		villageID, err := strconv.ParseUint(record[0], 10, 64)
+		districtID, err := strconv.ParseUint(record[1], 10, 64)
+		regionID, err := strconv.ParseUint(record[2], 10, 64)
+		unitCount, err := strconv.ParseUint(record[3], 10, 64)
+		yearGiven, err := strconv.ParseUint(record[4], 10, 64)
 
 		var coordinates []utils.Coordinate
 
-		// PARSE COORDINATES FROM COLUMN[5] ONWARDS
-		for i := 5; i+1 < len(record); i += 2 {
+		// PARSE COORDINATES FROM COLUMN[6] ONWARDS
+		for i := 6; i+1 < len(record); i += 2 {
 			stringLatitude := strings.TrimSpace(record[i])
 			stringLongitude := strings.TrimSpace(record[i+1])
 
@@ -73,10 +76,10 @@ func BSPSSeeder(db *gorm.DB) error {
 				continue
 			}
 
-			latitude, err1 := strconv.ParseFloat(stringLatitude, 64)
-			longitude, err2 := strconv.ParseFloat(stringLongitude, 64)
+			latitude, latErr := strconv.ParseFloat(stringLatitude, 64)
+			longitude, longErr := strconv.ParseFloat(stringLongitude, 64)
 
-			if err1 != nil || err2 != nil {
+			if latErr != nil || longErr != nil {
 				return fmt.Errorf("invalid coordinate at column %d", i)
 			}
 
@@ -92,11 +95,12 @@ func BSPSSeeder(db *gorm.DB) error {
 		}
 
 		batch = append(batch, bsps.BSPS{
-			VillageID:   record[0],
-			DistrictID:  record[1],
-			RegionID:    record[2],
+			VillageID:   villageID,
+			DistrictID:  districtID,
+			RegionID:    regionID,
 			UnitCount:   unitCount,
 			YearGiven:   yearGiven,
+			Status: record[5],
 			Coordinates: coordinates,
 		})
 	}

@@ -1,33 +1,32 @@
 package rusun
 
 import (
+	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/utils"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Rusun struct {
-	ID          uint64             `gorm:"primaryKey" json:"id"`
-	VillageID   string             `gorm:"column:village_id;not null" json:"village_id"`
-	DistrictID  string             `gorm:"column:district_id;not null" json:"district_id"`
-	RegionID    string             `gorm:"column:region_id;not null" json:"region_id"`
-	Name        string             `gorm:"size:255;not null" json:"name"`
-	Address     string             `gorm:"size:500;not null" json:"address"`
-	Tower       int                `gorm:"size:100" json:"tower"`
+	ID          uint64             `gorm:"primaryKey" json:"id,string"`
+	VillageID   uint64             `gorm:"column:village_id" json:"village_id,string"`
+	DistrictID  uint64             `gorm:"column:district_id" json:"district_id,string"`
+	RegionID    uint64             `gorm:"column:region_id" json:"region_id,string"`
+	Name        string             `gorm:"size:255" json:"name"`
+	Address     string             `gorm:"size:500" json:"address"`
+	Tower       uint64             `gorm:"size:100" json:"tower"`
 	UnitType    string             `gorm:"size:150" json:"unit_type"`
-	Floor       int                `json:"floor"`
-	UnitCount   int                `json:"unit_count"`
-	YearGiven   int                `json:"year_given"`
+	Floor       uint64             `json:"floor"`
+	UnitCount   uint64             `json:"unit_count"`
+	YearGiven   uint64             `json:"year_given"`
 	ImageURLs   []string           `gorm:"column:image_urls;serializer:json" json:"image_urls"`
 	Coordinates []utils.Coordinate `gorm:"serializer:json" json:"coordinates"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
 
 	// RELATIONSHIPS
 	Village  *village.Village   `gorm:"foreignKey:VillageID" json:"village,omitempty"`

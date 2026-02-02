@@ -3,6 +3,7 @@ package seeders
 import (
 	"encoding/csv"
 	"fmt"
+	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/rusun"
 	"klinik-pkp-api/utils"
@@ -10,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"gorm.io/gorm"
 )
 
 // SEEDS FROM PREDEFINED DATA
@@ -59,10 +59,13 @@ func RusunSeeder(db *gorm.DB) error {
 			continue
 		}
 
-		tower, _ := strconv.Atoi(record[5])
-		floor, _ := strconv.Atoi(record[7])
-		unitCount, _ := strconv.Atoi(record[8])
-		yearGiven, _ := strconv.Atoi(record[9])
+		villageID, err := strconv.ParseUint(record[0], 10, 64)
+		districtID, err := strconv.ParseUint(record[1], 10, 64)
+		regionID, err := strconv.ParseUint(record[2], 10, 64)
+		tower, err := strconv.ParseUint(record[5], 10, 64)
+		floor, err := strconv.ParseUint(record[7], 10, 64)
+		unitCount, err := strconv.ParseUint(record[8], 10, 64)
+		yearGiven, err := strconv.ParseUint(record[9], 10, 64)
 
 		var coordinates []utils.Coordinate
 
@@ -94,9 +97,9 @@ func RusunSeeder(db *gorm.DB) error {
 		}
 
 		batch = append(batch, rusun.Rusun{
-			VillageID:   record[0],
-			DistrictID:  record[1],
-			RegionID:    record[2],
+			VillageID:   villageID,
+			DistrictID:  districtID,
+			RegionID:    regionID,
 			Name:        record[3],
 			Address:     record[4],
 			Tower:       tower,

@@ -1,13 +1,9 @@
 package bsps
 
 import (
-	"fmt"
-	"klinik-pkp-api/internal/api/district"
-	"klinik-pkp-api/internal/api/region"
-	"klinik-pkp-api/internal/api/village"
-	"klinik-pkp-api/utils"
-
 	"gorm.io/gorm"
+	"klinik-pkp-api/utils"
+	"strconv"
 )
 
 // CURRENT INSTANCE
@@ -18,12 +14,13 @@ type Service struct {
 
 // PAYLOAD FROM REQUEST BODY
 type BSPSPayload struct {
-	VillageID   string             `json:"village_id"`
-	DistrictID  string             `json:"district_id"`
-	RegionID    string             `json:"region_id"`
-	UnitCount   int                `json:"unit_count"`
-	YearGiven   int                `json:"year_given"`
-	Coordinates []utils.Coordinate `json:"coordinates"`
+	VillageID   string             `json:"village_id" validate:"required"`
+	DistrictID  string             `json:"district_id" validate:"required"`
+	RegionID    string             `json:"region_id" validate:"required"`
+	UnitCount   uint64             `json:"unit_count"`
+	YearGiven   uint64             `json:"year_given"`
+	Status      string             `json:"status" validate:"required,ne=Null,ne=null,ne=NULL"`
+	Coordinates []utils.Coordinate `json:"coordinates" validate:"required" gorm:"-"`
 }
 
 // CONSTRUCTOR
@@ -34,11 +31,7 @@ func NewService(db *gorm.DB) *Service {
 func (s *Service) GetBSPS() ([]BSPS, error) {
 	var bsps []BSPS
 
-	if err := s.db.
-		Preload("Village").
-		Preload("District").
-		Preload("Region").
-		Find(&bsps).Error; err != nil {
+	if err := s.db.Preload("Village").Preload("District").Preload("Region").Find(&bsps).Error; err != nil {
 		return nil, err
 	}
 
@@ -48,171 +41,107 @@ func (s *Service) GetBSPS() ([]BSPS, error) {
 func (s *Service) GetBSPSById(id uint64) (*BSPS, error) {
 	var bsps BSPS
 
-	if err := s.db.
-		Preload("Village").
-		Preload("District").
-		Preload("Region").
-		First(&bsps, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("BSPS with id %d is not found", id)
-		} else {
-			return nil, err
-		}
+	if err := s.db.Preload("Village").Preload("District").Preload("Region.Province").First(&bsps, id).Error; err != nil {
+		return nil, err
 	}
 
 	return &bsps, nil
 }
 
-func (s *Service) AddBSPS(payload BSPSPayload) (*BSPS, error) {
-	// VALIDATIONS
-	err := s.validator.ValidateStruct(map[string]any{
-		"VillageID":   payload.VillageID,
-		"DistrictID":  payload.DistrictID,
-		"RegionID":    payload.RegionID,
-		"UnitCount":   payload.UnitCount,
-		"YearGiven":   payload.YearGiven,
-		"Coordinates": payload.Coordinates,
-	})
+func (s *Service) AddBSPS(payload *BSPSPayload) (*BSPS, error) {
+	villageID, err := strconv.ParseUint(payload.VillageID, 10, 64)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var bsps BSPS
-
-	// ENSURE RELATED VILLAGE EXISTS
-	var village village.Village
-
-	if err := s.db.First(&village, "id = ?", payload.VillageID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("village with id %s is not found", payload.VillageID)
-		}
-
-		return nil, err
-	}
-
-	// ENSURE RELATED DISTRICT EXISTS
-	var district district.District
-
-	if err := s.db.First(&district, "id = ?", payload.DistrictID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("district with id %s is not found", payload.DistrictID)
-		}
-
-		return nil, err
-	}
-
-	// ENSURE RELATED REGION EXISTS
-	var region region.Region
-
-	if err := s.db.First(&region, "id = ?", payload.RegionID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("region with id %s is not found", payload.RegionID)
-		}
-
-		return nil, err
-	}
-
-	bsps.VillageID = payload.VillageID
-	bsps.DistrictID = payload.DistrictID
-	bsps.RegionID = payload.RegionID
-	bsps.UnitCount = payload.UnitCount
-	bsps.YearGiven = payload.YearGiven
-	bsps.Coordinates = payload.Coordinates
-
-	if err := s.db.Create(&bsps).Error; err != nil {
-		return nil, err
-	}
-
-	return &bsps, nil
-}
-
-func (s *Service) EditBSPSById(id uint64, payload BSPSPayload) (*BSPS, error) {
-	// VALIDATIONS
-	err := s.validator.ValidateStruct(map[string]any{
-		"VillageID":   payload.VillageID,
-		"DistrictID":  payload.DistrictID,
-		"RegionID":    payload.RegionID,
-		"UnitCount":   payload.UnitCount,
-		"YearGiven":   payload.YearGiven,
-		"Coordinates": payload.Coordinates,
-	})
+	districtID, err := strconv.ParseUint(payload.DistrictID, 10, 64)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var bsps BSPS
+	regionID, err := strconv.ParseUint(payload.RegionID, 10, 64)
 
-	// ENSURE BSPS EXISTS
-	if err := s.db.First(&bsps, "id = ?", id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("BSPS with id %d is not found", id)
-		}
-
+	if err != nil {
 		return nil, err
 	}
 
-	// ENSURE RELATED VILLAGE EXISTS
-	var village village.Village
+	newBSPS := BSPS{
+		VillageID:   villageID,
+		DistrictID:  districtID,
+		RegionID:    regionID,
+		UnitCount:   payload.UnitCount,
+		YearGiven:   payload.YearGiven,
+		Status:      payload.Status,
+		Coordinates: payload.Coordinates,
+	}
 
-	if err := s.db.First(&village, "id = ?", payload.VillageID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("village with id %s is not found", payload.VillageID)
-		}
-
+	if err := s.db.Create(&newBSPS).Error; err != nil {
 		return nil, err
 	}
 
-	// ENSURE RELATED DISTRICT EXISTS
-	var district district.District
-
-	if err := s.db.First(&district, "id = ?", payload.DistrictID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("district with id %s is not found", payload.DistrictID)
-		}
-
-		return nil, err
-	}
-
-	// ENSURE RELATED REGION EXISTS
-	var region region.Region
-
-	if err := s.db.First(&region, "id = ?", payload.RegionID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("region with id %s is not found", payload.RegionID)
-		}
-
-		return nil, err
-	}
-
-	bsps.VillageID = payload.VillageID
-	bsps.DistrictID = payload.DistrictID
-	bsps.RegionID = payload.RegionID
-	bsps.UnitCount = payload.UnitCount
-	bsps.YearGiven = payload.YearGiven
-	bsps.Coordinates = payload.Coordinates
-
-	if err := s.db.Save(&bsps).Error; err != nil {
-		return nil, err
-	}
-
-	return &bsps, nil
+	return &newBSPS, nil
 }
 
+func (s *Service) EditBSPSById(id uint64, payload *BSPSPayload) error {
+	villageID, err := strconv.ParseUint(payload.VillageID, 10, 64)
+
+	if err != nil {
+		return err
+	}
+
+	districtID, err := strconv.ParseUint(payload.DistrictID, 10, 64)
+
+	if err != nil {
+		return err
+	}
+
+	regionID, err := strconv.ParseUint(payload.RegionID, 10, 64)
+
+	if err != nil {
+		return err
+	}
+
+	// CHECK IF RECORD EXISTS
+	existingBSPS := BSPS{}
+
+	if err := s.db.First(&existingBSPS, id).Error; err != nil {
+		return err
+	}
+
+	newBSPS := BSPS{
+		VillageID:   villageID,
+		DistrictID:  districtID,
+		RegionID:    regionID,
+		UnitCount:   payload.UnitCount,
+		YearGiven:   payload.YearGiven,
+		Status:      payload.Status,
+		Coordinates: payload.Coordinates,
+	}
+
+	result := s.db.Model(&BSPS{}).Where("id = ?", id).Updates(newBSPS)
+
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+// SOFT DELETE
 func (s *Service) DeleteBSPSById(id uint64) error {
-	var bsps BSPS
+	result := s.db.Delete(&BSPS{}, id)
 
-	if err := s.db.First(&bsps, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("BSPS with id %d is not found", id)
-		}
-
-		return err
+	// SERVER ERRORS
+	if result.Error != nil {
+		return result.Error
 	}
 
-	if err := s.db.Delete(&bsps).Error; err != nil {
-		return err
+	// NOT FOUND ERROR
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil

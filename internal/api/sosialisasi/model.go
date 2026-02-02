@@ -10,14 +10,14 @@ import (
 )
 
 type Sosialisasi struct {
-	ID          uint64   `gorm:"primaryKey" json:"id"`
-	VillageID   string   `gorm:"column:village_id;not null" json:"village_id"`
-	DistrictID  string   `gorm:"column:district_id;not null" json:"district_id"`
-	RegionID    string   `gorm:"column:region_id;not null" json:"region_id"`
-	Title       string   `gorm:"column:title" json:"title"`
-	Location    string   `gorm:"column:location" json:"location"`
-	Description string   `gorm:"column:description" json:"description"`
-	ImageURLs   []string `gorm:"column:image_urls;serializer:json" json:"image_urls"`
+	ID          uint64             `gorm:"primaryKey" json:"id"`
+	VillageID   uint64             `gorm:"column:village_id;not null" json:"village_id"`
+	DistrictID  uint64             `gorm:"column:district_id;not null" json:"district_id"`
+	RegionID    uint64             `gorm:"column:region_id;not null" json:"region_id"`
+	Title       string             `gorm:"column:title" json:"title"`
+	Location    string             `gorm:"column:location" json:"location"`
+	Description string             `gorm:"column:description" json:"description"`
+	ImageURLs   []string           `gorm:"column:image_urls;serializer:json" json:"image_urls"`
 	Coordinates []utils.Coordinate `gorm:"serializer:json" json:"coordinates"`
 
 	// TIMESTAMPS
@@ -25,7 +25,7 @@ type Sosialisasi struct {
 	ScheduledAtEnd   time.Time      `gorm:"column:scheduled_at_end" json:"scheduled_at_end"`
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
-	DeletedAt        gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	DeletedAt        gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
 
 	// RELATIONSHIPS
 	Village  *village.Village   `gorm:"foreignKey:VillageID" json:"village,omitempty"`

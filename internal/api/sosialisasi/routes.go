@@ -7,7 +7,7 @@ import (
 func SetupRoutes(app fiber.Router, handler *Handler) {
 	app.Get("/sosialisasi", handler.GetSosialisasiHandler)
 	app.Get("/sosialisasi/:id", handler.GetSosialisasiByIdHandler)
-	app.Post("/sosialisasi", handler.AddSosialisasiHandler)
+	app.Post("/sosialisasi", handler.PostSosialisasiHandler)
 	app.Put("/sosialisasi/:id", handler.PutSosialisasiByIdHandler)
 	app.Delete("/sosialisasi/:id", handler.DeleteSosialisasiByIdHandler)
 }

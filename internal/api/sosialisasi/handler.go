@@ -1,6 +1,8 @@
 package sosialisasi
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
@@ -18,109 +20,127 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetSosialisasiHandler(ctx *fiber.Ctx) error {
-	sosialisasi, err := h.service.GetSosialisasi()
+	data, err := h.service.GetSosialisasi()
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", sosialisasi, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetSosialisasiByIdHandler(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
-
-	sosialisasi, err := h.service.GetSosialisasiById(id)
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid sosialisasi id", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", sosialisasi, false)
+	data, err := h.service.GetSosialisasiById(id)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusNotFound, "sosialisasi not found", err, true)
+	}
+
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
-func (h *Handler) AddSosialisasiHandler(ctx *fiber.Ctx) error {
+func (h *Handler) PostSosialisasiHandler(ctx *fiber.Ctx) error {
 	form, err := ctx.MultipartForm()
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid multipart form", err, true)
 	}
 
-	payload := &SosialisasiPayload{
-		VillageID:        ctx.FormValue("village_id"),
-		DistrictID:       ctx.FormValue("district_id"),
-		RegionID:         ctx.FormValue("region_id"),
-		Title:            ctx.FormValue("title"),
-		Location:         ctx.FormValue("location"),
-		Description:      ctx.FormValue("description"),
-		ScheduledAtStart: ctx.FormValue("scheduled_at_start"),
-		ScheduledAtEnd:   ctx.FormValue("scheduled_at_end"),
-		Images:           form.File["images"],
+	var payload SosialisasiPayload
+	validator := utils.NewValidator()
+
+	// PARSE MULTIPART FORM
+	if err := ctx.BodyParser(&payload); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
 	}
 
-	sosialisasi, err := h.service.AddSosialisasi(payload)
+	// ASSIGN IMAGES FROM MULTIPART FORM
+	payload.Images = form.File["images"]
+
+	// PARSE COORDINATES FROM RAW STRING
+	if err := json.Unmarshal([]byte(payload.CoordinatesRaw), &payload.Coordinates); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinates format", err, true)
+	}
+
+	// VALIDATE PAYLOAD STRUCT
+	if message, err := validator.ValidateStruct(payload); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
+	}
+
+	data, err := h.service.AddSosialisasi(&payload)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "sosialisasi created", sosialisasi, false)
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "sosialisasi created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
+		"image_urls": data.ImageURLs,
+	}, false)
 }
 
 func (h *Handler) PutSosialisasiByIdHandler(ctx *fiber.Ctx) error {
-	// PARSE ID TO UINT64
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid sosialisasi id", err, true)
 	}
 
-	// PARSE MULTIPART FORM
 	form, err := ctx.MultipartForm()
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	payload := &SosialisasiPayload{
-		VillageID:        ctx.FormValue("village_id"),
-		DistrictID:       ctx.FormValue("district_id"),
-		RegionID:         ctx.FormValue("region_id"),
-		Title:            ctx.FormValue("title"),
-		Location:         ctx.FormValue("location"),
-		Description:      ctx.FormValue("description"),
-		ScheduledAtStart: ctx.FormValue("scheduled_at_start"),
-		ScheduledAtEnd:   ctx.FormValue("scheduled_at_end"),
-		Images:           form.File["images"],
-	}
+	var payload SosialisasiPayload
+	validator := utils.NewValidator()
 
-	sosialisasi, err := h.service.EditSosialisasiById(id, payload)
-
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
-		}
-
+	if err := ctx.BodyParser(&payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "sosialisasi updated", sosialisasi, false)
+	payload.Images = form.File["images"]
+
+	// PARSE COORDINATES FROM RAW STRING
+	if err := json.Unmarshal([]byte(payload.CoordinatesRaw), &payload.Coordinates); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinates format", err, true)
+	}
+
+	// VALIDATE PAYLOAD STRUCT
+	if message, err := validator.ValidateStruct(payload); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
+	}
+
+	if err := h.service.EditSosialisasiById(id, &payload); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "sosialisasi not found", err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
+	}
+
+	return utils.JSONResponse(ctx, fiber.StatusOK, "sosialisasi updated", nil, false)
 }
 
 func (h *Handler) DeleteSosialisasiByIdHandler(ctx *fiber.Ctx) error {
-	// PARSE ID TO UINT64
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid sosialisasi id", err, true)
 	}
 
 	if err := h.service.DeleteSosialisasiById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "sosialisasi not found", err, true)
 		}
 
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusOK, "sosialisasi deleted", nil, false)

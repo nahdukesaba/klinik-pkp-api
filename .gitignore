@@ -14,7 +14,6 @@ klinik-pkp-api.exe
 .tmp/
 .vscode/
 .idea/
-.storage/**/*
 *.swp
 *.swo
 *~
@@ -28,5 +27,4 @@ go.work
 go.work.sum
 
 # FOLDERS
-storage/sosialisasi
-storage/rusun
+storage/*/

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"klinik-pkp-api/config"
+	"klinik-pkp-api/internal/api/bank-desain"
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/province"
@@ -33,6 +34,7 @@ func createTables(db *gorm.DB, models ...string) error {
 			&rusun.Rusun{},
 			&bsps.BSPS{},
 			&sosialisasi.Sosialisasi{},
+			&bank_desain.BankDesain{},
 		)
 
 		if err != nil {
@@ -47,6 +49,7 @@ func createTables(db *gorm.DB, models ...string) error {
 		log.Println("✓ Rusun table migrated")
 		log.Println("✓ BSPS table migrated")
 		log.Println("✓ Sosialisasi table migrated")
+		log.Println("✓ Bank Desain table migrated")
 	} else {
 		// CREATE SPECIFIC MODELS
 		for _, model := range models {
@@ -99,6 +102,12 @@ func createTables(db *gorm.DB, models ...string) error {
 				}
 
 				log.Println("✓ Sosialisasi table migrated")
+			case "bank_desain":
+				if err := db.AutoMigrate(&bank_desain.BankDesain{}); err != nil {
+					return err
+				}
+
+				log.Println("✓ Bank Desain table migrated")
 			default:
 				return fmt.Errorf("Unknown migration %s. Available migrations: user, rusun, bsps, province, region, district, village\n", strings.ToLower(model))
 			}

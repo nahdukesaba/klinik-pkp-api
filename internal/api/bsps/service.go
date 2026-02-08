@@ -17,8 +17,8 @@ type BSPSPayload struct {
 	VillageID   string             `json:"village_id" validate:"required"`
 	DistrictID  string             `json:"district_id" validate:"required"`
 	RegionID    string             `json:"region_id" validate:"required"`
-	UnitCount   uint64             `json:"unit_count" validate:"required"`
-	YearGiven   uint64             `json:"year_given" validate:"required"`
+	UnitCount   uint64             `json:"unit_count"`
+	YearGiven   uint64             `json:"year_given"`
 	Status      string             `json:"status" validate:"required,ne=Null,ne=null,ne=NULL"`
 	Coordinates []utils.Coordinate `json:"coordinates" validate:"required" gorm:"-"`
 }

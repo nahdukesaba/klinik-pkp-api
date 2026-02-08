@@ -10,10 +10,10 @@ import (
 )
 
 type Sosialisasi struct {
-	ID          uint64             `gorm:"primaryKey" json:"id"`
-	VillageID   uint64             `gorm:"column:village_id;not null" json:"village_id"`
-	DistrictID  uint64             `gorm:"column:district_id;not null" json:"district_id"`
-	RegionID    uint64             `gorm:"column:region_id;not null" json:"region_id"`
+	ID          uint64             `gorm:"primaryKey" json:"id,string"`
+	VillageID   uint64             `gorm:"column:village_id;not null" json:"village_id,string"`
+	DistrictID  uint64             `gorm:"column:district_id;not null" json:"district_id,string"`
+	RegionID    uint64             `gorm:"column:region_id;not null" json:"region_id,string"`
 	Title       string             `gorm:"column:title" json:"title"`
 	Location    string             `gorm:"column:location" json:"location"`
 	Description string             `gorm:"column:description" json:"description"`

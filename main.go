@@ -6,6 +6,7 @@ import (
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/kumuh"
+	"klinik-pkp-api/internal/api/bank-desain"
 	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/rusun"
@@ -56,6 +57,7 @@ func main() {
 	bsps.SetupRoutes(api, bsps.NewHandler(bsps.NewService(db)))
 	rusun.SetupRoutes(api, rusun.NewHandler(rusun.NewService(db, uploads.NewService("./storage"))))
 	kumuh.SetupRoutes(api, kumuh.NewHandler(kumuh.NewService(db)))
+	bank_desain.SetupRoutes(api, bank_desain.NewHandler(bank_desain.NewService(db, uploads.NewService("./storage"))))
 	sosialisasi.SetupRoutes(api, sosialisasi.NewHandler(sosialisasi.NewService(db, uploads.NewService("./storage"))))
 	uploads.SetupRoutes(api)
 

@@ -2,11 +2,12 @@ package utils
 
 import (
 	"fmt"
+	"klinik-pkp-api/migrations"
+	"log"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"gorm.io/gorm"
-	"klinik-pkp-api/migrations"
-	"log"
 )
 
 // MIGRATION FUNCTION TYPE
@@ -14,16 +15,14 @@ type MigrationFunction func(*gorm.DB) error
 
 // MAPS MIGRATION FILENAMES TO THEIR FUNCTIONS
 var MigrationRegistry = map[string]MigrationFunction{
-	"20260104_add_example_column_to_bsps": migrations.Migration20260104AddExampleColumn,
-	"20260104_add_indexes_to_bsps":        migrations.Migration20260104AddIndexesToBSPS,
-	"20260201_add_status_column_to_bsps":  migrations.Migration20260201AddStatusColumnToBSPS,
+	"20260201_add_status_column_to_bsps":          migrations.Migration20260201AddStatusColumnToBSPS,
+	"20260208_add_type_constraint_to_bank_desain": migrations.Migration20260208AddTypeConstraintToBankDesain,
 }
 
 // MAPS ROLLBACK FILENAMES TO THEIR FUNCTIONS
 var RollbackRegistry = map[string]MigrationFunction{
-	"20260104_add_example_column_to_bsps": migrations.Migration20260104AddExampleColumnRollback,
-	"20260104_add_indexes_to_bsps":        migrations.Migration20260104AddIndexesToBSPSRollback,
-	"20260201_add_status_column_to_bsps":  migrations.Migration20260201AddStatusColumnToBSPSRollback,
+	"20260201_add_status_column_to_bsps":          migrations.Migration20260201AddStatusColumnToBSPSRollback,
+	"20260208_add_type_constraint_to_bank_desain": migrations.Migration20260208AddTypeConstraintToBankDesainRollback,
 }
 
 func DropTable(db *gorm.DB, table string) error {

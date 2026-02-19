@@ -11,8 +11,8 @@ type Village struct {
 	DistrictID uint64 `gorm:"column:district_id" json:"district_id,string"`
 	Name       string `gorm:"column:name" json:"name"`
 
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
 
 	// RELATIONSHIPS

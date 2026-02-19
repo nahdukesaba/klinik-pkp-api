@@ -60,13 +60,13 @@ func RegionSeeder(db *gorm.DB) error {
 			continue
 		}
 
-		reg := region.Region{
+		region := region.Region{
 			ID:         id,
 			Name:       record[1],
 			ProvinceID: provinceID,
 		}
 
-		data = append(data, reg)
+		data = append(data, region)
 	}
 
 	if len(data) > 0 {

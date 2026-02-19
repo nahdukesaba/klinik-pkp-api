@@ -1,11 +1,11 @@
 package village
 
 import (
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
-	"fmt"
 )
 
 // CURRENT INSTANCE
@@ -32,7 +32,7 @@ func (h *Handler) GetVillageByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village id", err, true)
 	}
 
 	data, err := h.service.GetVillageById(id)

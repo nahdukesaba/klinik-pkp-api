@@ -22,8 +22,8 @@ type User struct {
 	UpdatedBy *uint `gorm:"index" json:"updated_by,omitempty"`
 	DeletedBy *uint `gorm:"index" json:"deleted_by,omitempty"`
 
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 

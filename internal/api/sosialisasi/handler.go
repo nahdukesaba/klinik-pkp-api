@@ -64,7 +64,7 @@ func (h *Handler) PostSosialisasiHandler(ctx *fiber.Ctx) error {
 	payload.Images = form.File["images"]
 
 	// PARSE COORDINATES FROM RAW STRING
-	if err := json.Unmarshal([]byte(payload.CoordinatesRaw), &payload.Coordinates); err != nil {
+	if err := json.Unmarshal([]byte(payload.CoordinateRaw), &payload.Coordinate); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinates format", err, true)
 	}
 
@@ -108,7 +108,7 @@ func (h *Handler) PutSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 	payload.Images = form.File["images"]
 
 	// PARSE COORDINATES FROM RAW STRING
-	if err := json.Unmarshal([]byte(payload.CoordinatesRaw), &payload.Coordinates); err != nil {
+	if err := json.Unmarshal([]byte(payload.CoordinateRaw), &payload.Coordinate); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinates format", err, true)
 	}
 

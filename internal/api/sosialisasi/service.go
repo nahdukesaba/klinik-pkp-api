@@ -30,8 +30,8 @@ type SosialisasiPayload struct {
 	Images           []*multipart.FileHeader `form:"images" validate:"-"`
 
 	// FIBER CANNOT PROCESS JSON ARRAYS IN FORM DATA, NEED TO UNMARSHALL MANUALLY
-	CoordinatesRaw string             `form:"coordinates" validate:"required"`
-	Coordinates    []utils.Coordinate `gorm:"-"`
+	CoordinateRaw string           `form:"coordinate" validate:"required"`
+	Coordinate    utils.Coordinate `gorm:"-"`
 }
 
 // CONSTRUCTOR
@@ -103,7 +103,7 @@ func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, err
 		Title:            payload.Title,
 		Location:         payload.Location,
 		Description:      payload.Description,
-		Coordinates:      payload.Coordinates,
+		Coordinate:       payload.Coordinate,
 		ScheduledAtStart: scheduledAtStart,
 		ScheduledAtEnd:   scheduledAtEnd,
 	}
@@ -182,7 +182,7 @@ func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) er
 		Title:            payload.Title,
 		Location:         payload.Location,
 		Description:      payload.Description,
-		Coordinates:      payload.Coordinates,
+		Coordinate:       payload.Coordinate,
 		ScheduledAtStart: scheduledAtStart,
 		ScheduledAtEnd:   scheduledAtEnd,
 	}

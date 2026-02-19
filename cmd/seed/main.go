@@ -44,6 +44,7 @@ func displayAvailableSeeders() {
 	fmt.Println("✓ user")
 	fmt.Println("✓ rusun")
 	fmt.Println("✓ bsps")
+	fmt.Println("✓ kumuh")
 
 	fmt.Println("\nUsage: ")
 	fmt.Println("> go run cmd/seed/main.go [seed1] [seed2] ...")
@@ -62,6 +63,7 @@ func seedAll(db *gorm.DB) error {
 	err = seeders.VillageSeeder(db)
 	err = seeders.RusunSeeder(db)
 	err = seeders.BSPSSeeder(db)
+	err = seeders.KawasanKumuhSeeder(db)
 	// err = seeders.UserSeeder(db)
 
 	return err
@@ -98,8 +100,12 @@ func seedOnly(db *gorm.DB, modelName string) error {
 		if err := seeders.BSPSSeeder(db); err != nil {
 			return err
 		}
+	case "kawasan_kumuh", "kumuh":
+		if err := seeders.KawasanKumuhSeeder(db); err != nil {
+			return err
+		}
 	default:
-		return fmt.Errorf("Unknown seed %s. Available seeders: province, region, district, village, user, rusun, bsps\n", modelName)
+		return fmt.Errorf("Unknown seed %s. Available seeders: province, region, district, village, user, rusun, bsps, kumuh\n", modelName)
 	}
 
 	return nil

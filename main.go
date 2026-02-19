@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/gofiber/fiber/v2"
 	"klinik-pkp-api/config"
+	"klinik-pkp-api/internal/api/bank-desain"
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/kumuh"
-	"klinik-pkp-api/internal/api/bank-desain"
 	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/rusun"
@@ -55,8 +55,8 @@ func main() {
 	district.SetupRoutes(api, district.NewHandler(district.NewService(db)))
 	village.SetupRoutes(api, village.NewHandler(village.NewService(db)))
 	bsps.SetupRoutes(api, bsps.NewHandler(bsps.NewService(db)))
-	rusun.SetupRoutes(api, rusun.NewHandler(rusun.NewService(db, uploads.NewService("./storage"))))
 	kumuh.SetupRoutes(api, kumuh.NewHandler(kumuh.NewService(db)))
+	rusun.SetupRoutes(api, rusun.NewHandler(rusun.NewService(db, uploads.NewService("./storage"))))
 	bank_desain.SetupRoutes(api, bank_desain.NewHandler(bank_desain.NewService(db, uploads.NewService("./storage"))))
 	sosialisasi.SetupRoutes(api, sosialisasi.NewHandler(sosialisasi.NewService(db, uploads.NewService("./storage"))))
 	uploads.SetupRoutes(api)

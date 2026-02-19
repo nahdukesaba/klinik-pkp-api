@@ -4,31 +4,32 @@ import (
 	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/region"
-	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/utils"
 	"time"
 )
 
 type KawasanKumuh struct {
-	ID          uint64             `gorm:"primaryKey" json:"id"`
-	VillageID   uint64             `gorm:"column:village_id;not null" json:"village_id"`
-	DistrictID  uint64             `gorm:"column:district_id;not null" json:"district_id"`
-	RegionID    uint64             `gorm:"column:region_id;not null" json:"region_id"`
-	UnitCount   uint64             `json:"unit_count"`
-	YearGiven   uint64             `json:"year_given"`
-	ImageURLs   []string           `gorm:"column:image_urls;serializer:json" json:"image_urls"`
-	Coordinates []utils.Coordinate `gorm:"serializer:json" json:"coordinates"`
+	ID              uint64           `gorm:"primaryKey" json:"id,string"`
+	DistrictID      uint64           `gorm:"column:district_id" json:"district_id,string"`
+	RegionID        uint64           `gorm:"column:region_id" json:"region_id,string"`
+	AreaName        string           `gorm:"column:area_name;size:255" json:"area_name"`
+	Environments    string           `gorm:"column:environments;size:255" json:"environments"`
+	Villages        string           `gorm:"column:villages;type:text" json:"villages"`
+	TotalArea       float64          `gorm:"column:total_area" json:"total_area"`
+	TotalPopulation uint64           `gorm:"column:total_population" json:"total_population"`
+	SlumValue       uint64           `gorm:"column:slum_value" json:"slum_value"`
+	Coordinate      utils.Coordinate `gorm:"serializer:json" json:"coordinate"`
 
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
 
 	// RELATIONSHIPS
-	Village  *village.Village   `gorm:"foreignKey:VillageID" json:"village,omitempty"`
 	District *district.District `gorm:"foreignKey:DistrictID" json:"district,omitempty"`
 	Region   *region.Region     `gorm:"foreignKey:RegionID" json:"region,omitempty"`
 }
 
+// TABLE NAME
 func (KawasanKumuh) TableName() string {
 	return "kawasan_kumuh"
 }

@@ -13,6 +13,7 @@ import (
 	"klinik-pkp-api/internal/api/sosialisasi"
 	"klinik-pkp-api/internal/api/user"
 	"klinik-pkp-api/internal/api/village"
+	"klinik-pkp-api/internal/api/kumuh"
 	"klinik-pkp-api/utils"
 	"log"
 	"os"
@@ -35,6 +36,7 @@ func createTables(db *gorm.DB, models ...string) error {
 			&bsps.BSPS{},
 			&sosialisasi.Sosialisasi{},
 			&bank_desain.BankDesain{},
+			&kumuh.KawasanKumuh{},
 		)
 
 		if err != nil {
@@ -50,6 +52,7 @@ func createTables(db *gorm.DB, models ...string) error {
 		log.Println("✓ BSPS table migrated")
 		log.Println("✓ Sosialisasi table migrated")
 		log.Println("✓ Bank Desain table migrated")
+		log.Println("✓ Kawasan Kumuh table migrated")
 	} else {
 		// CREATE SPECIFIC MODELS
 		for _, model := range models {
@@ -108,8 +111,12 @@ func createTables(db *gorm.DB, models ...string) error {
 				}
 
 				log.Println("✓ Bank Desain table migrated")
-			default:
-				return fmt.Errorf("Unknown migration %s. Available migrations: user, rusun, bsps, province, region, district, village\n", strings.ToLower(model))
+			case "kumuh", "kawasan_kumuh":
+				if err := db.AutoMigrate(&kumuh.KawasanKumuh{}); err != nil {
+					return err
+				}
+
+				log.Println("✓ Kawasan Kumuh table migrated")
 			}
 		}
 	}

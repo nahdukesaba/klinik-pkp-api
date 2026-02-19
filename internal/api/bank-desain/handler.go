@@ -2,10 +2,11 @@ package bank_desain
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -54,7 +55,7 @@ func (h *Handler) PostBankDesainHandler(ctx *fiber.Ctx) error {
 	var payload BankDesainPayload
 	validator := utils.NewValidator()
 
-	// PARSE REQUEST BODY
+	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
 	}
@@ -97,7 +98,7 @@ func (h *Handler) PutBankDesainByIdHandler(ctx *fiber.Ctx) error {
 	var payload BankDesainPayload
 	validator := utils.NewValidator()
 
-	// PARSE REQUEST BODY
+	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
 	}

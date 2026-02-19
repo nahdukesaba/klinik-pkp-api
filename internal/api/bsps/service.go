@@ -20,7 +20,7 @@ type BSPSPayload struct {
 	UnitCount   uint64             `json:"unit_count"`
 	YearGiven   uint64             `json:"year_given"`
 	Status      string             `json:"status" validate:"required,ne=Null,ne=null,ne=NULL"`
-	Coordinates []utils.Coordinate `json:"coordinates" validate:"required" gorm:"-"`
+	Coordinate  utils.Coordinate   `json:"coordinate" validate:"required" gorm:"-"`
 }
 
 // CONSTRUCTOR
@@ -74,7 +74,7 @@ func (s *Service) AddBSPS(payload *BSPSPayload) (*BSPS, error) {
 		UnitCount:   payload.UnitCount,
 		YearGiven:   payload.YearGiven,
 		Status:      payload.Status,
-		Coordinates: payload.Coordinates,
+		Coordinate: payload.Coordinate,
 	}
 
 	if err := s.db.Create(&newBSPS).Error; err != nil {
@@ -117,7 +117,7 @@ func (s *Service) EditBSPSById(id uint64, payload *BSPSPayload) error {
 		UnitCount:   payload.UnitCount,
 		YearGiven:   payload.YearGiven,
 		Status:      payload.Status,
-		Coordinates: payload.Coordinates,
+		Coordinate: payload.Coordinate,
 	}
 
 	result := s.db.Model(&BSPS{}).Where("id = ?", id).Updates(newBSPS)

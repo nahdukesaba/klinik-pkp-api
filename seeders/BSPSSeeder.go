@@ -3,6 +3,7 @@ package seeders
 import (
 	"encoding/csv"
 	"fmt"
+	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/utils"
@@ -10,7 +11,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"gorm.io/gorm"
 )
 
 // SEEDS FROM PREDEFINED DATA
@@ -65,7 +65,7 @@ func BSPSSeeder(db *gorm.DB) error {
 		unitCount, err := strconv.ParseUint(record[3], 10, 64)
 		yearGiven, err := strconv.ParseUint(record[4], 10, 64)
 
-		var coordinates []utils.Coordinate
+		var coordinate utils.Coordinate
 
 		// PARSE COORDINATES FROM COLUMN[6] ONWARDS
 		for i := 6; i+1 < len(record); i += 2 {
@@ -76,10 +76,10 @@ func BSPSSeeder(db *gorm.DB) error {
 				continue
 			}
 
-			latitude, latErr := strconv.ParseFloat(stringLatitude, 64)
-			longitude, longErr := strconv.ParseFloat(stringLongitude, 64)
+			latitude, err1 := strconv.ParseFloat(stringLatitude, 64)
+			longitude, err2 := strconv.ParseFloat(stringLongitude, 64)
 
-			if latErr != nil || longErr != nil {
+			if err1 != nil || err2 != nil {
 				return fmt.Errorf("invalid coordinate at column %d", i)
 			}
 
@@ -88,20 +88,20 @@ func BSPSSeeder(db *gorm.DB) error {
 				Longitude: longitude,
 			})
 
-			coordinates = append(coordinates, utils.Coordinate{
+			coordinate = utils.Coordinate{
 				Latitude:  latitude,
 				Longitude: longitude,
-			})
+			}
 		}
 
 		batch = append(batch, bsps.BSPS{
-			VillageID:   villageID,
-			DistrictID:  districtID,
-			RegionID:    regionID,
-			UnitCount:   unitCount,
-			YearGiven:   yearGiven,
-			Status: record[5],
-			Coordinates: coordinates,
+			VillageID:  villageID,
+			DistrictID: districtID,
+			RegionID:   regionID,
+			UnitCount:  unitCount,
+			YearGiven:  yearGiven,
+			Status:     record[5],
+			Coordinate: coordinate,
 		})
 	}
 

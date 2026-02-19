@@ -2,10 +2,11 @@ package bsps
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -38,7 +39,11 @@ func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {
 	data, err := h.service.GetBSPSById(id)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusNotFound, "bsps not found", err, true)
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "bsps not found", err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
@@ -48,7 +53,7 @@ func (h *Handler) PostBSPSHandler(ctx *fiber.Ctx) error {
 	var payload BSPSPayload
 	validator := utils.NewValidator()
 
-	// PARSE REQUEST BODY
+	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
 	}
@@ -79,7 +84,7 @@ func (h *Handler) PutBSPSByIdHandler(ctx *fiber.Ctx) error {
 	var payload BSPSPayload
 	validator := utils.NewValidator()
 
-	// PARSE REQUEST BODY
+	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
 	}

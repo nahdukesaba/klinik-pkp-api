@@ -3,10 +3,11 @@ package rusun
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -39,7 +40,11 @@ func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {
 	rusun, err := h.service.GetRusunById(id)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusNotFound, "rusun not found", err, true)
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, "rusun not found", err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", rusun, false)
@@ -64,8 +69,8 @@ func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
 	payload.Images = form.File["images"]
 
 	// PARSE COORDINATES FROM RAW STRING
-	if err := json.Unmarshal([]byte(payload.CoordinatesRaw), &payload.Coordinates); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinates format", err, true)
+	if err := json.Unmarshal([]byte(payload.CoordinateRaw), &payload.Coordinate); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinate format", err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT
@@ -80,7 +85,7 @@ func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusCreated, "rusun created", fiber.Map{
-		"id": fmt.Sprintf("%d", data.ID),
+		"id":         fmt.Sprintf("%d", data.ID),
 		"image_urls": data.ImageURLs,
 	}, false)
 }
@@ -95,21 +100,21 @@ func (h *Handler) PutRusunByIdHandler(ctx *fiber.Ctx) error {
 	form, err := ctx.MultipartForm()
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
 	}
 
 	var payload RusunPayload
 	validator := utils.NewValidator()
 
-	// PARSE REQUEST BODY
+	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
 	}
 
 	payload.Images = form.File["images"]
 
 	// PARSE COORDINATES FROM RAW STRING
-	if err := json.Unmarshal([]byte(payload.CoordinatesRaw), &payload.Coordinates); err != nil {
+	if err := json.Unmarshal([]byte(payload.CoordinateRaw), &payload.Coordinate); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinates format", err, true)
 	}
 

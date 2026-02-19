@@ -67,7 +67,7 @@ func RusunSeeder(db *gorm.DB) error {
 		unitCount, err := strconv.ParseUint(record[8], 10, 64)
 		yearGiven, err := strconv.ParseUint(record[9], 10, 64)
 
-		var coordinates []utils.Coordinate
+		var coordinate utils.Coordinate
 
 		// PARSE COORDINATES FROM COLUMN[10] ONWARDS
 		for i := 10; i+1 < len(record); i += 2 {
@@ -90,10 +90,10 @@ func RusunSeeder(db *gorm.DB) error {
 				Longitude: longitude,
 			})
 
-			coordinates = append(coordinates, utils.Coordinate{
+			coordinate = utils.Coordinate{
 				Latitude:  latitude,
 				Longitude: longitude,
-			})
+			}
 		}
 
 		batch = append(batch, rusun.Rusun{
@@ -107,7 +107,7 @@ func RusunSeeder(db *gorm.DB) error {
 			Floor:       floor,
 			UnitCount:   unitCount,
 			YearGiven:   yearGiven,
-			Coordinates: coordinates,
+			Coordinate: coordinate,
 		})
 	}
 

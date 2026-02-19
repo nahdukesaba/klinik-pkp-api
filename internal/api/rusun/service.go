@@ -30,8 +30,8 @@ type RusunPayload struct {
 	YearGiven  uint64                  `form:"year_given" validate:"required"`
 	Images     []*multipart.FileHeader `form:"images" validate:"required"`
 
-	CoordinatesRaw string             `form:"coordinates" validate:"required"`
-	Coordinates    []utils.Coordinate `gorm:"-"`
+	CoordinateRaw string           `form:"coordinate" validate:"required"`
+	Coordinate    utils.Coordinate `gorm:"-"`
 }
 
 // CONSTRUCTOR
@@ -84,17 +84,17 @@ func (s *Service) AddRusun(payload *RusunPayload) (*Rusun, error) {
 
 	// CREATE RECORD FIRST TO GET ID
 	newRusun := Rusun{
-		VillageID:   villageID,
-		DistrictID:  districtID,
-		RegionID:    regionID,
-		Name:        payload.Name,
-		Address:     payload.Address,
-		Tower:       payload.Tower,
-		UnitType:    payload.UnitType,
-		Floor:       payload.Floor,
-		UnitCount:   payload.UnitCount,
-		YearGiven:   payload.YearGiven,
-		Coordinates: payload.Coordinates,
+		VillageID:  villageID,
+		DistrictID: districtID,
+		RegionID:   regionID,
+		Name:       payload.Name,
+		Address:    payload.Address,
+		Tower:      payload.Tower,
+		UnitType:   payload.UnitType,
+		Floor:      payload.Floor,
+		UnitCount:  payload.UnitCount,
+		YearGiven:  payload.YearGiven,
+		Coordinate: payload.Coordinate,
 	}
 
 	if err := s.db.Create(&newRusun).Error; err != nil {
@@ -151,17 +151,17 @@ func (s *Service) EditRusunById(id uint64, payload *RusunPayload) error {
 	}
 
 	newRusun := Rusun{
-		VillageID:   villageID,
-		DistrictID:  districtID,
-		RegionID:    regionID,
-		Name:        payload.Name,
-		Address:     payload.Address,
-		Tower:       payload.Tower,
-		UnitType:    payload.UnitType,
-		Floor:       payload.Floor,
-		UnitCount:   payload.UnitCount,
-		YearGiven:   payload.YearGiven,
-		Coordinates: payload.Coordinates,
+		VillageID:  villageID,
+		DistrictID: districtID,
+		RegionID:   regionID,
+		Name:       payload.Name,
+		Address:    payload.Address,
+		Tower:      payload.Tower,
+		UnitType:   payload.UnitType,
+		Floor:      payload.Floor,
+		UnitCount:  payload.UnitCount,
+		YearGiven:  payload.YearGiven,
+		Coordinate: payload.Coordinate,
 	}
 
 	if len(payload.Images) > 0 {

@@ -2,15 +2,19 @@ package seeders
 
 import (
 	"encoding/csv"
+	"fmt"
+	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/kumuh"
+	"klinik-pkp-api/utils"
 	"log"
 	"os"
-	"gorm.io/gorm"
+	"strconv"
+	"strings"
 )
 
 // SEEDS FROM THE CSV FILE
-func KumuhMainSeeder(db *gorm.DB) error {
-	file, err := os.Open("seeders/data/kumuh.csv")
+func KawasanKumuhSeeder(db *gorm.DB) error {
+	file, err := os.Open("seeders/data/kawasan-kumuh.csv")
 
 	if err != nil {
 		return err
@@ -31,7 +35,7 @@ func KumuhMainSeeder(db *gorm.DB) error {
 
 	db.Model(&kumuh.KawasanKumuh{}).Count(&count)
 
-	if count > 0 {
+	if count > 10 {
 		log.Println("!? Kawasan Kumuh table already seeded, skipping...")
 
 		return nil
@@ -39,15 +43,86 @@ func KumuhMainSeeder(db *gorm.DB) error {
 
 	// _, records[1:] SKIP HEADER ROW
 	for _, record := range records[1:] {
-		if len(record) < 2 {
+		if len(record) < 10 {
 			continue
 		}
 
-		// id := record[0]
+		districtId, err := strconv.ParseUint(record[3], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing District ID:", err)
+
+			continue
+		}
+
+		regionId, err := strconv.ParseUint(record[4], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing Region ID:", err)
+
+			continue
+		}
+
+		totalArea, err := strconv.ParseFloat(record[5], 64)
+
+		if err != nil {
+			log.Println("Error parsing Total Area:", err)
+
+			continue
+		}
+
+		totalPopulation, err := strconv.ParseUint(record[6], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing Total Population:", err)
+
+			continue
+		}
+
+		slumValue, err := strconv.ParseUint(record[7], 10, 64)
+
+		if err != nil {
+			log.Println("Error parsing Slum Value:", err)
+
+			continue
+		}
+
+		var coordinate utils.Coordinate
+
+		stringLatitude := strings.TrimSpace(record[8])
+		stringLongitude := strings.TrimSpace(record[9])
+
+		if stringLatitude == "" || stringLongitude == "" {
+			continue
+		}
+
+		latitude, latErr := strconv.ParseFloat(stringLatitude, 64)
+		longitude, longErr := strconv.ParseFloat(stringLongitude, 64)
+
+		if latErr != nil || longErr != nil {
+			return fmt.Errorf("invalid coordinates format: %v %v", latErr, longErr)
+		}
+
+		utils.ValidateCoordinate(utils.Coordinate{
+			Latitude:  latitude,
+			Longitude: longitude,
+		})
+
+		coordinate = utils.Coordinate{
+			Latitude:  latitude,
+			Longitude: longitude,
+		}
 
 		kumuh := kumuh.KawasanKumuh{
-			// ID:   id,
-			// Name: record[1],
+			AreaName:        record[0],
+			Environments:    record[1],
+			Villages:        record[2],
+			DistrictID:      districtId,
+			RegionID:        regionId,
+			TotalArea:       totalArea,
+			TotalPopulation: totalPopulation,
+			SlumValue:       slumValue,
+			Coordinate:      coordinate,
 		}
 
 		data = append(data, kumuh)
@@ -60,7 +135,7 @@ func KumuhMainSeeder(db *gorm.DB) error {
 			return result.Error
 		}
 
-		log.Println("✓ Kumuh table seeded successfully with", result.RowsAffected, "records")
+		log.Println("✓ Kawasan Kumuh table seeded successfully with", result.RowsAffected, "records")
 	}
 
 	return nil

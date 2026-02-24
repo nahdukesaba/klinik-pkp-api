@@ -20,7 +20,48 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetSosialisasiHandler(ctx *fiber.Ctx) error {
-	data, err := h.service.GetSosialisasi()
+	var filter SosialisasiFilter
+
+	// PARSE OPTIONAL QUERY PARAMETERS
+	if val := ctx.Query("village_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village_id", err, true)
+		}
+
+		filter.VillageID = &id
+	}
+
+	if val := ctx.Query("district_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid district_id", err, true)
+		}
+
+		filter.DistrictID = &id
+	}
+
+	if val := ctx.Query("region_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region_id", err, true)
+		}
+
+		filter.RegionID = &id
+	}
+
+	if val := ctx.Query("location"); val != "" {
+		filter.Location = &val
+	}
+
+	if val := ctx.Query("title"); val != "" {
+		filter.Title = &val
+	}
+
+	data, err := h.service.GetSosialisasi(filter)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

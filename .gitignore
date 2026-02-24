@@ -27,4 +27,4 @@ go.work
 go.work.sum
 
 # FOLDERS
-storage/*/
+storage/**

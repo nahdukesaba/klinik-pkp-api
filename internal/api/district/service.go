@@ -18,15 +18,27 @@ type DistrictPayload struct {
 	RegionID string `json:"region_id" validate:"required"`
 }
 
+// FILTER FOR QUERY PARAMETERS
+type DistrictFilter struct {
+	RegionID *uint64
+}
+
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-func (s *Service) GetDistricts() ([]District, error) {
+func (s *Service) GetDistricts(filter DistrictFilter) ([]District, error) {
 	var districts []District
 
-	if err := s.db.Preload("Region.Province").Find(&districts).Error; err != nil {
+	query := s.db.Preload("Region.Province").Model(&District{})
+
+	// FILTER BY REGION
+	if filter.RegionID != nil {
+		query = query.Where("district.region_id = ?", *filter.RegionID)
+	}
+
+	if err := query.Find(&districts).Error; err != nil {
 		return nil, err
 	}
 

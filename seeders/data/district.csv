@@ -1,4 +1,4 @@
-code, name, region_id
+id,name,region_id
 120101,Barus,1201
 120102,Sorkam,1201
 120103,Pandan,1201
@@ -191,7 +191,7 @@ code, name, region_id
 121102,Sumbul,1211
 121103,Tigalingga,1211
 121104,Siempat Nempu,1211
-121105,Silima Pungga Pungga,1211
+121105,Silima Pungga-Pungga,1211
 121106,Tanah Pinem,1211
 121107,Siempat Nempu Hulu,1211
 121108,Siempat Nempu Hilir,1211

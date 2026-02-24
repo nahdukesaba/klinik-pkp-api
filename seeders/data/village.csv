@@ -1,4 +1,4 @@
-code, name, district_id
+id,name,district_id
 1201011001,Pasar Batu Gerigis,120101
 1201011002,Padang Masiang,120101
 1201012003,Kampung Solok,120101
@@ -2711,7 +2711,7 @@ code, name, district_id
 1212021001,Pasar Laguboti,121202
 1212022002,Sibuea,121202
 1212022003,Sintong Marnipi,121202
-1212022004,Sibarani Nasampulu/Namungk up,121202
+1212022004,Sibarani Nasampulu/Namungkup,121202
 1212022005,Aruan,121202
 1212022006,Sidulang,121202
 1212022007,Ujung Tanduk,121202

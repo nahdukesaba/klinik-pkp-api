@@ -1,11 +1,11 @@
 package region
 
 import (
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
-	"fmt"
 )
 
 // CURRENT INSTANCE
@@ -19,13 +19,26 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetRegionsHandler(ctx *fiber.Ctx) error {
-	response, err := h.service.GetRegions()
+	var filter RegionFilter
+
+	// PARSE OPTIONAL QUERY PARAMETERS
+	if val := ctx.Query("province_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid province id", err, true)
+		}
+
+		filter.ProvinceID = &id
+	}
+
+	data, err := h.service.GetRegions(filter)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", response, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
@@ -35,7 +48,7 @@ func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region id", err, true)
 	}
 
-	response, err := h.service.GetRegionById(id)
+	data, err := h.service.GetRegionById(id)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -45,7 +58,7 @@ func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", response, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
@@ -105,7 +118,7 @@ func (h *Handler) PutRegionByIdHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) DeleteRegionByIdHandler(ctx *fiber.Ctx) error {
-		id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
+	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region id", err, true)

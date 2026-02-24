@@ -19,13 +19,26 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetDistrictsHandler(ctx *fiber.Ctx) error {
-	response, err := h.service.GetDistricts()
+	var filter DistrictFilter
+
+	// PARSE OPTIONAL QUERY PARAMETERS
+	if val := ctx.Query("region_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region_id", err, true)
+		}
+
+		filter.RegionID = &id
+	}
+
+	data, err := h.service.GetDistricts(filter)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", response, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetDistrictByIDHandler(ctx *fiber.Ctx) error {

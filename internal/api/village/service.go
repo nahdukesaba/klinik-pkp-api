@@ -18,15 +18,27 @@ type VillagePayload struct {
 	DistrictID string `json:"district_id" validate:"required"`
 }
 
+// FILTER FOR QUERY PARAMETERS
+type VillageFilter struct {
+	DistrictID *uint64
+}
+
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-func (s *Service) GetVillages() ([]Village, error) {
+func (s *Service) GetVillages(filter VillageFilter) ([]Village, error) {
 	var villages []Village
 
-	if err := s.db.Preload("District.Region.Province").Find(&villages).Error; err != nil {
+	query := s.db.Preload("District.Region.Province").Model(&Village{})
+
+	// FILTER BY DISTRICT
+	if filter.DistrictID != nil {
+		query = query.Where("village.district_id = ?", *filter.DistrictID)
+	}
+
+	if err := query.Find(&villages).Error; err != nil {
 		return nil, err
 	}
 

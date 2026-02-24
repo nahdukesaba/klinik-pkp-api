@@ -34,6 +34,15 @@ type SosialisasiPayload struct {
 	Coordinate    utils.Coordinate `gorm:"-"`
 }
 
+// FILTER FOR QUERY PARAMETERS
+type SosialisasiFilter struct {
+	VillageID  *uint64
+	DistrictID *uint64
+	RegionID   *uint64
+	Location   *string
+	Title      *string
+}
+
 // CONSTRUCTOR
 func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	return &Service{
@@ -43,10 +52,37 @@ func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	}
 }
 
-func (s *Service) GetSosialisasi() ([]Sosialisasi, error) {
+func (s *Service) GetSosialisasi(filter SosialisasiFilter) ([]Sosialisasi, error) {
 	var sosialisasi []Sosialisasi
 
-	if err := s.db.Preload("Village").Preload("District").Preload("Region.Province").Find(&sosialisasi).Error; err != nil {
+	query := s.db.Preload("Village").Preload("District").Preload("Region.Province").Model(&Sosialisasi{})
+
+	// FILTER BY VILLAGE
+	if filter.VillageID != nil {
+		query = query.Where("sosialisasi.village_id = ?", *filter.VillageID)
+	}
+
+	// FILTER BY DISTRICT
+	if filter.DistrictID != nil {
+		query = query.Where("sosialisasi.district_id = ?", *filter.DistrictID)
+	}
+
+	// FILTER BY REGION
+	if filter.RegionID != nil {
+		query = query.Where("sosialisasi.region_id = ?", *filter.RegionID)
+	}
+
+	// FILTER BY LOCATION (SEARCH)
+	if filter.Location != nil {
+		query = query.Where("sosialisasi.location LIKE ?", "%"+*filter.Location+"%")
+	}
+
+	// FILTER BY TITLE (SEARCH)
+	if filter.Title != nil {
+		query = query.Where("sosialisasi.title LIKE ?", "%"+*filter.Title+"%")
+	}
+
+	if err := query.Find(&sosialisasi).Error; err != nil {
 		return nil, err
 	}
 

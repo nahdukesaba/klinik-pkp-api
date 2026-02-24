@@ -32,7 +32,6 @@ type KawasanKumuhPayload struct {
 
 // FILTER FOR QUERY PARAMETERS
 type KawasanKumuhFilter struct {
-	ProvinceID *uint64
 	RegionID   *uint64
 	DistrictID *uint64
 	VillageID  *uint64
@@ -49,12 +48,7 @@ func NewService(db *gorm.DB) *Service {
 func (s *Service) GetKumuh(filter KawasanKumuhFilter) ([]KawasanKumuh, error) {
 	var kumuh []KawasanKumuh
 
-	query := s.db.Preload("District").Preload("Region")
-
-	// FILTER BY PROVINCE (through region table)
-	if filter.ProvinceID != nil {
-		query = query.Joins("JOIN region ON region.id = kawasan_kumuh.region_id").Where("region.province_id = ?", *filter.ProvinceID)
-	}
+	query := s.db.Preload("District").Preload("Region").Model(&KawasanKumuh{})
 
 	// FILTER BY REGION
 	if filter.RegionID != nil {

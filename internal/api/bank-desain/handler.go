@@ -20,7 +20,43 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetBankDesainHandler(ctx *fiber.Ctx) error {
-	data, err := h.service.GetBankDesain()
+	var filter BankDesainFilter
+
+	// PARSE OPTIONAL QUERY PARAMETERS
+	if val := ctx.Query("type"); val != "" {
+		filter.Type = &val
+	}
+
+	if val := ctx.Query("bedroom_count"); val != "" {
+		count, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid bedroom_count", err, true)
+		}
+
+		filter.BedroomCount = &count
+	}
+
+	if val := ctx.Query("bathroom_count"); val != "" {
+		count, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid bathroom_count", err, true)
+		}
+
+		filter.BathroomCount = &count
+	}
+
+	if val := ctx.Query("has_garage"); val != "" {
+		hasGarage := val == "true" || val == "1"
+		filter.HasGarage = &hasGarage
+	}
+
+	if val := ctx.Query("name"); val != "" {
+		filter.Name = &val
+	}
+
+	data, err := h.service.GetBankDesain(filter)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

@@ -27,6 +27,15 @@ type BankDesainPayload struct {
 	Files         []*multipart.FileHeader `form:"files" validate:"required"`
 }
 
+// FILTER FOR QUERY PARAMETERS
+type BankDesainFilter struct {
+	Type          *string
+	BedroomCount  *uint64
+	BathroomCount *uint64
+	HasGarage     *bool
+	Name          *string
+}
+
 // CONSTRUCTOR
 func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	return &Service{
@@ -36,10 +45,37 @@ func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	}
 }
 
-func (s *Service) GetBankDesain() ([]BankDesain, error) {
+func (s *Service) GetBankDesain(filter BankDesainFilter) ([]BankDesain, error) {
 	var bankDesains []BankDesain
 
-	if err := s.db.Find(&bankDesains).Error; err != nil {
+	query := s.db.Model(&BankDesain{})
+
+	// FILTER BY TYPE
+	if filter.Type != nil {
+		query = query.Where("bank_desain.type = ?", *filter.Type)
+	}
+
+	// FILTER BY BEDROOM COUNT
+	if filter.BedroomCount != nil {
+		query = query.Where("bank_desain.bedroom_count = ?", *filter.BedroomCount)
+	}
+
+	// FILTER BY BATHROOM COUNT
+	if filter.BathroomCount != nil {
+		query = query.Where("bank_desain.bathroom_count = ?", *filter.BathroomCount)
+	}
+
+	// FILTER BY HAS GARAGE
+	if filter.HasGarage != nil {
+		query = query.Where("bank_desain.has_garage = ?", *filter.HasGarage)
+	}
+
+	// FILTER BY NAME (SEARCH)
+	if filter.Name != nil {
+		query = query.Where("bank_desain.name LIKE ?", "%"+*filter.Name+"%")
+	}
+
+	if err := query.Find(&bankDesains).Error; err != nil {
 		return nil, err
 	}
 

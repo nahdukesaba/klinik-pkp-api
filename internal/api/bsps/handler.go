@@ -20,7 +20,44 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetBSPSHandler(ctx *fiber.Ctx) error {
-	data, err := h.service.GetBSPS()
+	var filter BSPSFilter
+
+	// PARSE OPTIONAL QUERY PARAMETERS
+	if val := ctx.Query("village_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village_id", err, true)
+		}
+
+		filter.VillageID = &id
+	}
+
+	if val := ctx.Query("district_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid district_id", err, true)
+		}
+
+		filter.DistrictID = &id
+	}
+
+	if val := ctx.Query("region_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region_id", err, true)
+		}
+
+		filter.RegionID = &id
+	}
+
+	if val := ctx.Query("status"); val != "" {
+		filter.Status = &val
+	}
+
+	data, err := h.service.GetBSPS(filter)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

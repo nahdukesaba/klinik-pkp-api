@@ -22,16 +22,6 @@ func (h *Handler) GetKumuhHandler(ctx *fiber.Ctx) error {
 	var filter KawasanKumuhFilter
 
 	// PARSE OPTIONAL QUERY PARAMETERS
-	if val := ctx.Query("province_id"); val != "" {
-		id, err := strconv.ParseUint(val, 10, 64)
-
-		if err != nil {
-			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid province_id", err, true)
-		}
-
-		filter.ProvinceID = &id
-	}
-
 	if val := ctx.Query("region_id"); val != "" {
 		id, err := strconv.ParseUint(val, 10, 64)
 

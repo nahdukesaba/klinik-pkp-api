@@ -23,15 +23,45 @@ type BSPSPayload struct {
 	Coordinate  utils.Coordinate   `json:"coordinate" validate:"required" gorm:"-"`
 }
 
+// FILTER FOR QUERY PARAMETERS
+type BSPSFilter struct {
+	VillageID  *uint64
+	DistrictID *uint64
+	RegionID   *uint64
+	Status     *string
+}
+
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: &utils.Validator{}}
 }
 
-func (s *Service) GetBSPS() ([]BSPS, error) {
+func (s *Service) GetBSPS(filter BSPSFilter) ([]BSPS, error) {
 	var bsps []BSPS
 
-	if err := s.db.Preload("Village").Preload("District").Preload("Region").Find(&bsps).Error; err != nil {
+	query := s.db.Preload("Village").Preload("District").Preload("Region").Model(&BSPS{})
+
+	// FILTER BY VILLAGE
+	if filter.VillageID != nil {
+		query = query.Where("penerimaan_bsps.village_id = ?", *filter.VillageID)
+	}
+
+	// FILTER BY DISTRICT
+	if filter.DistrictID != nil {
+		query = query.Where("penerimaan_bsps.district_id = ?", *filter.DistrictID)
+	}
+
+	// FILTER BY REGION
+	if filter.RegionID != nil {
+		query = query.Where("penerimaan_bsps.region_id = ?", *filter.RegionID)
+	}
+
+	// FILTER BY STATUS
+	if filter.Status != nil {
+		query = query.Where("penerimaan_bsps.status = ?", *filter.Status)
+	}
+
+	if err := query.Find(&bsps).Error; err != nil {
 		return nil, err
 	}
 

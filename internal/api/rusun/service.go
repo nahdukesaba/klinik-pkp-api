@@ -34,6 +34,13 @@ type RusunPayload struct {
 	Coordinate    utils.Coordinate `gorm:"-"`
 }
 
+// FILTER FOR QUERY PARAMETERS
+type RusunFilter struct {
+	VillageID  *uint64
+	DistrictID *uint64
+	RegionID   *uint64
+}
+
 // CONSTRUCTOR
 func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	return &Service{
@@ -43,10 +50,27 @@ func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	}
 }
 
-func (s *Service) GetRusun() ([]Rusun, error) {
+func (s *Service) GetRusun(filter RusunFilter) ([]Rusun, error) {
 	var rusuns []Rusun
 
-	if err := s.db.Preload("Village").Preload("District").Preload("Region").Find(&rusuns).Error; err != nil {
+	query := s.db.Preload("Village").Preload("District").Preload("Region").Model(&Rusun{})
+
+	// FILTER BY VILLAGE
+	if filter.VillageID != nil {
+		query = query.Where("rusun.village_id = ?", *filter.VillageID)
+	}
+
+	// FILTER BY DISTRICT
+	if filter.DistrictID != nil {
+		query = query.Where("rusun.district_id = ?", *filter.DistrictID)
+	}
+
+	// FILTER BY REGION
+	if filter.RegionID != nil {
+		query = query.Where("rusun.region_id = ?", *filter.RegionID)
+	}
+
+	if err := query.Find(&rusuns).Error; err != nil {
 		return nil, err
 	}
 

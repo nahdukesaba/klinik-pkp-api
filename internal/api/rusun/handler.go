@@ -21,7 +21,40 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetRusunHandler(ctx *fiber.Ctx) error {
-	rusun, err := h.service.GetRusun()
+	var filter RusunFilter
+
+	// PARSE OPTIONAL QUERY PARAMETERS
+	if val := ctx.Query("village_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village_id", err, true)
+		}
+
+		filter.VillageID = &id
+	}
+
+	if val := ctx.Query("district_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid district_id", err, true)
+		}
+
+		filter.DistrictID = &id
+	}
+
+	if val := ctx.Query("region_id"); val != "" {
+		id, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid region_id", err, true)
+		}
+
+		filter.RegionID = &id
+	}
+
+	rusun, err := h.service.GetRusun(filter)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

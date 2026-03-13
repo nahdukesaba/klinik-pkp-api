@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const MAX_FILE_SIZE_PDF = 50 * 1024 * 1024 // 50 MB for PDF
+const MAX_FILE_SIZE_PDF = 10 * 1024 * 1024 // 10 MB for PDF
 
 var AllowedPDFMimeTypes = map[string]bool{
 	"application/pdf": true,

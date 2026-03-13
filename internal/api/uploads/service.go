@@ -21,6 +21,7 @@ type Service struct {
 // PAYLOAD FROM REQUEST BODY
 type FilePayload struct {
 	Files    []*multipart.FileHeader
+	MaxCount    int
 	Category string
 	RecordID uint64
 }
@@ -38,8 +39,8 @@ func (s *Service) SaveImages(payload *FilePayload) ([]string, error) {
 		return nil, fmt.Errorf("no files provided")
 	}
 
-	if len(payload.Files) > 4 {
-		return nil, fmt.Errorf("maximum 4 images allowed, got %d", len(payload.Files))
+	if len(payload.Files) > payload.MaxCount {
+		return nil, fmt.Errorf("maximum %d images allowed, got %d", payload.MaxCount, len(payload.Files))
 	}
 
 	category, err := utils.ValidateImageCategory(payload.Category)
@@ -162,8 +163,8 @@ func (s *Service) SaveFiles(payload *FilePayload) ([]string, error) {
 		return nil, fmt.Errorf("no files provided")
 	}
 
-	if len(payload.Files) > 1 {
-		return nil, fmt.Errorf("maximum 1 file allowed, got %d", len(payload.Files))
+	if len(payload.Files) > payload.MaxCount {
+		return nil, fmt.Errorf("maximum %d files allowed, got %d", payload.MaxCount, len(payload.Files))
 	}
 
 	category, err := utils.ValidateFileCategory(payload.Category)

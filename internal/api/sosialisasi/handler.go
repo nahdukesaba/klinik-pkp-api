@@ -3,10 +3,11 @@ package sosialisasi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -80,7 +81,7 @@ func (h *Handler) GetSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 	data, err := h.service.GetSosialisasiById(id)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusNotFound, "sosialisasi not found", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
@@ -94,11 +95,10 @@ func (h *Handler) PostSosialisasiHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload SosialisasiPayload
-	validator := utils.NewValidator()
 
 	// PARSE MULTIPART FORM
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	// ASSIGN IMAGES FROM MULTIPART FORM
@@ -110,7 +110,7 @@ func (h *Handler) PostSosialisasiHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -121,7 +121,7 @@ func (h *Handler) PostSosialisasiHandler(ctx *fiber.Ctx) error {
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusCreated, "sosialisasi created", fiber.Map{
-		"id": fmt.Sprintf("%d", data.ID),
+		"id":         fmt.Sprintf("%d", data.ID),
 		"image_urls": data.ImageURLs,
 	}, false)
 }
@@ -140,7 +140,6 @@ func (h *Handler) PutSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload SosialisasiPayload
-	validator := utils.NewValidator()
 
 	if err := ctx.BodyParser(&payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
@@ -154,13 +153,13 @@ func (h *Handler) PutSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
 	if err := h.service.EditSosialisasiById(id, &payload); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "sosialisasi not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -178,7 +177,7 @@ func (h *Handler) DeleteSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 
 	if err := h.service.DeleteSosialisasiById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "sosialisasi not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

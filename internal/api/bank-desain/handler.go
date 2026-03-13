@@ -75,7 +75,7 @@ func (h *Handler) GetBankDesainByIdHandler(ctx *fiber.Ctx) error {
 	data, err := h.service.GetBankDesainById(id)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusNotFound, "bank desain not found", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
@@ -89,11 +89,10 @@ func (h *Handler) PostBankDesainHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload BankDesainPayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	// ASSIGN IMAGES AND FILES FROM MULTIPART FORM
@@ -101,7 +100,7 @@ func (h *Handler) PostBankDesainHandler(ctx *fiber.Ctx) error {
 	payload.Files = form.File["files"]
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -132,24 +131,23 @@ func (h *Handler) PutBankDesainByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload BankDesainPayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	payload.Images = form.File["images"]
 	payload.Files = form.File["files"]
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
 	if err := h.service.EditBankDesainById(id, &payload); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "bank desain not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -167,7 +165,7 @@ func (h *Handler) DeleteBankDesainByIdHandler(ctx *fiber.Ctx) error {
 
 	if err := h.service.DeleteBankDesainById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "bank desain not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

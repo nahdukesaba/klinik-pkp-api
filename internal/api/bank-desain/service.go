@@ -22,7 +22,7 @@ type BankDesainPayload struct {
 	BedroomCount  uint64                  `form:"bedroom_count" validate:"required"`
 	BathroomCount uint64                  `form:"bathroom_count" validate:"required"`
 	TotalArea     uint64                  `form:"total_area" validate:"required"`
-	HasGarage     *bool                    `form:"has_garage" validate:"required"`
+	HasGarage     *bool                   `form:"has_garage" validate:"required"`
 	Images        []*multipart.FileHeader `form:"images" validate:"required"`
 	Files         []*multipart.FileHeader `form:"files" validate:"required"`
 }
@@ -40,7 +40,7 @@ type BankDesainFilter struct {
 func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	return &Service{
 		db:            db,
-		validator:     &utils.Validator{},
+		validator:     utils.NewValidator(),
 		uploadService: uploadService,
 	}
 }
@@ -110,6 +110,7 @@ func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error)
 	if len(payload.Images) > 0 {
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
+			MaxCount: 4,
 			Category: "bank_desain",
 			RecordID: newBankDesain.ID,
 		})
@@ -126,6 +127,7 @@ func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error)
 	if len(payload.Files) > 0 {
 		fileResponses, err := s.uploadService.SaveFiles(&uploads.FilePayload{
 			Files:    payload.Files,
+			MaxCount: 8,
 			Category: "bank_desain",
 			RecordID: newBankDesain.ID,
 		})
@@ -172,6 +174,7 @@ func (s *Service) EditBankDesainById(id uint64, payload *BankDesainPayload) erro
 		// UPLOAD NEW IMAGES
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
+			MaxCount: 8,
 			Category: "bank_desain",
 			RecordID: id,
 		})
@@ -194,6 +197,7 @@ func (s *Service) EditBankDesainById(id uint64, payload *BankDesainPayload) erro
 		// UPLOAD NEW FILES
 		fileResponses, err := s.uploadService.SaveFiles(&uploads.FilePayload{
 			Files:    payload.Files,
+			MaxCount: 1,
 			Category: "bank_desain",
 			RecordID: id,
 		})
@@ -210,7 +214,7 @@ func (s *Service) EditBankDesainById(id uint64, payload *BankDesainPayload) erro
 	// SERVER ERRORS
 	if result.Error != nil {
 		return result.Error
-	}	
+	}
 
 	return nil
 }
@@ -235,4 +239,3 @@ func (s *Service) DeleteBankDesainById(id uint64) error {
 
 	return nil
 }
-

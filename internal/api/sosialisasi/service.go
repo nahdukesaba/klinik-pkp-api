@@ -2,12 +2,13 @@ package sosialisasi
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/uploads"
 	"klinik-pkp-api/utils"
 	"mime/multipart"
 	"strconv"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -47,7 +48,7 @@ type SosialisasiFilter struct {
 func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	return &Service{
 		db:            db,
-		validator:     &utils.Validator{},
+		validator:     utils.NewValidator(),
 		uploadService: uploadService,
 	}
 }
@@ -151,6 +152,7 @@ func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, err
 	if len(payload.Images) > 0 {
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
+			MaxCount: 4,
 			Category: "sosialisasi",
 			RecordID: newSosialisasi.ID,
 		})
@@ -232,6 +234,7 @@ func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) er
 		// UPLOAD NEW IMAGES
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
+			MaxCount: 4,
 			Category: "sosialisasi",
 			RecordID: id,
 		})

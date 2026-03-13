@@ -5,9 +5,11 @@ import (
 )
 
 func SetupRoutes(app fiber.Router, handler *Handler) {
-	app.Get("/kumuh", handler.GetKumuhHandler)
-	app.Get("/kumuh/:id", handler.GetKumuhByIdHandler)
-	app.Post("/kumuh", handler.PostKumuhHandler)
-	app.Put("/kumuh/:id", handler.PutKumuhByIdHandler)
-	app.Delete("/kumuh/:id", handler.DeleteKumuhByIdHandler)
+	kumuh := app.Group("/kumuh")
+	
+	kumuh.Get("/", handler.GetKumuhHandler)
+	kumuh.Get("/:id", handler.GetKumuhByIdHandler)
+	kumuh.Post("/", handler.PostKumuhHandler)
+	kumuh.Put("/:id", handler.PutKumuhByIdHandler)
+	kumuh.Delete("/:id", handler.DeleteKumuhByIdHandler)
 }

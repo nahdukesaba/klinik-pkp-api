@@ -2,10 +2,11 @@ package kumuh
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -52,6 +53,20 @@ func (h *Handler) GetKumuhHandler(ctx *fiber.Ctx) error {
 		filter.VillageID = &id
 	}
 
+	if val := ctx.Query("area_name"); val != "" {
+		filter.AreaName = &val
+	}
+
+	if val := ctx.Query("year_inspected"); val != "" {
+		year, err := strconv.ParseUint(val, 10, 64)
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid year_inspected", err, true)
+		}
+
+		filter.YearInspected = &year
+	}
+
 	data, err := h.service.GetKumuh(filter)
 
 	if err != nil {
@@ -72,7 +87,7 @@ func (h *Handler) GetKumuhByIdHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "kawasan kumuh not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -83,15 +98,14 @@ func (h *Handler) GetKumuhByIdHandler(ctx *fiber.Ctx) error {
 
 func (h *Handler) PostKumuhHandler(ctx *fiber.Ctx) error {
 	var payload KawasanKumuhPayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadGateway.Message, err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -114,21 +128,20 @@ func (h *Handler) PutKumuhByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload KawasanKumuhPayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
 	if err := h.service.EditKumuhById(id, &payload); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "kawasan kumuh not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -146,7 +159,7 @@ func (h *Handler) DeleteKumuhByIdHandler(ctx *fiber.Ctx) error {
 
 	if err := h.service.DeleteKumuhById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "kawasan kumuh not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

@@ -18,6 +18,7 @@ type KawasanKumuh struct {
 	TotalArea       float64          `gorm:"column:total_area" json:"total_area"`
 	TotalPopulation uint64           `gorm:"column:total_population" json:"total_population"`
 	SlumValue       uint64           `gorm:"column:slum_value" json:"slum_value"`
+	YearInspected   uint64           `gorm:"column:year_inspected" json:"year_inspected"`
 	Coordinate      utils.Coordinate `gorm:"serializer:json" json:"coordinate"`
 
 	CreatedAt time.Time      `json:"-"`

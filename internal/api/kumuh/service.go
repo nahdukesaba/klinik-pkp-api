@@ -32,16 +32,18 @@ type KawasanKumuhPayload struct {
 
 // FILTER FOR QUERY PARAMETERS
 type KawasanKumuhFilter struct {
-	RegionID   *uint64
-	DistrictID *uint64
-	VillageID  *uint64
+	RegionID      *uint64
+	DistrictID    *uint64
+	VillageID     *uint64
+	AreaName      *string
+	YearInspected *uint64
 }
 
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{
 		db:        db,
-		validator: &utils.Validator{},
+		validator: utils.NewValidator(),
 	}
 }
 
@@ -69,6 +71,16 @@ func (s *Service) GetKumuh(filter KawasanKumuhFilter) ([]KawasanKumuh, error) {
 		}
 
 		query = query.Where("kawasan_kumuh.villages LIKE ?", "%"+village.Name+"%")
+	}
+
+	// FILTER BY AREA NAME
+	if filter.AreaName != nil {
+		query = query.Where("kawasan_kumuh.area_name LIKE ?", "%"+*filter.AreaName+"%")
+	}
+
+	// FILTER BY YEAR INSPECTED
+	if filter.YearInspected != nil {
+		query = query.Where("kawasan_kumuh.year_inspected = ?", *filter.YearInspected)
 	}
 
 	if err := query.Find(&kumuh).Error; err != nil {

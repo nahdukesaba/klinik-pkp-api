@@ -5,9 +5,11 @@ import (
 )
 
 func SetupRoutes(app fiber.Router, handler *Handler) {
-	app.Get("/bsps", handler.GetBSPSHandler)
-	app.Get("/bsps/:id", handler.GetBSPSByIdHandler)
-	app.Post("/bsps", handler.PostBSPSHandler)
-	app.Put("/bsps/:id", handler.PutBSPSByIdHandler)
-	app.Delete("/bsps/:id", handler.DeleteBSPSByIdHandler)
+	bsps := app.Group("/bsps")
+
+	bsps.Get("/", handler.GetBSPSHandler)
+	bsps.Get("/:id", handler.GetBSPSByIdHandler)
+	bsps.Post("/", handler.PostBSPSHandler)
+	bsps.Put("/:id", handler.PutBSPSByIdHandler)
+	bsps.Delete("/:id", handler.DeleteBSPSByIdHandler)
 }

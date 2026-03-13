@@ -1,12 +1,13 @@
 package bsps
 
 import (
-	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/district"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/village"
 	"klinik-pkp-api/utils"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type BSPS struct {
@@ -30,5 +31,5 @@ type BSPS struct {
 }
 
 func (BSPS) TableName() string {
-	return "penerimaan_bsps"
+	return "bsps"
 }

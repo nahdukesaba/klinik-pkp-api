@@ -9,11 +9,11 @@ import (
 	"klinik-pkp-api/utils"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-// SEEDS FROM PREDEFINED DATA
 func BSPSSeeder(db *gorm.DB) error {
 	file, err := os.Open("seeders/data/bsps.csv")
 
@@ -28,70 +28,87 @@ func BSPSSeeder(db *gorm.DB) error {
 
 	db.Model(&bsps.BSPS{}).Count(&count)
 
-	if count > 0 {
+	if count > 10 {
 		log.Println("!? BSPS table already seeded, skipping...")
 
 		return nil
 	}
 
-	reader := csv.NewReader(file)
-	const batchSize = 100
 	var batch []bsps.BSPS
+	reader := csv.NewReader(file)
+	rowNum := 0
+	skippedRows := 0
 
-	// _ MEANS EXCLUDE THE RESULT FROM THE FIRST READ (REMOVING HEADER ROW)
-	if _, err := reader.Read(); err != nil {
-		return err
-	}
-
+	// LOOPS UNTIL EOF
 	for {
 		record, err := reader.Read()
+		rowNum++
 
 		if err == io.EOF {
 			break
 		}
 
 		if err != nil {
-			log.Println("Error reading bsps.csv:", err)
-			continue
+			return fmt.Errorf("Row %d: Error reading bsps.csv: %v", rowNum, err)
 		}
 
 		if len(record) < 8 {
+			skippedRows++
 			continue
 		}
 
-		villageID, err := strconv.ParseUint(record[0], 10, 64)
-		districtID, err := strconv.ParseUint(record[1], 10, 64)
-		regionID, err := strconv.ParseUint(record[2], 10, 64)
-		unitCount, err := strconv.ParseUint(record[3], 10, 64)
-		yearGiven, err := strconv.ParseUint(record[4], 10, 64)
+		isVillageIdNumeric, _ := regexp.MatchString(`^\d+$`, strings.TrimSpace(record[0]))
+		if isVillageIdNumeric == false {
+			log.Printf("Row %d: Skipping - Village ID is not numeric (%q)\n", rowNum, record[0])
+			skippedRows++
+			continue
+		}
+
+		villageID, err := strconv.ParseUint(strings.TrimSpace(record[0]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing Village ID (%q): %v", rowNum, record[0], err)
+		}
+
+		districtID, err := strconv.ParseUint(strings.TrimSpace(record[1]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing District ID (%q): %v", rowNum, record[1], err)
+		}
+
+		regionID, err := strconv.ParseUint(strings.TrimSpace(record[2]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing Region ID (%q): %v", rowNum, record[2], err)
+		}
+
+		unitCount, err := strconv.ParseUint(strings.TrimSpace(record[3]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing Unit Count (%q): %v", rowNum, record[3], err)
+		}
+
+		yearGiven, err := strconv.ParseUint(strings.TrimSpace(record[4]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing Year Given (%q): %v", rowNum, record[4], err)
+		}
 
 		var coordinate utils.Coordinate
 
-		// PARSE COORDINATES FROM COLUMN[6] ONWARDS
-		for i := 6; i+1 < len(record); i += 2 {
-			stringLatitude := strings.TrimSpace(record[i])
-			stringLongitude := strings.TrimSpace(record[i+1])
+		latitude, err := strconv.ParseFloat(strings.TrimSpace(record[6]), 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing coordinates: %v", rowNum, err)
+		}
 
-			if stringLatitude == "" || stringLongitude == "" {
-				continue
-			}
+		longitude, err := strconv.ParseFloat(strings.TrimSpace(record[7]), 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing coordinates: %v", rowNum, err)
+		}
 
-			latitude, err1 := strconv.ParseFloat(stringLatitude, 64)
-			longitude, err2 := strconv.ParseFloat(stringLongitude, 64)
+		utils.ValidateCoordinate(utils.Coordinate{
+			Latitude:  latitude,
+			Longitude: longitude,
+		})
 
-			if err1 != nil || err2 != nil {
-				return fmt.Errorf("invalid coordinate at column %d", i)
-			}
-
-			utils.ValidateCoordinate(utils.Coordinate{
-				Latitude:  latitude,
-				Longitude: longitude,
-			})
-
-			coordinate = utils.Coordinate{
-				Latitude:  latitude,
-				Longitude: longitude,
-			}
+		coordinate = utils.Coordinate{
+			Latitude:  latitude,
+			Longitude: longitude,
 		}
 
 		batch = append(batch, bsps.BSPS{
@@ -105,23 +122,14 @@ func BSPSSeeder(db *gorm.DB) error {
 		})
 	}
 
+	log.Printf("BSPS: %d non-data rows skipped\n", skippedRows)
+
 	if len(batch) > 0 {
 		result := db.CreateInBatches(batch, 100)
 
 		if result.Error != nil {
 			return result.Error
 		}
-
-		// RESET SEQUENCE AFTER MANUAL ID INSERTS (OPTIONAL, BEST TO LET DATABASE HANDLE IDS)
-		// if err := db.Exec(`
-		// 	SELECT setval(
-		// 		pg_get_serial_sequence('penerimaan_bsps', 'id'),
-		// 		(SELECT COALESCE(MAX(id), 1) FROM penerimaan_bsps),
-		// 		true
-		// 	)
-		// `).Error; err != nil {
-		// 	return err
-		// }
 
 		batch = batch[:0] // RESET BATCH
 

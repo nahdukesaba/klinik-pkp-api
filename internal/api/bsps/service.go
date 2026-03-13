@@ -1,9 +1,10 @@
 package bsps
 
 import (
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -14,13 +15,13 @@ type Service struct {
 
 // PAYLOAD FROM REQUEST BODY
 type BSPSPayload struct {
-	VillageID   string             `json:"village_id" validate:"required"`
-	DistrictID  string             `json:"district_id" validate:"required"`
-	RegionID    string             `json:"region_id" validate:"required"`
-	UnitCount   uint64             `json:"unit_count"`
-	YearGiven   uint64             `json:"year_given"`
-	Status      string             `json:"status" validate:"required,ne=Null,ne=null,ne=NULL"`
-	Coordinate  utils.Coordinate   `json:"coordinate" validate:"required" gorm:"-"`
+	VillageID  string           `json:"village_id" validate:"required"`
+	DistrictID string           `json:"district_id" validate:"required"`
+	RegionID   string           `json:"region_id" validate:"required"`
+	UnitCount  uint64           `json:"unit_count"`
+	YearGiven  uint64           `json:"year_given"`
+	Status     string           `json:"status" validate:"required,ne=Null,ne=null,ne=NULL"`
+	Coordinate utils.Coordinate `json:"coordinate" validate:"required" gorm:"-"`
 }
 
 // FILTER FOR QUERY PARAMETERS
@@ -33,7 +34,7 @@ type BSPSFilter struct {
 
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
-	return &Service{db: db, validator: &utils.Validator{}}
+	return &Service{db: db, validator: utils.NewValidator()}
 }
 
 func (s *Service) GetBSPS(filter BSPSFilter) ([]BSPS, error) {
@@ -43,22 +44,22 @@ func (s *Service) GetBSPS(filter BSPSFilter) ([]BSPS, error) {
 
 	// FILTER BY VILLAGE
 	if filter.VillageID != nil {
-		query = query.Where("penerimaan_bsps.village_id = ?", *filter.VillageID)
+		query = query.Where("bsps.village_id = ?", *filter.VillageID)
 	}
 
 	// FILTER BY DISTRICT
 	if filter.DistrictID != nil {
-		query = query.Where("penerimaan_bsps.district_id = ?", *filter.DistrictID)
+		query = query.Where("bsps.district_id = ?", *filter.DistrictID)
 	}
 
 	// FILTER BY REGION
 	if filter.RegionID != nil {
-		query = query.Where("penerimaan_bsps.region_id = ?", *filter.RegionID)
+		query = query.Where("bsps.region_id = ?", *filter.RegionID)
 	}
 
 	// FILTER BY STATUS
 	if filter.Status != nil {
-		query = query.Where("penerimaan_bsps.status = ?", *filter.Status)
+		query = query.Where("bsps.status = ?", *filter.Status)
 	}
 
 	if err := query.Find(&bsps).Error; err != nil {
@@ -98,12 +99,12 @@ func (s *Service) AddBSPS(payload *BSPSPayload) (*BSPS, error) {
 	}
 
 	newBSPS := BSPS{
-		VillageID:   villageID,
-		DistrictID:  districtID,
-		RegionID:    regionID,
-		UnitCount:   payload.UnitCount,
-		YearGiven:   payload.YearGiven,
-		Status:      payload.Status,
+		VillageID:  villageID,
+		DistrictID: districtID,
+		RegionID:   regionID,
+		UnitCount:  payload.UnitCount,
+		YearGiven:  payload.YearGiven,
+		Status:     payload.Status,
 		Coordinate: payload.Coordinate,
 	}
 
@@ -141,12 +142,12 @@ func (s *Service) EditBSPSById(id uint64, payload *BSPSPayload) error {
 	}
 
 	newBSPS := BSPS{
-		VillageID:   villageID,
-		DistrictID:  districtID,
-		RegionID:    regionID,
-		UnitCount:   payload.UnitCount,
-		YearGiven:   payload.YearGiven,
-		Status:      payload.Status,
+		VillageID:  villageID,
+		DistrictID: districtID,
+		RegionID:   regionID,
+		UnitCount:  payload.UnitCount,
+		YearGiven:  payload.YearGiven,
+		Status:     payload.Status,
 		Coordinate: payload.Coordinate,
 	}
 

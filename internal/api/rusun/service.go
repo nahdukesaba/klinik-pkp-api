@@ -2,11 +2,12 @@ package rusun
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/uploads"
 	"klinik-pkp-api/utils"
 	"mime/multipart"
 	"strconv"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -45,7 +46,7 @@ type RusunFilter struct {
 func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	return &Service{
 		db:            db,
-		validator:     &utils.Validator{},
+		validator:     utils.NewValidator(),
 		uploadService: uploadService,
 	}
 }
@@ -128,6 +129,7 @@ func (s *Service) AddRusun(payload *RusunPayload) (*Rusun, error) {
 	if len(payload.Images) > 0 {
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
+			MaxCount: 1,
 			Category: "rusun",
 			RecordID: newRusun.ID,
 		})
@@ -197,6 +199,7 @@ func (s *Service) EditRusunById(id uint64, payload *RusunPayload) error {
 		// UPLOAD NEW IMAGES
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
+			MaxCount: 1,
 			Category: "rusun",
 			RecordID: id,
 		})

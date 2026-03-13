@@ -74,7 +74,7 @@ func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "rusun not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -91,11 +91,10 @@ func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload RusunPayload
-	validator := utils.NewValidator()
 
 	// PARSE MULTIPART FORM
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	// ASSIGN IMAGES FROM MULTIPART FORM
@@ -107,7 +106,7 @@ func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -133,32 +132,31 @@ func (h *Handler) PutRusunByIdHandler(ctx *fiber.Ctx) error {
 	form, err := ctx.MultipartForm()
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	var payload RusunPayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	payload.Images = form.File["images"]
 
-	// PARSE COORDINATES FROM RAW STRING
+	// PARSE COORDINATE FROM RAW STRING
 	if err := json.Unmarshal([]byte(payload.CoordinateRaw), &payload.Coordinate); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinates format", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid coordinate format", err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
 	if err := h.service.EditRusunById(id, &payload); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "rusun not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -176,7 +174,7 @@ func (h *Handler) DeleteRusunByIdHandler(ctx *fiber.Ctx) error {
 
 	if err := h.service.DeleteRusunById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "rusun not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

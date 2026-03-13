@@ -14,7 +14,7 @@ type Rusun struct {
 	VillageID  uint64           `gorm:"column:village_id" json:"village_id,string"`
 	DistrictID uint64           `gorm:"column:district_id" json:"district_id,string"`
 	RegionID   uint64           `gorm:"column:region_id" json:"region_id,string"`
-	Name       string           `gorm:"size:255" json:"name"`
+	Name       string           `gorm:"size:255;uniqueIndex" json:"name"`
 	Address    string           `gorm:"size:500" json:"address"`
 	Tower      uint64           `gorm:"size:100" json:"tower"`
 	UnitType   string           `gorm:"size:150" json:"unit_type"`

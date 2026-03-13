@@ -5,9 +5,11 @@ import (
 )
 
 func SetupRoutes(app fiber.Router, handler *Handler) {
-	app.Get("/rusun", handler.GetRusunHandler)
-	app.Get("/rusun/:id", handler.GetRusunByIdHandler)
-	app.Post("/rusun", handler.PostRusunHandler)
-	app.Put("/rusun/:id", handler.PutRusunByIdHandler)
-	app.Delete("/rusun/:id", handler.DeleteRusunByIdHandler)
+	rusun := app.Group("/rusun")
+
+	rusun.Get("/", handler.GetRusunHandler)
+	rusun.Get("/:id", handler.GetRusunByIdHandler)
+	rusun.Post("/", handler.PostRusunHandler)
+	rusun.Put("/:id", handler.PutRusunByIdHandler)
+	rusun.Delete("/:id", handler.DeleteRusunByIdHandler)
 }

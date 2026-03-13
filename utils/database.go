@@ -45,7 +45,7 @@ func DropTable(db *gorm.DB, table string) error {
 	}
 
 	// DROP THE TABLE
-	if err := db.Exec(fmt.Sprintf("DROP TABLE %s CASCADE", table)).Error; err != nil {
+	if err := db.Exec(fmt.Sprintf(`DROP TABLE "%s" CASCADE`, table)).Error; err != nil {
 		return fmt.Errorf("failed to drop table %s: %v", table, err)
 	}
 
@@ -74,7 +74,7 @@ func TruncateTable(db *gorm.DB, table string) error {
 	}
 
 	// TRUNCATE THE TABLE
-	if err := db.Exec(fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE", table)).Error; err != nil {
+	if err := db.Exec(fmt.Sprintf(`TRUNCATE TABLE "%s" RESTART IDENTITY CASCADE`, table)).Error; err != nil {
 		return fmt.Errorf("failed to truncate table %s: %v", table, err)
 	}
 

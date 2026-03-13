@@ -5,9 +5,11 @@ import (
 )
 
 func SetupRoutes(app fiber.Router, handler *Handler) {
-	app.Get("/bank-desain", handler.GetBankDesainHandler)
-	app.Get("/bank-desain/:id", handler.GetBankDesainByIdHandler)
-	app.Post("/bank-desain", handler.PostBankDesainHandler)
-	app.Put("/bank-desain/:id", handler.PutBankDesainByIdHandler)
-	app.Delete("/bank-desain/:id", handler.DeleteBankDesainByIdHandler)
+	bankDesain := app.Group("/bank-desain")
+
+	bankDesain.Get("/", handler.GetBankDesainHandler)
+	bankDesain.Get("/:id", handler.GetBankDesainByIdHandler)
+	bankDesain.Post("/", handler.PostBankDesainHandler)
+	bankDesain.Put("/:id", handler.PutBankDesainByIdHandler)
+	bankDesain.Delete("/:id", handler.DeleteBankDesainByIdHandler)
 }

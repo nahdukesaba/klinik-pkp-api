@@ -22,10 +22,6 @@ type Config struct {
 	DBPass string
 	DBName string
 
-	// JWT
-	JWTSecret     string
-	JWTExpiration string
-
 	// ROLES
 	RoleSuperAdmin         string
 	RoleAdminEselon1       string
@@ -64,10 +60,6 @@ func LoadConfig() Config {
 		DBUser: getEnv("DB_USER", "postgres"),
 		DBPass: getEnv("DB_PASS", ""),
 		DBName: getEnv("DB_NAME", "klinik-pkp-api"),
-
-		// JWT
-		JWTSecret:     getEnv("JWT_SECRET", "supersecretjwtkey"),
-		JWTExpiration: getEnv("JWT_EXPIRATION", "24h"),
 
 		// ROLES
 		RoleSuperAdmin:         getEnv("ROLE_SUPER_ADMIN", "Super Admin"),

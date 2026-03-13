@@ -2,10 +2,11 @@ package province
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -39,7 +40,7 @@ func (h *Handler) GetProvinceByIdHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "province not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -50,7 +51,6 @@ func (h *Handler) GetProvinceByIdHandler(ctx *fiber.Ctx) error {
 
 func (h *Handler) PostProvinceHandler(ctx *fiber.Ctx) error {
 	var payload ProvincePayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
@@ -58,7 +58,7 @@ func (h *Handler) PostProvinceHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -81,7 +81,6 @@ func (h *Handler) PutProvinceByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload ProvincePayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
@@ -89,13 +88,13 @@ func (h *Handler) PutProvinceByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
 	if err := h.service.EditProvinceById(id, payload); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "province not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -113,7 +112,7 @@ func (h *Handler) DeleteProvinceByIdHandler(ctx *fiber.Ctx) error {
 
 	if err := h.service.DeleteProvinceById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "province not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

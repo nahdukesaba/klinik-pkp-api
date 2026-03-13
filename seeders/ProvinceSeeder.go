@@ -2,10 +2,14 @@ package seeders
 
 import (
 	"encoding/csv"
+	"fmt"
+	"io"
 	"klinik-pkp-api/internal/api/province"
 	"log"
 	"os"
 	"strconv"
+	"strings"
+	"regexp"
 	"gorm.io/gorm"
 )
 
@@ -19,49 +23,62 @@ func ProvinceSeeder(db *gorm.DB) error {
 
 	defer file.Close()
 
-	reader := csv.NewReader(file)
-	records, err := reader.ReadAll()
-
-	if err != nil {
-		return err
-	}
-
 	// SKIP SEED IF TABLE IS NOT EMPTY
 	var count int64
-	var data []province.Province
 
 	db.Model(&province.Province{}).Count(&count)
 
-	if count > 0 {
+	if count > 10 {
 		log.Println("!? Province table already seeded, skipping...")
 
 		return nil
 	}
 
-	// _, records[1:] SKIP HEADER ROW
-	for _, record := range records[1:] {
-		if len(record) < 2 {
-			continue
-		}
+	var batch []province.Province
+	reader := csv.NewReader(file)
+	rowNum := 0
+	skippedRows := 0
 
-		id, err := strconv.ParseUint(record[0], 10, 64)
+	// LOOPS UNTIL EOF
+	for {
+		record, err := reader.Read()
+		rowNum++
+
+		if err == io.EOF {
+			break
+		}
 
 		if err != nil {
-			log.Println("Error parsing ID:", err)
+			return fmt.Errorf("Row %d: Error reading province.csv: %v", rowNum, err)
+		}
 
+		if len(record) < 2 {
+			skippedRows++
 			continue
 		}
 
-		prov := province.Province{
-			ID:   id,
-			Name: record[1],
+		isIdNumeric, _ := regexp.MatchString(`^\d+$`, strings.TrimSpace(record[0]))
+		if isIdNumeric == false {
+			log.Printf("Row %d: Skipping - ID is not a valid unsigned integer(%q)\n", rowNum, record[0])
+			skippedRows++
+			continue
 		}
 
-		data = append(data, prov)
+		id, err := strconv.ParseUint(strings.TrimSpace(record[0]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing ID (%q): %v", rowNum, record[0], err)
+		}
+
+		batch = append(batch, province.Province{
+			ID:   id,
+			Name: strings.TrimSpace(record[1]),
+		})
 	}
 
-	if len(data) > 0 {
-		result := db.CreateInBatches(data, 100)
+	log.Printf("Province: %d non-data rows skipped\n", skippedRows)
+
+	if len(batch) > 0 {
+		result := db.CreateInBatches(batch, 100)
 
 		if result.Error != nil {
 			return result.Error

@@ -2,12 +2,15 @@ package seeders
 
 import (
 	"encoding/csv"
+	"fmt"
 	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/village"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 )
 
 // SEEDS FROM THE CSV FILE
@@ -25,52 +28,49 @@ func VillageSeeder(db *gorm.DB) error {
 
 	db.Model(&village.Village{}).Count(&count)
 
-	if count > 0 {
+	if count > 10 {
 		log.Println("!? Village table already seeded, skipping...")
 
 		return nil
 	}
 
-	reader := csv.NewReader(file)
-	const batchSize = 1000
 	var batch []village.Village
-
-	// TRY TO READ HEADER
-	if _, err := reader.Read(); err != nil {
-		return err
-	}
+	reader := csv.NewReader(file)
+	rowNum := 0
+	skippedRows := 0
 
 	for {
 		record, err := reader.Read()
+		rowNum++
 
 		if err == io.EOF {
 			break
 		}
 
 		if err != nil {
-			log.Println("Error reading village.csv:", err)
-
-			continue
+			return fmt.Errorf("Row %d: Error reading village.csv: %v", rowNum, err)
 		}
 
 		if len(record) < 3 {
+			skippedRows++
 			continue
 		}
 
-		id, err := strconv.ParseUint(record[0], 10, 64)
-
-		if err != nil {
-			log.Println("Error parsing ID:", err)
-
+		isIdNumeric, _ := regexp.MatchString(`^\d+$`, strings.TrimSpace(record[0]))
+		if isIdNumeric == false {
+			log.Printf("Row %d: Skipping - ID is not a valid unsigned integer (%q)\n", rowNum, record[0])
+			skippedRows++
 			continue
 		}
 
-		districtID, err := strconv.ParseUint(record[2], 10, 64)
-
+		id, err := strconv.ParseUint(strings.TrimSpace(record[0]), 10, 64)
 		if err != nil {
-			log.Println("Error parsing DistrictID:", err)
+			return fmt.Errorf("Row %d: Error parsing ID (%q): %v", rowNum, record[0], err)
+		}
 
-			continue
+		districtID, err := strconv.ParseUint(strings.TrimSpace(record[2]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing DistrictID (%q): %v", rowNum, record[2], err)
 		}
 
 		batch = append(batch, village.Village{
@@ -80,12 +80,12 @@ func VillageSeeder(db *gorm.DB) error {
 		})
 	}
 
-	// INSERT DATA IN BATCHES
+	log.Printf("Village: %d non-data rows skipped\n", skippedRows)
+
 	if len(batch) > 0 {
-		result := db.CreateInBatches(batch, batchSize)
+		result := db.CreateInBatches(batch, 100)
 
 		if result.Error != nil {
-			log.Println("✗", result.Error)
 			return result.Error
 		}
 

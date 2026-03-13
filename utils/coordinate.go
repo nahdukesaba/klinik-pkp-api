@@ -5,12 +5,12 @@ type Coordinate struct {
 	Longitude float64 `json:"longitude"`
 }
 
-func ValidateCoordinate(coord Coordinate) bool {
-	if coord.Latitude < -90 || coord.Latitude > 90 {
+func ValidateCoordinate(coordinate Coordinate) bool {
+	if coordinate.Latitude < -90 || coordinate.Latitude > 90 {
 		return false
 	}
 
-	if coord.Longitude < -180 || coord.Longitude > 180 {
+	if coordinate.Longitude < -180 || coordinate.Longitude > 180 {
 		return false
 	}
 

@@ -5,9 +5,11 @@ import (
 )
 
 func SetupRoutes(app fiber.Router, handler *Handler) {
-	app.Get("/provinces", handler.GetProvincesHandler)
-	app.Get("/provinces/:id", handler.GetProvinceByIdHandler)
-	app.Post("/provinces", handler.PostProvinceHandler)
-	app.Put("/provinces/:id", handler.PutProvinceByIdHandler)
-	app.Delete("/provinces/:id", handler.DeleteProvinceByIdHandler)
+	provinces := app.Group("/provinces")
+
+	provinces.Get("/", handler.GetProvincesHandler)
+	provinces.Get("/:id", handler.GetProvinceByIdHandler)
+	provinces.Post("/", handler.PostProvinceHandler)
+	provinces.Put("/:id", handler.PutProvinceByIdHandler)
+	provinces.Delete("/:id", handler.DeleteProvinceByIdHandler)
 }

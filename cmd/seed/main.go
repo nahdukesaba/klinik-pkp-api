@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"klinik-pkp-api/config"
 	"klinik-pkp-api/seeders"
 	"log"
 	"os"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 // RUN SEED FOR ALL MODELS OR SPECIFIC MODELS
@@ -43,7 +44,7 @@ func displayAvailableSeeders() {
 	fmt.Println("✓ village")
 	fmt.Println("✓ user")
 	fmt.Println("✓ rusun")
-	fmt.Println("✓ bsps")
+	fmt.Println("✓ BSPS")
 	fmt.Println("✓ kumuh")
 
 	fmt.Println("\nUsage: ")
@@ -63,8 +64,8 @@ func seedAll(db *gorm.DB) error {
 	err = seeders.VillageSeeder(db)
 	err = seeders.RusunSeeder(db)
 	err = seeders.BSPSSeeder(db)
-	err = seeders.KawasanKumuhSeeder(db)
-	// err = seeders.UserSeeder(db)
+	err = seeders.KumuhSeeder(db)
+	err = seeders.UserSeeder(db)
 
 	return err
 }
@@ -101,7 +102,7 @@ func seedOnly(db *gorm.DB, modelName string) error {
 			return err
 		}
 	case "kawasan_kumuh", "kumuh":
-		if err := seeders.KawasanKumuhSeeder(db); err != nil {
+		if err := seeders.KumuhSeeder(db); err != nil {
 			return err
 		}
 	default:

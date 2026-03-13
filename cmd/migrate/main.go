@@ -2,22 +2,24 @@ package main
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"klinik-pkp-api/config"
-	"klinik-pkp-api/internal/api/bank-desain"
+	"klinik-pkp-api/internal/api/authentication"
+	bank_desain "klinik-pkp-api/internal/api/bank-desain"
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/internal/api/district"
+	"klinik-pkp-api/internal/api/kumuh"
 	"klinik-pkp-api/internal/api/province"
 	"klinik-pkp-api/internal/api/region"
 	"klinik-pkp-api/internal/api/rusun"
 	"klinik-pkp-api/internal/api/sosialisasi"
 	"klinik-pkp-api/internal/api/user"
 	"klinik-pkp-api/internal/api/village"
-	"klinik-pkp-api/internal/api/kumuh"
 	"klinik-pkp-api/utils"
 	"log"
 	"os"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 // CREATE TABLES BASED ON MODELS ARGUMENTS
@@ -32,6 +34,7 @@ func createTables(db *gorm.DB, models ...string) error {
 			&district.District{},
 			&village.Village{},
 			&user.User{},
+			&authentication.Authentication{},
 			&rusun.Rusun{},
 			&bsps.BSPS{},
 			&sosialisasi.Sosialisasi{},
@@ -44,6 +47,7 @@ func createTables(db *gorm.DB, models ...string) error {
 		}
 
 		log.Println("✓ User table migrated")
+		log.Println("✓ Authentication table migrated")
 		log.Println("✓ Province table migrated")
 		log.Println("✓ Region table migrated")
 		log.Println("✓ District table migrated")
@@ -63,6 +67,12 @@ func createTables(db *gorm.DB, models ...string) error {
 				}
 
 				log.Println("✓ User table migrated")
+			case "authentication", "authentications":
+				if err := db.AutoMigrate(&authentication.Authentication{}); err != nil {
+					return err
+				}
+
+				log.Println("✓ Authentication table migrated")
 			case "province":
 				if err := db.AutoMigrate(&province.Province{}); err != nil {
 					return err
@@ -161,7 +171,7 @@ func dropTables(db *gorm.DB, tables ...string) error {
 	return nil
 }
 
-// TRUNCATE A SPECIFIC TABLE BASED ON TABLES ARGUMENT
+// TRUNCATE TABLES BASED ON TABLES ARGUMENTS
 func truncateTables(db *gorm.DB, tables ...string) error {
 	var err error
 
@@ -267,11 +277,11 @@ func main() {
 		switch command {
 		case "drop":
 			if err := dropTables(db, os.Args[2:]...); err != nil {
-				log.Fatal("✗ Failed to drop tables: ", err)
+				log.Fatal("✗ ", err)
 			}
 		case "truncate":
 			if err := truncateTables(db, os.Args[2:]...); err != nil {
-				log.Fatal("✗ Failed to truncate table: ", err)
+				log.Fatal("✗ ", err)
 			}
 		case "rollback":
 			if len(os.Args) < 3 {
@@ -292,7 +302,7 @@ func main() {
 		}
 	} else {
 		if err := createTables(db, os.Args[1:]...); err != nil {
-			log.Println("✗", err)
+			log.Println("✗ ", err)
 		}
 	}
 }

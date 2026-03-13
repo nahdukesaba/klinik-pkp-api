@@ -2,11 +2,15 @@ package seeders
 
 import (
 	"encoding/csv"
+	"fmt"
+	"gorm.io/gorm"
+	"io"
 	"klinik-pkp-api/internal/api/region"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
-	"gorm.io/gorm"
+	"strings"
 )
 
 // SEEDS FROM THE CSV FILE
@@ -19,58 +23,67 @@ func RegionSeeder(db *gorm.DB) error {
 
 	defer file.Close()
 
-	reader := csv.NewReader(file)
-	records, err := reader.ReadAll()
-
-	if err != nil {
-		return err
-	}
-
 	// SKIP SEED IF TABLE IS NOT EMPTY
 	var count int64
-	var data []region.Region
 
 	db.Model(&region.Region{}).Count(&count)
 
-	if count > 0 {
-		log.Println("!? Region table already seeded, skipping...")
+	if count > 10 {
+		log.Println("!? Kawasan Kumuh table already seeded, skipping...")
 
 		return nil
 	}
 
-	// _, records[1:] SKIP HEADER ROW
-	for _, record := range records[1:] {
+	var batch []region.Region
+	reader := csv.NewReader(file)
+	rowNum := 0
+	skippedRows := 0
+
+	for {
+		record, err := reader.Read()
+		rowNum++
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return fmt.Errorf("Row %d: Error reading region.csv: %v", rowNum, err)
+		}
+
 		if len(record) < 3 {
+			skippedRows++
 			continue
 		}
 
-		id, err := strconv.ParseUint(record[0], 10, 64)
+		isIdNumeric, _ := regexp.MatchString(`^\d+$`, strings.TrimSpace(record[0]))
+		if isIdNumeric == false {
+			log.Printf("Row %d: Skipping - ID is not a valid unsigned integer (%q)\n", rowNum, record[0])
+			skippedRows++
+			continue
+		}
 
+		id, err := strconv.ParseUint(strings.TrimSpace(record[0]), 10, 64)
 		if err != nil {
-			log.Println("Error parsing ID:", err)
-
-			continue
+			return fmt.Errorf("Row %d: Error parsing ID (%q): %v", rowNum, record[0], err)
 		}
 
-		provinceID, err := strconv.ParseUint(record[2], 10, 64)
-
+		provinceID, err := strconv.ParseUint(strings.TrimSpace(record[2]), 10, 64)
 		if err != nil {
-			log.Println("Error parsing ProvinceID:", err)
-
-			continue
+			return fmt.Errorf("Row %d: Error parsing ProvinceID (%q): %v", rowNum, record[2], err)
 		}
 
-		region := region.Region{
+		batch = append(batch, region.Region{
 			ID:         id,
 			Name:       record[1],
 			ProvinceID: provinceID,
-		}
-
-		data = append(data, region)
+		})
 	}
 
-	if len(data) > 0 {
-		result := db.CreateInBatches(data, 100)
+	log.Printf("Region: %d non-data rows skipped\n", skippedRows)
+
+	if len(batch) > 0 {
+		result := db.CreateInBatches(batch, 100)
 
 		if result.Error != nil {
 			return result.Error

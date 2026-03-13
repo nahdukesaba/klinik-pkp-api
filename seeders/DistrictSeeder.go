@@ -2,12 +2,15 @@ package seeders
 
 import (
 	"encoding/csv"
+	"fmt"
 	"gorm.io/gorm"
 	"io"
 	"klinik-pkp-api/internal/api/district"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 )
 
 // SEEDS FROM THE CSV FILE
@@ -25,51 +28,50 @@ func DistrictSeeder(db *gorm.DB) error {
 
 	db.Model(&district.District{}).Count(&count)
 
-	if count > 0 {
+	if count > 10 {
 		log.Println("!? District table already seeded, skipping...")
 
 		return nil
 	}
 
-	reader := csv.NewReader(file)
-	const batchSize = 100
 	var batch []district.District
+	reader := csv.NewReader(file)
+	rowNum := 0
+	skippedRows := 0
 
-	// _ MEANS EXCLUDE THE RESULT FROM THE FIRST READ (REMOVING HEADER ROW)
-	if _, err := reader.Read(); err != nil {
-		return err
-	}
-
+	// LOOPS UNTIL EOF
 	for {
 		record, err := reader.Read()
+		rowNum++
 
 		if err == io.EOF {
 			break
 		}
 
 		if err != nil {
-			log.Println("Error reading district.csv:", err)
-			continue
+			return fmt.Errorf("Row %d: Error reading district.csv: %v", rowNum, err)
 		}
 
 		if len(record) < 3 {
+			skippedRows++
 			continue
 		}
 
-		id, err := strconv.ParseUint(record[0], 10, 64)
-
-		if err != nil {
-			log.Println("Error parsing ID:", err)
-
+		isIdNumeric, _ := regexp.MatchString(`^\d+$`, strings.TrimSpace(record[0]))
+		if isIdNumeric == false {
+			log.Printf("Row %d: Skipping - ID is not a valid unsigned integer (%q)\n", rowNum, record[0])
+			skippedRows++
 			continue
 		}
 
-		regionID, err := strconv.ParseUint(record[2], 10, 64)
-
+		id, err := strconv.ParseUint(strings.TrimSpace(record[0]), 10, 64)
 		if err != nil {
-			log.Println("Error parsing RegionID:", err)
+			return fmt.Errorf("Row %d: Error parsing ID (%q): %v", rowNum, record[0], err)
+		}
 
-			continue
+		regionID, err := strconv.ParseUint(strings.TrimSpace(record[2]), 10, 64)
+		if err != nil {
+			return fmt.Errorf("Row %d: Error parsing RegionID (%q): %v", rowNum, record[2], err)
 		}
 
 		batch = append(batch, district.District{
@@ -78,6 +80,8 @@ func DistrictSeeder(db *gorm.DB) error {
 			RegionID: regionID,
 		})
 	}
+
+	log.Printf("District: %d non-data rows skipped\n", skippedRows)
 
 	if len(batch) > 0 {
 		result := db.CreateInBatches(batch, 100)

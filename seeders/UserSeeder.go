@@ -7,7 +7,6 @@ import (
 	"log"
 )
 
-// SEEDS FROM PREDEFINED DATA
 func UserSeeder(db *gorm.DB) error {
 	err := createUserIfNotExists(db, user.User{
 		ID:       uuid.New(),
@@ -15,6 +14,7 @@ func UserSeeder(db *gorm.DB) error {
 		Email:    "admin@klinik.com",
 		Password: "admin123",
 		Phone:    "081234567890",
+		NIP:	  "199310202025061010",
 		Role:     "admin",
 		IsActive: true,
 	})
@@ -25,6 +25,7 @@ func UserSeeder(db *gorm.DB) error {
 		Email:    "user@klinik.com",
 		Password: "user123",
 		Phone:    "081234567891",
+		NIP:	  "199310202025061011",
 		Role:     "user",
 		IsActive: true,
 	})
@@ -32,19 +33,21 @@ func UserSeeder(db *gorm.DB) error {
 	return err
 }
 
-func createUserIfNotExists(db *gorm.DB, u user.User) error {
+func createUserIfNotExists(db *gorm.DB, new_user user.User) error {
 	var count int64
-	db.Model(&user.User{}).Where("email = ?", u.Email).Count(&count)
+
+	db.Model(&user.User{}).Where("email = ?", new_user.Email).Count(&count)
 
 	if count == 0 {
-		if err := db.Create(&u).Error; err != nil {
+		if err := db.Create(&new_user).Error; err != nil {
 			log.Printf("✗%v", err)
+
 			return err
 		} else {
-			log.Printf("✓ User seeded: %s (role: %s)", u.Email, u.Role)
+			log.Printf("✓ User seeded: %s (role: %s)", new_user.Email, new_user.Role)
 		}
 	} else {
-		log.Printf("!? User already exists: %s", u.Email)
+		log.Printf("!? User already exists: %s", new_user.Email)
 	}
 
 	return nil

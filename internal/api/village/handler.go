@@ -2,10 +2,11 @@ package village
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -52,7 +53,7 @@ func (h *Handler) GetVillageByIdHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "village not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -63,15 +64,14 @@ func (h *Handler) GetVillageByIdHandler(ctx *fiber.Ctx) error {
 
 func (h *Handler) PostVillageHandler(ctx *fiber.Ctx) error {
 	var payload VillagePayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid payload", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -94,7 +94,6 @@ func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload VillagePayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
@@ -102,13 +101,13 @@ func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
 	if err := h.service.EditVillageById(id, payload); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "village not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -126,7 +125,7 @@ func (h *Handler) DeleteVillageByIdHandler(ctx *fiber.Ctx) error {
 
 	if err := h.service.DeleteVillageById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "village not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

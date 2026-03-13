@@ -2,10 +2,11 @@ package district
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -52,7 +53,7 @@ func (h *Handler) GetDistrictByIDHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "district not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -63,7 +64,6 @@ func (h *Handler) GetDistrictByIDHandler(ctx *fiber.Ctx) error {
 
 func (h *Handler) PostDistrictHandler(ctx *fiber.Ctx) error {
 	var payload DistrictPayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
@@ -71,7 +71,7 @@ func (h *Handler) PostDistrictHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
@@ -94,7 +94,6 @@ func (h *Handler) PutDistrictByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	var payload DistrictPayload
-	validator := utils.NewValidator()
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
@@ -102,13 +101,13 @@ func (h *Handler) PutDistrictByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	// VALIDATE PAYLOAD STRUCT
-	if message, err := validator.ValidateStruct(payload); err != nil {
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
 	if err := h.service.EditDistrictById(id, payload); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "district not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -126,7 +125,7 @@ func (h *Handler) DeleteDistrictByIdHandler(ctx *fiber.Ctx) error {
 
 	if err := h.service.DeleteDistrictById(id); err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, "district not found", err, true)
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)

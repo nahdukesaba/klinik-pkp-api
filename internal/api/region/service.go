@@ -1,9 +1,10 @@
 package region
 
 import (
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -25,7 +26,7 @@ type RegionFilter struct {
 
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
-	return &Service{db: db, validator: &utils.Validator{}}
+	return &Service{db: db, validator: utils.NewValidator()}
 }
 
 func (s *Service) GetRegions(filter RegionFilter) ([]Region, error) {

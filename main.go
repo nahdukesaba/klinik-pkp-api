@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"klinik-pkp-api/config"
+	"klinik-pkp-api/internal/api/authentication"
 	"klinik-pkp-api/internal/api/bank-desain"
 	"klinik-pkp-api/internal/api/bsps"
 	"klinik-pkp-api/internal/api/district"
@@ -15,6 +15,8 @@ import (
 	"klinik-pkp-api/internal/api/user"
 	"klinik-pkp-api/internal/api/village"
 	"log"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // HANDLES FIBER ERRORS GLOBALLY
@@ -49,7 +51,11 @@ func main() {
 	api := app.Group("/api/v1")
 
 	// ALL ROUTES
+	// PUBLIC ROUTES (NO AUTH REQUIRED)
+	authentication.SetupRoutes(api, authentication.NewHandler(authentication.NewService(db)))
 	user.SetupRoutes(api, user.NewHandler(user.NewService(db)))
+
+	// DATA ROUTES
 	province.SetupRoutes(api, province.NewHandler(province.NewService(db)))
 	region.SetupRoutes(api, region.NewHandler(region.NewService(db)))
 	district.SetupRoutes(api, district.NewHandler(district.NewService(db)))
@@ -62,8 +68,8 @@ func main() {
 	uploads.SetupRoutes(api)
 
 	// MAIN ROUTE
-	api.Get("/", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
+	api.Get("/", func(ctx *fiber.Ctx) error {
+		return ctx.JSON(fiber.Map{
 			"docs":    "/api/docs",
 			"env":     cfg.AppEnv,
 			"message": "Welcome to Klinik PKP Sumatera II API",
@@ -72,8 +78,8 @@ func main() {
 	})
 
 	// HEALTH CHECK ROUTE
-	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
+	api.Get("/health", func(ctx *fiber.Ctx) error {
+		return ctx.JSON(fiber.Map{
 			"status":   "healthy",
 			"database": "connected",
 			"env":      cfg.AppEnv,
@@ -81,11 +87,11 @@ func main() {
 	})
 
 	// NOT FOUND ROUTE
-	api.Use(func(c *fiber.Ctx) error {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+	api.Use(func(ctx *fiber.Ctx) error {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
-			"error":   "Route not found",
-			"path":    c.Path(),
+			"error":   fiber.ErrNotFound.Message,
+			"path":    ctx.Path(),
 		})
 	})
 

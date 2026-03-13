@@ -13,9 +13,7 @@ type Validator struct {
 
 // CONSTRUCTOR
 func NewValidator() *Validator {
-	v := validator.New()
-
-	return &Validator{validate: v}
+	return &Validator{validate: validator.New()}
 }
 
 // HELPER TO VALIDATE REQUIRED FIELDS AT ONCE

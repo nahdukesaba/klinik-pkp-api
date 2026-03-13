@@ -1,15 +1,19 @@
 package user
 
 import (
+	"klinik-pkp-api/utils"
+
 	"github.com/gofiber/fiber/v2"
 )
 
-// SetupRoutes configures user profile routes (protected)
 func SetupRoutes(app fiber.Router, handler *Handler) {
-	// Users list endpoint
-	app.Get("/users", handler.GetAllUsers)
-	// app.Get("/province/:id", handler.GetUserByID)
-	// app.Post("/province", handler.CreateUser)
-	// app.Put("/province/:id", handler.UpdateUser)
-	// app.Delete("/province/:id", handler.DeleteUser)
+	users := app.Group("/users")
+
+	// PUBLIC ROUTE - REGISTRATION ONLY
+	// users.Post("/register", handler.Register)
+
+	// PROTECTED ROUTES (REQUIRES AUTH MIDDLEWARE)
+	users.Get("/", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.GetUsersHandler)
+	users.Get("/:id", utils.AuthMiddleware(),  handler.GetUserByIdHandler)
+	users.Put("/:id", utils.AuthMiddleware(), handler.PutUserByIdHandler)
 }

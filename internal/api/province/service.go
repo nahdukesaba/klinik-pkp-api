@@ -1,8 +1,9 @@
 package province
 
 import (
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -18,7 +19,7 @@ type ProvincePayload struct {
 
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
-	return &Service{db: db, validator: &utils.Validator{}}
+	return &Service{db: db, validator: utils.NewValidator()}
 }
 
 func (s *Service) GetProvinces() ([]Province, error) {

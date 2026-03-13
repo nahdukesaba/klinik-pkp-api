@@ -4,6 +4,8 @@ import (
 	"klinik-pkp-api/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
@@ -14,75 +16,79 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// Register handles user registration
-func (h *Handler) Register(ctx *fiber.Ctx) error {
-	var payload RegisterPayload
-
-	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
-	}
-
-	result, err := h.service.Register(payload)
-	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
-	}
-
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "Registration successful", result, false)
-}
-
-// Login handles user authentication
-func (h *Handler) Login(ctx *fiber.Ctx) error {
-	var payload LoginPayload
-	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
-	}
-
-	result, err := h.service.Login(payload)
-	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, "", err, true)
-	}
-
-	return utils.JSONResponse(ctx, fiber.StatusOK, "Login successful", result, false)
-}
-
-// GetAllUsers returns all users in the database
-func (h *Handler) GetAllUsers(ctx *fiber.Ctx) error {
-	users, err := h.service.GetAll()
+func (h *Handler) GetUsersHandler(ctx *fiber.Ctx) error {
+	users, err := h.service.GetUsers()
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "Success", users, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", users, false)
 }
 
-// GetProfile returns current user profile
-func (h *Handler) GetProfile(ctx *fiber.Ctx) error {
-	userID := ctx.Locals("userID").(uint)
+func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {
+	var authID = ctx.Locals("id").(uuid.UUID)
+	var userID uuid.UUID
+	var err error
 
-	user, err := h.service.GetProfile(userID)
+	if ctx.Params("id") == "me" {
+		// SET USER ID TO AUTHENTICATED USER ID IF PARAMETER IS "me"
+		userID = authID
+	} else {
+		// SET USER ID TO PARAMETER VALUE IF NOT "me"
+		userID, err = uuid.Parse(ctx.Params("id"))
+
+		if err != nil {
+			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid user ID", err, true)
+		}
+
+		// PREVENT ACCESS TO OTHER USERS' PROFILES EXCEPT FOR ADMINS
+		if userID != authID && ctx.Locals("role").(string) != "admin" {
+			return utils.JSONResponse(ctx, fiber.StatusForbidden, "", fiber.ErrForbidden, true)
+		}
+	}
+
+	data, err := h.service.GetUserById(userID)
+
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusNotFound, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "Success", user, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
-// UpdateProfile updates current user profile
-func (h *Handler) UpdateProfile(ctx *fiber.Ctx) error {
-	userID := ctx.Locals("userID").(uint)
+// UPDATE PROFILE UPDATES CURRENT USER PROFILE
+func (h *Handler) PutUserByIdHandler(ctx *fiber.Ctx) error {
+	authID := ctx.Locals("id").(uuid.UUID)
+	userID, err := uuid.Parse(ctx.Params("id"))
 
-	var payload struct {
-		Name string `json:"name"`
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid user ID", err, true)
 	}
+
+	if userID != authID {
+		return utils.JSONResponse(ctx, fiber.StatusForbidden, "unauthorized access", fiber.ErrForbidden, true)
+	}
+
+	var payload EditUserProfilePayload
+
+	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
-	user, err := h.service.UpdateProfile(userID, payload.Name)
-	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "", err, true)
+	// VALIDATE PAYLOAD STRUCT
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "Profile updated successfully", user, false)
+	if err := h.service.EditUserById(userID, &payload); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
+	}
+
+	return utils.JSONResponse(ctx, fiber.StatusOK, "profile updated", nil, false)
 }

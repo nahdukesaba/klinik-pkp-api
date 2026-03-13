@@ -25,7 +25,7 @@ type VillageFilter struct {
 
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
-	return &Service{db: db, validator: &utils.Validator{}}
+	return &Service{db: db, validator: utils.NewValidator()}
 }
 
 func (s *Service) GetVillages(filter VillageFilter) ([]Village, error) {

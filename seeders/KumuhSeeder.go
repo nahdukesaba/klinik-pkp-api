@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"io"
-	"klinik-pkp-api/internal/api/kumuh"
+	"klinik-pkp-api/internal/api/v1/kumuh"
 	"klinik-pkp-api/utils"
 	"log"
 	"os"

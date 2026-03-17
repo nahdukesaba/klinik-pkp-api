@@ -2,9 +2,11 @@ package utils
 
 import (
 	"errors"
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -126,4 +128,78 @@ func (tm *TokenManager) VerifyRefreshToken(tokenString string) (*Claims, error) 
 	}
 
 	return nil, errors.New("refresh token is not valid")
+}
+
+// SET REFRESH TOKEN COOKIE WITH SECURE ATTRIBUTES FOR BROWSER-BASED SESSION RENEWAL
+func (tm *TokenManager) SetRefreshTokenCookie(ctx *fiber.Ctx, refreshToken string) {
+	secure, sameSite := setRefreshTokenSecurity()
+	expirationStr := os.Getenv("REFRESH_TOKEN_EXPIRATION")
+
+	if expirationStr == "" {
+		expirationStr = "168h"
+	}
+
+	expiration, err := time.ParseDuration(expirationStr)
+	if err != nil {
+		expiration = 7 * 24 * time.Hour // DEFAULT FALLBACK
+	}
+
+	ctx.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+		MaxAge:   int(expiration.Seconds()),
+		Expires:  time.Now().Add(expiration),
+	})
+}
+
+// EXPIRE REFRESH TOKEN COOKIE DURING LOGOUT
+func (tm *TokenManager) ClearRefreshTokenCookie(ctx *fiber.Ctx) {
+	secure, sameSite := setRefreshTokenSecurity()
+
+	ctx.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+	})
+}
+
+// LOAD COOKIE SECURITY OPTIONS FROM ENV WITH SAFE FALLBACK
+func setRefreshTokenSecurity() (bool, string) {
+	appEnv := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
+	secure := strings.ToLower(strings.TrimSpace(os.Getenv("REFRESH_COOKIE_SECURE"))) == "true" || appEnv == "production"
+	sameSite := strings.ToLower(strings.TrimSpace(os.Getenv("REFRESH_COOKIE_SAMESITE")))
+
+	if sameSite == "" {
+		if secure {
+			sameSite = fiber.CookieSameSiteNoneMode
+		} else {
+			sameSite = fiber.CookieSameSiteLaxMode
+		}
+	}
+
+	switch sameSite {
+	case fiber.CookieSameSiteNoneMode, fiber.CookieSameSiteLaxMode, fiber.CookieSameSiteStrictMode, fiber.CookieSameSiteDisabled:
+	default:
+		if secure {
+			sameSite = fiber.CookieSameSiteNoneMode
+		} else {
+			sameSite = fiber.CookieSameSiteLaxMode
+		}
+	}
+
+	// BROWSERS REJECT SameSite=None WHEN Secure IS FALSE.
+	if sameSite == fiber.CookieSameSiteNoneMode && !secure {
+		sameSite = fiber.CookieSameSiteLaxMode
+	}
+
+	return secure, sameSite
 }

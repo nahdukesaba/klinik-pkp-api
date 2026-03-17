@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"io"
-	"klinik-pkp-api/internal/api/bsps"
+	"klinik-pkp-api/internal/api/v1/bsps"
 	"klinik-pkp-api/utils"
 	"log"
 	"os"

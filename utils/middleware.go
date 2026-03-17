@@ -1,13 +1,12 @@
 package utils
 
 import (
+	"github.com/gofiber/fiber/v2"
 	"slices"
 	"strings"
-	"github.com/gofiber/fiber/v2"
 )
 
 // AUTH MIDDLEWARE - VALIDATES ACCESS TOKEN ON PROTECTED ROUTES
-// EXTRACTS USER CLAIMS FROM TOKEN AND STORES IN FIBER CONTEXT LOCALS
 func AuthMiddleware() fiber.Handler {
 	tokenManager := NewTokenManager()
 

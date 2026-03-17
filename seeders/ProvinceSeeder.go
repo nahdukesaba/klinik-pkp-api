@@ -4,7 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"klinik-pkp-api/internal/api/province"
+	"klinik-pkp-api/internal/api/v1/province"
 	"log"
 	"os"
 	"strconv"

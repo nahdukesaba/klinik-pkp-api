@@ -3,7 +3,7 @@ package seeders
 import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"klinik-pkp-api/internal/api/user"
+	"klinik-pkp-api/internal/api/v1/user"
 	"log"
 )
 

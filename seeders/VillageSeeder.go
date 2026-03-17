@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"io"
-	"klinik-pkp-api/internal/api/village"
+	"klinik-pkp-api/internal/api/v1/village"
 	"log"
 	"os"
 	"regexp"

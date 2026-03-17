@@ -2,21 +2,12 @@ package main
 
 import (
 	"klinik-pkp-api/config"
-	"klinik-pkp-api/internal/api/authentication"
-	"klinik-pkp-api/internal/api/bank-desain"
-	"klinik-pkp-api/internal/api/bsps"
-	"klinik-pkp-api/internal/api/district"
-	"klinik-pkp-api/internal/api/kumuh"
-	"klinik-pkp-api/internal/api/province"
-	"klinik-pkp-api/internal/api/region"
-	"klinik-pkp-api/internal/api/rusun"
-	"klinik-pkp-api/internal/api/sosialisasi"
-	"klinik-pkp-api/internal/api/uploads"
-	"klinik-pkp-api/internal/api/user"
-	"klinik-pkp-api/internal/api/village"
+	v1 "klinik-pkp-api/internal/api/v1"
 	"log"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 // HANDLES FIBER ERRORS GLOBALLY
@@ -47,25 +38,17 @@ func main() {
 		BodyLimit:    4 * 1024 * 1024, // 4MB max body size
 	})
 
+	// ENABLE CORS WITH CREDENTIALS FOR COOKIE-BASED REFRESH TOKEN FLOW
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     strings.Join(cfg.CORSAllowOrigins, ","),
+		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+		AllowCredentials: true,
+	}))
+
 	// GROUP ROUTES WITH /api/v1 PREFIX
 	api := app.Group("/api/v1")
-
-	// ALL ROUTES
-	// PUBLIC ROUTES (NO AUTH REQUIRED)
-	authentication.SetupRoutes(api, authentication.NewHandler(authentication.NewService(db)))
-	user.SetupRoutes(api, user.NewHandler(user.NewService(db)))
-
-	// DATA ROUTES
-	province.SetupRoutes(api, province.NewHandler(province.NewService(db)))
-	region.SetupRoutes(api, region.NewHandler(region.NewService(db)))
-	district.SetupRoutes(api, district.NewHandler(district.NewService(db)))
-	village.SetupRoutes(api, village.NewHandler(village.NewService(db)))
-	bsps.SetupRoutes(api, bsps.NewHandler(bsps.NewService(db)))
-	kumuh.SetupRoutes(api, kumuh.NewHandler(kumuh.NewService(db)))
-	rusun.SetupRoutes(api, rusun.NewHandler(rusun.NewService(db, uploads.NewService("./storage"))))
-	bank_desain.SetupRoutes(api, bank_desain.NewHandler(bank_desain.NewService(db, uploads.NewService("./storage"))))
-	sosialisasi.SetupRoutes(api, sosialisasi.NewHandler(sosialisasi.NewService(db, uploads.NewService("./storage"))))
-	uploads.SetupRoutes(api)
+	v1.SetupRoutes(api, db)
 
 	// MAIN ROUTE
 	api.Get("/", func(ctx *fiber.Ctx) error {

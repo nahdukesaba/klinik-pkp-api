@@ -32,7 +32,7 @@ func NewService(db *gorm.DB) *Service {
 }
 
 // VERIFIES CREDENTIALS, GENERATES BOTH TOKENS, STORES REFRESH TOKEN IN DB
-func (s *Service) AddRefreshToken(payload AddAuthenticationPayload) (fiber.Map, error) {
+func (s *Service) AddAuthentication(payload AddAuthenticationPayload) (fiber.Map, error) {
 	var user user.User
 
 	// FIND USER BY EMAIL
@@ -72,14 +72,14 @@ func (s *Service) AddRefreshToken(payload AddAuthenticationPayload) (fiber.Map, 
 	}
 
 	return fiber.Map{
-		"id":           user.ID,
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
+		"id":            user.ID,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
 	}, nil
 }
 
 // VERIFIES REFRESH TOKEN, THEN GENERATES NEW ACCESS TOKEN
-func (s *Service) UpdateAccessToken(refreshToken string) (fiber.Map, error) {
+func (s *Service) UpdateAuthentication(refreshToken string) (fiber.Map, error) {
 	// CHECK IF REFRESH TOKEN EXISTS
 	if err := s.db.Where("token = ?", refreshToken).First(&Authentication{}).Error; err != nil {
 		return nil, err
@@ -98,12 +98,12 @@ func (s *Service) UpdateAccessToken(refreshToken string) (fiber.Map, error) {
 	}
 
 	return fiber.Map{
-		"accessToken": accessToken,
+		"access_token": accessToken,
 	}, nil
 }
 
 // VERIFIES REFRESH TOKEN EXISTS IN DB, THEN REMOVES IT
-func (s *Service) DeleteRefreshToken(refreshToken string) error {
+func (s *Service) DeleteAuthentication(refreshToken string) error {
 	result := s.db.Where("token = ?", refreshToken).Delete(&Authentication{})
 
 	if result.Error != nil {

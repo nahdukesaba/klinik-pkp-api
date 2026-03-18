@@ -30,7 +30,7 @@ func (h *Handler) PostAuthenticationHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
-	data, err := h.service.AddRefreshToken(payload)
+	data, err := h.service.AddAuthentication(payload)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -44,7 +44,7 @@ func (h *Handler) PostAuthenticationHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	h.service.tokenManager.SetRefreshTokenCookie(ctx, data["refreshToken"].(string))
+	h.service.tokenManager.SetRefreshTokenCookie(ctx, data["refresh_token"].(string))
 
 	return utils.JSONResponse(ctx, fiber.StatusCreated, "authentication created", data, false)
 }
@@ -57,7 +57,7 @@ func (h *Handler) PutAuthenticationHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, fiber.ErrUnauthorized, true)
 	}
 
-	data, err := h.service.UpdateAccessToken(refreshToken)
+	data, err := h.service.UpdateAuthentication(refreshToken)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, err, true)
@@ -75,7 +75,7 @@ func (h *Handler) DeleteAuthenticationHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusOK, "session terminated", nil, false)
 	}
 
-	if err := h.service.DeleteRefreshToken(refreshToken); err != nil {
+	if err := h.service.DeleteAuthentication(refreshToken); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			h.service.tokenManager.ClearRefreshTokenCookie(ctx)
 			return utils.JSONResponse(ctx, fiber.StatusOK, "session terminated", nil, false)

@@ -51,7 +51,11 @@ func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {
 	data, err := h.service.GetUserById(userID)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
+		if err == gorm.ErrRecordNotFound {
+			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
+		}
+
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)

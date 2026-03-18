@@ -63,7 +63,7 @@ func (h *Handler) GetBSPSHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetBSPSV1Responses(data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {
@@ -83,7 +83,7 @@ func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetBSPSV1Response(*data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostBSPSHandler(ctx *fiber.Ctx) error {
@@ -105,8 +105,8 @@ func (h *Handler) PostBSPSHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "BSPS created", AddBSPSV1Response{
-		ID: fmt.Sprintf("%d", data.ID),
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "BSPS created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
 	}, false)
 }
 
@@ -114,7 +114,7 @@ func (h *Handler) PutBSPSByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid bsps id", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid BSPS id", err, true)
 	}
 
 	var payload BSPSPayload
@@ -144,7 +144,7 @@ func (h *Handler) DeleteBSPSByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 
 	if err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid bsps id", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid BSPS id", err, true)
 	}
 
 	err = h.service.DeleteBSPSById(id)

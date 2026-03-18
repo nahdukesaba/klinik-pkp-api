@@ -39,7 +39,7 @@ func (h *Handler) GetRegionsHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetRegionV1Responses(data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
@@ -59,7 +59,7 @@ func (h *Handler) GetRegionByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetRegionV1Response(*data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
@@ -81,8 +81,8 @@ func (h *Handler) PostRegionHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "region created", AddRegionV1Response{
-		ID: fmt.Sprintf("%d", data.ID),
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "region created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
 	}, false)
 }
 

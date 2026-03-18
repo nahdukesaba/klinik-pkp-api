@@ -62,7 +62,7 @@ func (h *Handler) GetBankDesainHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetBankDesainV1Responses(data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetBankDesainByIdHandler(ctx *fiber.Ctx) error {
@@ -78,7 +78,7 @@ func (h *Handler) GetBankDesainByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetBankDesainV1Response(*data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostBankDesainHandler(ctx *fiber.Ctx) error {
@@ -110,10 +110,10 @@ func (h *Handler) PostBankDesainHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "bank desain created", AddBankDesainV1Response{
-		ID:        fmt.Sprintf("%d", data.ID),
-		ImageURLs: data.ImageURLs,
-		FileURLs:  data.FileURLs,
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "bank desain created", fiber.Map{
+		"id":        fmt.Sprintf("%d", data.ID),
+		"image_urls": data.ImageURLs,
+		"file_urls":  data.FileURLs,
 	}, false)
 }
 

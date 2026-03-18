@@ -44,7 +44,7 @@ func (h *Handler) PostAuthenticationHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	h.service.tokenManager.SetRefreshTokenCookie(ctx, data.RefreshToken)
+	h.service.tokenManager.SetRefreshTokenCookie(ctx, data["refreshToken"].(string))
 
 	return utils.JSONResponse(ctx, fiber.StatusCreated, "authentication created", data, false)
 }

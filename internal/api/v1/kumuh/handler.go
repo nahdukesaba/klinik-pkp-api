@@ -73,7 +73,7 @@ func (h *Handler) GetKumuhHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetKumuhV1Responses(data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetKumuhByIdHandler(ctx *fiber.Ctx) error {
@@ -93,7 +93,7 @@ func (h *Handler) GetKumuhByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetKumuhV1Response(*data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostKumuhHandler(ctx *fiber.Ctx) error {
@@ -115,8 +115,8 @@ func (h *Handler) PostKumuhHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "kawasan kumuh created", AddKumuhV1Response{
-		ID: fmt.Sprintf("%d", data.ID),
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "kawasan kumuh created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
 	}, false)
 }
 

@@ -26,7 +26,7 @@ func (h *Handler) GetProvincesHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetProvinceV1Responses(data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetProvinceByIdHandler(ctx *fiber.Ctx) error {
@@ -46,7 +46,7 @@ func (h *Handler) GetProvinceByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetProvinceV1Response(*data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostProvinceHandler(ctx *fiber.Ctx) error {
@@ -68,8 +68,8 @@ func (h *Handler) PostProvinceHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "province created", AddProvinceV1Response{
-		ID: fmt.Sprintf("%d", data.ID),
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "province created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
 	}, false)
 }
 

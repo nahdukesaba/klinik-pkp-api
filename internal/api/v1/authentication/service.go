@@ -1,11 +1,11 @@
 package authentication
 
 import (
-	"klinik-pkp-api/internal/api/v1/user"
-	"klinik-pkp-api/utils"
-
+	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"klinik-pkp-api/internal/api/v1/user"
+	"klinik-pkp-api/utils"
 )
 
 // CURRENT INSTANCE
@@ -32,7 +32,7 @@ func NewService(db *gorm.DB) *Service {
 }
 
 // VERIFIES CREDENTIALS, GENERATES BOTH TOKENS, STORES REFRESH TOKEN IN DB
-func (s *Service) AddRefreshToken(payload AddAuthenticationPayload) (*AddAuthenticationV1Response, error) {
+func (s *Service) AddRefreshToken(payload AddAuthenticationPayload) (fiber.Map, error) {
 	var user user.User
 
 	// FIND USER BY EMAIL
@@ -71,15 +71,15 @@ func (s *Service) AddRefreshToken(payload AddAuthenticationPayload) (*AddAuthent
 		return nil, err
 	}
 
-	return &AddAuthenticationV1Response{
-		ID:           user.ID.String(),
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+	return fiber.Map{
+		"id":           user.ID,
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
 	}, nil
 }
 
 // VERIFIES REFRESH TOKEN, THEN GENERATES NEW ACCESS TOKEN
-func (s *Service) UpdateAccessToken(refreshToken string) (*RefreshAuthenticationV1Response, error) {
+func (s *Service) UpdateAccessToken(refreshToken string) (fiber.Map, error) {
 	// CHECK IF REFRESH TOKEN EXISTS
 	if err := s.db.Where("token = ?", refreshToken).First(&Authentication{}).Error; err != nil {
 		return nil, err
@@ -97,8 +97,8 @@ func (s *Service) UpdateAccessToken(refreshToken string) (*RefreshAuthentication
 		return nil, err
 	}
 
-	return &RefreshAuthenticationV1Response{
-		AccessToken: accessToken,
+	return fiber.Map{
+		"accessToken": accessToken,
 	}, nil
 }
 

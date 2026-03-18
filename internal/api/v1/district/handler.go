@@ -39,7 +39,7 @@ func (h *Handler) GetDistrictsHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetDistrictV1Responses(data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetDistrictByIDHandler(ctx *fiber.Ctx) error {
@@ -59,7 +59,7 @@ func (h *Handler) GetDistrictByIDHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetDistrictV1Response(*data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostDistrictHandler(ctx *fiber.Ctx) error {
@@ -81,8 +81,8 @@ func (h *Handler) PostDistrictHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "district created", AddDistrictV1Response{
-		ID: fmt.Sprintf("%d", data.ID),
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "district created", fiber.Map{
+		"id": fmt.Sprintf("%d", data.ID),
 	}, false)
 }
 

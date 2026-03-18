@@ -68,7 +68,7 @@ func (h *Handler) GetSosialisasiHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetSosialisasiV1Responses(data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetSosialisasiByIdHandler(ctx *fiber.Ctx) error {
@@ -84,7 +84,7 @@ func (h *Handler) GetSosialisasiByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetSosialisasiV1Response(*data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostSosialisasiHandler(ctx *fiber.Ctx) error {
@@ -120,9 +120,9 @@ func (h *Handler) PostSosialisasiHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "sosialisasi created", AddSosialisasiV1Response{
-		ID:        fmt.Sprintf("%d", data.ID),
-		ImageURLs: data.ImageURLs,
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "sosialisasi created", fiber.Map{
+		"id":         fmt.Sprintf("%d", data.ID),
+		"image_urls": data.ImageURLs,
 	}, false)
 }
 

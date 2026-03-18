@@ -17,13 +17,13 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetUsersHandler(ctx *fiber.Ctx) error {
-	users, err := h.service.GetUsers()
+	data, err := h.service.GetUsers()
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetUserV1Responses(users), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {
@@ -44,7 +44,7 @@ func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {
 
 		// PREVENT ACCESS TO OTHER USERS' PROFILES EXCEPT FOR ADMINS
 		if userID != authID && ctx.Locals("role").(string) != "admin" {
-			return utils.JSONResponse(ctx, fiber.StatusForbidden, "", fiber.ErrForbidden, true)
+			return utils.JSONResponse(ctx, fiber.StatusForbidden, fiber.ErrForbidden.Message, fiber.ErrForbidden, true)
 		}
 	}
 
@@ -54,7 +54,7 @@ func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetUserV1Response(*data), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 // UPDATE PROFILE UPDATES CURRENT USER PROFILE
@@ -67,7 +67,7 @@ func (h *Handler) PutUserByIdHandler(ctx *fiber.Ctx) error {
 	}
 
 	if userID != authID {
-		return utils.JSONResponse(ctx, fiber.StatusForbidden, "unauthorized access", fiber.ErrForbidden, true)
+		return utils.JSONResponse(ctx, fiber.StatusForbidden, fiber.ErrForbidden.Message, fiber.ErrForbidden, true)
 	}
 
 	var payload EditUserProfilePayload

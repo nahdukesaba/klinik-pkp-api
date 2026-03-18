@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"klinik-pkp-api/config"
 	"klinik-pkp-api/internal/api/v1/authentication"
-	bank_desain "klinik-pkp-api/internal/api/v1/bank-desain"
+	"klinik-pkp-api/internal/api/v1/bank-desain"
 	"klinik-pkp-api/internal/api/v1/bsps"
 	"klinik-pkp-api/internal/api/v1/district"
 	"klinik-pkp-api/internal/api/v1/kumuh"

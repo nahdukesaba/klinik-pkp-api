@@ -110,7 +110,7 @@ func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error)
 	if len(payload.Images) > 0 {
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
-			MaxCount: 4,
+			MaxCount: 8,
 			Category: "bank_desain",
 			RecordID: newBankDesain.ID,
 		})
@@ -127,7 +127,7 @@ func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error)
 	if len(payload.Files) > 0 {
 		fileResponses, err := s.uploadService.SaveFiles(&uploads.FilePayload{
 			Files:    payload.Files,
-			MaxCount: 8,
+			MaxCount: 1,
 			Category: "bank_desain",
 			RecordID: newBankDesain.ID,
 		})

@@ -54,13 +54,13 @@ func (h *Handler) GetRusunHandler(ctx *fiber.Ctx) error {
 		filter.RegionID = &id
 	}
 
-	rusun, err := h.service.GetRusun(filter)
+	data, err := h.service.GetRusun(filter)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetRusunV1Responses(rusun), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {
@@ -70,7 +70,7 @@ func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid rusun id", err, true)
 	}
 
-	rusun, err := h.service.GetRusunById(id)
+	data, err := h.service.GetRusunById(id)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -80,7 +80,7 @@ func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", ToGetRusunV1Response(*rusun), false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
 func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
@@ -116,9 +116,9 @@ func (h *Handler) PostRusunHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "rusun created", AddRusunV1Response{
-		ID:        fmt.Sprintf("%d", data.ID),
-		ImageURLs: data.ImageURLs,
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "rusun created", fiber.Map{
+		"id":         fmt.Sprintf("%d", data.ID),
+		"image_urls": data.ImageURLs,
 	}, false)
 }
 

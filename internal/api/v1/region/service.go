@@ -63,12 +63,24 @@ func (s *Service) AddRegion(payload RegionPayload) (*Region, error) {
 		return nil, err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	newRegion := Region{
 		Name:       payload.Name,
 		ProvinceID: provinceID,
 	}
 
-	if err := s.db.Create(&newRegion).Error; err != nil {
+	if err := tx.Create(&newRegion).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
@@ -82,21 +94,34 @@ func (s *Service) EditRegionById(id uint64, payload RegionPayload) error {
 		return err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	newRegion := Region{
 		Name:       payload.Name,
 		ProvinceID: provinceID,
 	}
 
-	result := s.db.Model(&Region{}).Where("id = ?", id).Updates(&newRegion)
+	result := tx.Model(&Region{}).Where("id = ?", id).Updates(&newRegion)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
@@ -104,16 +129,30 @@ func (s *Service) EditRegionById(id uint64, payload RegionPayload) error {
 
 // SOFT DELETE
 func (s *Service) DeleteRegionById(id uint64) error {
-	result := s.db.Delete(&Region{}, id)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&Region{}, id)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

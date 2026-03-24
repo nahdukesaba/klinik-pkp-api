@@ -43,11 +43,23 @@ func (s *Service) GetProvinceById(id uint64) (*Province, error) {
 }
 
 func (s *Service) AddProvince(payload ProvincePayload) (*Province, error) {
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	newProvince := Province{
 		Name: payload.Name,
 	}
 
-	if err := s.db.Create(&newProvince).Error; err != nil {
+	if err := tx.Create(&newProvince).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
@@ -55,32 +67,59 @@ func (s *Service) AddProvince(payload ProvincePayload) (*Province, error) {
 }
 
 func (s *Service) EditProvinceById(id uint64, payload ProvincePayload) error {
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	// USE .Update() FOR SINGLE FIELD UPDATE
 	// AVOID .Save() TO PREVENT OVERWRITING OTHER FIELDS WITH ZERO VALUES
-	result := s.db.Model(&Province{}).Where("id = ?", id).Update("name", payload.Name)
+	result := tx.Model(&Province{}).Where("id = ?", id).Update("name", payload.Name)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (s *Service) DeleteProvinceById(id uint64) error {
-	result := s.db.Delete(&Province{}, id)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&Province{}, id)
 
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

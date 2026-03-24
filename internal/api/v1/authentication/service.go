@@ -1,11 +1,12 @@
 package authentication
 
 import (
+	"klinik-pkp-api/internal/api/v1/user"
+	"klinik-pkp-api/utils"
+
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"klinik-pkp-api/internal/api/v1/user"
-	"klinik-pkp-api/utils"
 )
 
 // CURRENT INSTANCE
@@ -66,8 +67,18 @@ func (s *Service) AddAuthentication(payload AddAuthenticationPayload) (fiber.Map
 		return nil, err
 	}
 
-	// STORE REFRESH TOKEN IN DATABASE
-	if err := s.db.Create(&Authentication{Token: refreshToken}).Error; err != nil {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	if err := tx.Create(&Authentication{Token: refreshToken}).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 

@@ -2,6 +2,7 @@ package uploads
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"klinik-pkp-api/utils"
 	"mime/multipart"
@@ -9,8 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 // CURRENT INSTANCE
@@ -21,7 +20,7 @@ type Service struct {
 // PAYLOAD FROM REQUEST BODY
 type FilePayload struct {
 	Files    []*multipart.FileHeader
-	MaxCount    int
+	MaxCount int
 	Category string
 	RecordID uint64
 }
@@ -44,18 +43,23 @@ func (s *Service) SaveImages(payload *FilePayload) ([]string, error) {
 	}
 
 	category, err := utils.ValidateImageCategory(payload.Category)
-
 	if err != nil {
 		return nil, err
 	}
 
 	recordID := strconv.FormatUint(uint64(payload.RecordID), 10)
-
 	if recordID == "0" {
 		return nil, fmt.Errorf("record ID is required")
 	}
 
 	var responses []string
+
+	// VALIDATE ALL FILES BEFORE CREATING DIRECTORY
+	for _, fileHeader := range payload.Files {
+		if err := utils.ValidateImage(fileHeader); err != nil {
+			return nil, fmt.Errorf("invalid file %s: %w", fileHeader.Filename, err)
+		}
+	}
 
 	// DIRECTORY PATH: storage/{{category}}/{{year}}/{{month}}}/{{day}}/{{record_id}}/
 	fileDirectoryPath := filepath.Join(s.basePath, category, recordID)
@@ -67,10 +71,6 @@ func (s *Service) SaveImages(payload *FilePayload) ([]string, error) {
 
 	// PROCESS EACH FILE
 	for _, fileHeader := range payload.Files {
-		if err := utils.ValidateImage(fileHeader); err != nil {
-			return nil, fmt.Errorf("invalid file %s: %w", fileHeader.Filename, err)
-		}
-
 		extension := strings.ToLower(filepath.Ext(fileHeader.Filename))
 		newFilename := fmt.Sprintf("%s_%s%s", category, uuid.New().String(), extension)
 		fileFullPath := filepath.Join(fileDirectoryPath, newFilename)
@@ -107,50 +107,27 @@ func (s *Service) SaveImages(payload *FilePayload) ([]string, error) {
 	return responses, nil
 }
 
-func (s *Service) DeleteImages(category string, recordID uint64) error {
-	// PREVENT PATH TRAVERSAL
-	if strings.Contains(category, "..") || strings.Contains(strconv.FormatUint(recordID, 10), "..") {
-		return fmt.Errorf("invalid path")
-	}
+func (s *Service) DeleteImages(paths []string) error {
+	basePath := filepath.Clean(s.basePath)
+	basePrefix := basePath + string(os.PathSeparator)
 
-	// DIRECTORY PATH: storage/{{category}}/{{record_id}}/
-	dirPath := filepath.Join(s.basePath, category, strconv.FormatUint(recordID, 10))
+	for _, rawPath := range paths {
+		relPath := strings.TrimPrefix(rawPath, "uploads/")
+		relPath = filepath.Clean(relPath)
 
-	// CHECK IF DIRECTORY EXISTS
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-		return nil // Nothing to delete
-	}
-
-	// READ ALL FILES IN THE DIRECTORY
-	files, err := os.ReadDir(dirPath)
-
-	if err != nil {
-		return fmt.Errorf("failed to read directory: %w", err)
-	}
-
-	// DEFINE IMAGE EXTENSIONS
-	imageExtensions := map[string]bool{
-		".jpg":  true,
-		".jpeg": true,
-		".png":  true,
-		".gif":  true,
-		".webp": true,
-	}
-
-	// DELETE ONLY IMAGE FILES
-	for _, file := range files {
-		if file.IsDir() {
+		if relPath == "." || relPath == "" {
 			continue
 		}
 
-		ext := strings.ToLower(filepath.Ext(file.Name()))
+		fullPath := filepath.Clean(filepath.Join(basePath, relPath))
 
-		if imageExtensions[ext] {
-			filePath := filepath.Join(dirPath, file.Name())
+		// PREVENT PATH TRAVERSAL OUTSIDE STORAGE DIRECTORY
+		if fullPath != basePath && !strings.HasPrefix(fullPath, basePrefix) {
+			return fmt.Errorf("invalid path: %s", rawPath)
+		}
 
-			if err := os.Remove(filePath); err != nil {
-				return fmt.Errorf("failed to delete image file %s: %w", file.Name(), err)
-			}
+		if err := os.Remove(fullPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to delete file %s: %w", rawPath, err)
 		}
 	}
 
@@ -168,18 +145,23 @@ func (s *Service) SaveFiles(payload *FilePayload) ([]string, error) {
 	}
 
 	category, err := utils.ValidateFileCategory(payload.Category)
-
 	if err != nil {
 		return nil, err
 	}
 
 	recordID := strconv.FormatUint(uint64(payload.RecordID), 10)
-
 	if recordID == "0" {
 		return nil, fmt.Errorf("record ID is required")
 	}
 
 	var responses []string
+
+	// VALIDATE ALL FILES BEFORE CREATING DIRECTORY
+	for _, fileHeader := range payload.Files {
+		if err := utils.ValidatePDF(fileHeader); err != nil {
+			return nil, fmt.Errorf("invalid file %s: %w", fileHeader.Filename, err)
+		}
+	}
 
 	// DIRECTORY PATH: storage/{{category}}/{{record_id}}/
 	fileDirectoryPath := filepath.Join(s.basePath, category, recordID)
@@ -191,9 +173,6 @@ func (s *Service) SaveFiles(payload *FilePayload) ([]string, error) {
 
 	// PROCESS EACH FILE
 	for _, fileHeader := range payload.Files {
-		if err := utils.ValidatePDF(fileHeader); err != nil {
-			return nil, fmt.Errorf("invalid file %s: %w", fileHeader.Filename, err)
-		}
 
 		extension := strings.ToLower(filepath.Ext(fileHeader.Filename))
 		newFilename := fmt.Sprintf("%s_%s%s", category, uuid.New().String(), extension)
@@ -231,46 +210,27 @@ func (s *Service) SaveFiles(payload *FilePayload) ([]string, error) {
 	return responses, nil
 }
 
-func (s *Service) DeleteFiles(category string, recordID uint64) error {
-	if strings.Contains(category, "..") || strings.Contains(strconv.FormatUint(recordID, 10), "..") {
-		return fmt.Errorf("invalid path")
-	}
+func (s *Service) DeleteFiles(paths []string) error {
+	basePath := filepath.Clean(s.basePath)
+	basePrefix := basePath + string(os.PathSeparator)
 
-	// DIRECTORY PATH: storage/{{category}}/{{record_id}}/
-	dirPath := filepath.Join(s.basePath, category, strconv.FormatUint(recordID, 10))
+	for _, rawPath := range paths {
+		relPath := strings.TrimPrefix(rawPath, "uploads/")
+		relPath = filepath.Clean(relPath)
 
-	// CHECK IF DIRECTORY EXISTS
-	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-		return nil // Nothing to delete
-	}
-
-	// READ ALL FILES IN THE DIRECTORY
-	files, err := os.ReadDir(dirPath)
-	if err != nil {
-		return fmt.Errorf("failed to read directory: %w", err)
-	}
-
-	// DEFINE DOCUMENT EXTENSIONS
-	documentExtensions := map[string]bool{
-		".pdf":  true,
-		".doc":  true,
-		".docx": true,
-		".xls":  true,
-		".xlsx": true,
-	}
-
-	// DELETE ONLY DOCUMENT FILES
-	for _, file := range files {
-		if file.IsDir() {
+		if relPath == "." || relPath == "" {
 			continue
 		}
 
-		ext := strings.ToLower(filepath.Ext(file.Name()))
-		if documentExtensions[ext] {
-			filePath := filepath.Join(dirPath, file.Name())
-			if err := os.Remove(filePath); err != nil {
-				return fmt.Errorf("failed to delete document file %s: %w", file.Name(), err)
-			}
+		fullPath := filepath.Clean(filepath.Join(basePath, relPath))
+
+		// PREVENT PATH TRAVERSAL OUTSIDE STORAGE DIRECTORY
+		if fullPath != basePath && !strings.HasPrefix(fullPath, basePrefix) {
+			return fmt.Errorf("invalid path: %s", rawPath)
+		}
+
+		if err := os.Remove(fullPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to delete file %s: %w", rawPath, err)
 		}
 	}
 

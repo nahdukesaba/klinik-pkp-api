@@ -132,6 +132,12 @@ func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, err
 		return nil, err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	// CREATE RECORD FIRST TO GET ID
 	newSosialisasi := Sosialisasi{
 		VillageID:        villageID,
@@ -145,7 +151,8 @@ func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, err
 		ScheduledAtEnd:   scheduledAtEnd,
 	}
 
-	if err := s.db.Create(&newSosialisasi).Error; err != nil {
+	if err := tx.Create(&newSosialisasi).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
@@ -158,15 +165,26 @@ func (s *Service) AddSosialisasi(payload *SosialisasiPayload) (*Sosialisasi, err
 		})
 
 		if err != nil {
-			s.db.Delete(&newSosialisasi)
-
+			tx.Rollback()
+			// CLEANUP: IMAGES UPLOADED, DELETE THEM ASYNCHRONOUSLY
+			go s.uploadService.DeleteImages(newSosialisasi.ImageURLs)
 			return nil, fmt.Errorf("failed to upload images: %w", err)
 		}
 
 		newSosialisasi.ImageURLs = imageResponses
 	}
 
-	if err := s.db.Save(&newSosialisasi).Error; err != nil {
+	if err := tx.Save(&newSosialisasi).Error; err != nil {
+		tx.Rollback()
+		// CLEANUP: DELETE UPLOADED IMAGES ASYNCHRONOUSLY
+		go s.uploadService.DeleteImages(newSosialisasi.ImageURLs)
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		// CLEANUP: DELETE UPLOADED IMAGES ASYNCHRONOUSLY
+		go s.uploadService.DeleteImages(newSosialisasi.ImageURLs)
 		return nil, err
 	}
 
@@ -192,13 +210,6 @@ func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) er
 		return err
 	}
 
-	// CHECK IF RECORD EXISTS
-	existingSosialisasi := Sosialisasi{}
-
-	if err := s.db.First(&existingSosialisasi, id).Error; err != nil {
-		return err
-	}
-
 	// PARSE TIME
 	scheduledAtStart, err := time.Parse(time.RFC3339, payload.ScheduledAtStart)
 
@@ -211,6 +222,23 @@ func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) er
 	if err != nil {
 		return err
 	}
+
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// CHECK IF RECORD EXISTS
+	existingSosialisasi := Sosialisasi{}
+
+	if err := tx.First(&existingSosialisasi, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	existingImageURLs := append([]string(nil), existingSosialisasi.ImageURLs...)
+	isImagesUpdated := false
 
 	// CREATE UPDATE STRUCT (TO STORE IMAGE URLS LATER)
 	newSosialisasi := Sosialisasi{
@@ -226,12 +254,7 @@ func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) er
 	}
 
 	if len(payload.Images) > 0 {
-		// DELETE OLD IMAGES
-		if err := s.uploadService.DeleteImages("sosialisasi", id); err != nil {
-			fmt.Printf("Warning: failed to delete old images: %v\n", err)
-		}
-
-		// UPLOAD NEW IMAGES
+		// UPLOAD NEW IMAGES FIRST; OLD IMAGES STAY UNTIL TRANSACTION COMMITS
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
 			MaxCount: 4,
@@ -240,38 +263,76 @@ func (s *Service) EditSosialisasiById(id uint64, payload *SosialisasiPayload) er
 		})
 
 		if err != nil {
+			tx.Rollback()
 			return fmt.Errorf("failed to upload new images: %w", err)
 		}
 
 		newSosialisasi.ImageURLs = imageResponses
+		isImagesUpdated = true
 	}
 
-	result := s.db.Model(&Sosialisasi{}).Where("id = ?", id).Updates(newSosialisasi)
+	result := tx.Model(&Sosialisasi{}).Where("id = ?", id).Updates(newSosialisasi)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
+		if isImagesUpdated {
+			go s.uploadService.DeleteImages(newSosialisasi.ImageURLs)
+		}
 		return result.Error
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		if isImagesUpdated {
+			go s.uploadService.DeleteImages(newSosialisasi.ImageURLs)
+		}
+		return err
+	}
+
+	if isImagesUpdated && len(existingImageURLs) > 0 {
+		if err := s.uploadService.DeleteImages(existingImageURLs); err != nil {
+			fmt.Printf("Warning: failed to delete old images: %v\n", err)
+		}
 	}
 
 	return nil
 }
 
 func (s *Service) DeleteSosialisasiById(id uint64) error {
-	// DELETE IMAGES (IF ANY)
-	if err := s.uploadService.DeleteImages("sosialisasi", id); err != nil {
-		fmt.Printf("Warning: failed to delete images: %v\n", err)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
 	}
 
-	result := s.db.Delete(&Sosialisasi{}, id)
+	var existingSosialisasi Sosialisasi
+	if err := tx.First(&existingSosialisasi, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// DELETE IMAGES (IF ANY) - NON-BLOCKING, ASYNC CLEANUP
+	go s.uploadService.DeleteImages(existingSosialisasi.ImageURLs)
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&Sosialisasi{}, id)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

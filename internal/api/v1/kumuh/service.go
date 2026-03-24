@@ -113,6 +113,12 @@ func (s *Service) AddKumuh(payload *KawasanKumuhPayload) (*KawasanKumuh, error) 
 		return nil, err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	// CREATE RECORD FIRST TO GET ID
 	newKumuh := KawasanKumuh{
 		Environments:    payload.Environments,
@@ -126,7 +132,13 @@ func (s *Service) AddKumuh(payload *KawasanKumuhPayload) (*KawasanKumuh, error) 
 		Coordinate:      payload.Coordinate,
 	}
 
-	if err := s.db.Create(&newKumuh).Error; err != nil {
+	if err := tx.Create(&newKumuh).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
@@ -146,10 +158,17 @@ func (s *Service) EditKumuhById(id uint64, payload *KawasanKumuhPayload) error {
 		return err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	// CHECK IF RECORD EXISTS
 	existingKumuh := KawasanKumuh{}
 
-	if err := s.db.First(&existingKumuh, id).Error; err != nil {
+	if err := tx.First(&existingKumuh, id).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -165,27 +184,47 @@ func (s *Service) EditKumuhById(id uint64, payload *KawasanKumuhPayload) error {
 		Coordinate:      payload.Coordinate,
 	}
 
-	result := s.db.Model(&KawasanKumuh{}).Where("id = ?", id).Updates(newKumuh)
+	result := tx.Model(&KawasanKumuh{}).Where("id = ?", id).Updates(newKumuh)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (s *Service) DeleteKumuhById(id uint64) error {
-	result := s.db.Delete(&KawasanKumuh{}, id)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&KawasanKumuh{}, id)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

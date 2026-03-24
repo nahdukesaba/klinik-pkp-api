@@ -98,6 +98,12 @@ func (s *Service) AddBSPS(payload *BSPSPayload) (*BSPS, error) {
 		return nil, err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	newBSPS := BSPS{
 		VillageID:  villageID,
 		DistrictID: districtID,
@@ -108,7 +114,13 @@ func (s *Service) AddBSPS(payload *BSPSPayload) (*BSPS, error) {
 		Coordinate: payload.Coordinate,
 	}
 
-	if err := s.db.Create(&newBSPS).Error; err != nil {
+	if err := tx.Create(&newBSPS).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
@@ -134,10 +146,17 @@ func (s *Service) EditBSPSById(id uint64, payload *BSPSPayload) error {
 		return err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	// CHECK IF RECORD EXISTS
 	existingBSPS := BSPS{}
 
-	if err := s.db.First(&existingBSPS, id).Error; err != nil {
+	if err := tx.First(&existingBSPS, id).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -151,11 +170,17 @@ func (s *Service) EditBSPSById(id uint64, payload *BSPSPayload) error {
 		Coordinate: payload.Coordinate,
 	}
 
-	result := s.db.Model(&BSPS{}).Where("id = ?", id).Updates(newBSPS)
+	result := tx.Model(&BSPS{}).Where("id = ?", id).Updates(newBSPS)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
@@ -163,16 +188,30 @@ func (s *Service) EditBSPSById(id uint64, payload *BSPSPayload) error {
 
 // SOFT DELETE
 func (s *Service) DeleteBSPSById(id uint64) error {
-	result := s.db.Delete(&BSPS{}, id)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&BSPS{}, id)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

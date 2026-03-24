@@ -2,10 +2,11 @@ package bank_desain
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"klinik-pkp-api/internal/api/v1/uploads"
 	"klinik-pkp-api/utils"
 	"mime/multipart"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -93,6 +94,11 @@ func (s *Service) GetBankDesainById(id uint64) (*BankDesain, error) {
 }
 
 func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error) {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	// CREATE RECORD FIRST TO GET ID
 	newBankDesain := BankDesain{
 		Name:          payload.Name,
@@ -103,7 +109,8 @@ func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error)
 		HasGarage:     payload.HasGarage,
 	}
 
-	if err := s.db.Create(&newBankDesain).Error; err != nil {
+	if err := tx.Create(&newBankDesain).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
@@ -116,8 +123,7 @@ func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error)
 		})
 
 		if err != nil {
-			s.db.Delete(&newBankDesain)
-
+			tx.Rollback()
 			return nil, fmt.Errorf("failed to upload images: %w", err)
 		}
 
@@ -133,15 +139,29 @@ func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error)
 		})
 
 		if err != nil {
-			s.db.Delete(&newBankDesain)
-
+			// CLEANUP: DELETE THE CREATED RECORD AND UPLOADED IMAGES
+			tx.Rollback()
+			// DELETE UPLOADED IMAGES FROM STORAGE (ASYNC, NON-BLOCKING)
+			go s.uploadService.DeleteImages(newBankDesain.ImageURLs)
 			return nil, fmt.Errorf("failed to upload files: %w", err)
 		}
 
 		newBankDesain.FileURLs = fileResponses
 	}
 
-	if err := s.db.Save(&newBankDesain).Error; err != nil {
+	if err := tx.Save(&newBankDesain).Error; err != nil {
+		tx.Rollback()
+		// CLEANUP: DELETE UPLOADED FILES AND IMAGES
+		go s.uploadService.DeleteImages(newBankDesain.ImageURLs)
+		go s.uploadService.DeleteFiles(newBankDesain.FileURLs)
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		// CLEANUP: DELETE UPLOADED FILES AND IMAGES
+		go s.uploadService.DeleteImages(newBankDesain.ImageURLs)
+		go s.uploadService.DeleteFiles(newBankDesain.FileURLs)
 		return nil, err
 	}
 
@@ -149,13 +169,23 @@ func (s *Service) AddBankDesain(payload *BankDesainPayload) (*BankDesain, error)
 }
 
 func (s *Service) EditBankDesainById(id uint64, payload *BankDesainPayload) error {
+	// BEGIN TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	// CHECK IF RECORD EXISTS
 	existingBankDesain := BankDesain{}
-
-	if err := s.db.First(&existingBankDesain, id).Error; err != nil {
+	if err := tx.First(&existingBankDesain, id).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
 
+	existingImageURLs := append([]string(nil), existingBankDesain.ImageURLs...)
+	existingFileURLs := append([]string(nil), existingBankDesain.FileURLs...)
+	isImagesUpdated := false
+	isFilesUpdated := false
 	newBankDesain := BankDesain{
 		Name:          payload.Name,
 		Type:          payload.Type,
@@ -166,12 +196,7 @@ func (s *Service) EditBankDesainById(id uint64, payload *BankDesainPayload) erro
 	}
 
 	if len(payload.Images) > 0 {
-		// DELETE OLD IMAGES
-		if err := s.uploadService.DeleteImages("bank_desain", id); err != nil {
-			fmt.Printf("Warning: failed to delete old images: %v\n", err)
-		}
-
-		// UPLOAD NEW IMAGES
+		// UPLOAD NEW IMAGES FIRST; OLD IMAGES STAY UNTIL TRANSACTION COMMITS
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
 			MaxCount: 8,
@@ -180,21 +205,16 @@ func (s *Service) EditBankDesainById(id uint64, payload *BankDesainPayload) erro
 		})
 
 		if err != nil {
+			tx.Rollback()
 			return fmt.Errorf("failed to upload new images: %w", err)
 		}
 
-		println(imageResponses)
-
 		newBankDesain.ImageURLs = imageResponses
+		isImagesUpdated = true
 	}
 
 	if len(payload.Files) > 0 {
-		// DELETE OLD FILES
-		if err := s.uploadService.DeleteFiles("bank_desain", id); err != nil {
-			fmt.Printf("Warning: failed to delete old files: %v\n", err)
-		}
-
-		// UPLOAD NEW FILES
+		// UPLOAD NEW FILES FIRST; OLD FILES STAY UNTIL TRANSACTION COMMITS
 		fileResponses, err := s.uploadService.SaveFiles(&uploads.FilePayload{
 			Files:    payload.Files,
 			MaxCount: 1,
@@ -203,38 +223,92 @@ func (s *Service) EditBankDesainById(id uint64, payload *BankDesainPayload) erro
 		})
 
 		if err != nil {
+			tx.Rollback()
+			if isImagesUpdated {
+				go s.uploadService.DeleteImages(newBankDesain.ImageURLs)
+			}
 			return fmt.Errorf("failed to upload new files: %w", err)
 		}
 
 		newBankDesain.FileURLs = fileResponses
+		isFilesUpdated = true
 	}
 
-	result := s.db.Model(&BankDesain{}).Where("id = ?", id).Updates(newBankDesain)
+	result := tx.Model(&BankDesain{}).Where("id = ?", id).Updates(newBankDesain)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
+		if isImagesUpdated {
+			go s.uploadService.DeleteImages(newBankDesain.ImageURLs)
+		}
+		if isFilesUpdated {
+			go s.uploadService.DeleteFiles(newBankDesain.FileURLs)
+		}
 		return result.Error
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		if isImagesUpdated {
+			go s.uploadService.DeleteImages(newBankDesain.ImageURLs)
+		}
+		if isFilesUpdated {
+			go s.uploadService.DeleteFiles(newBankDesain.FileURLs)
+		}
+		return err
+	}
+
+	if isImagesUpdated && len(existingImageURLs) > 0 {
+		if err := s.uploadService.DeleteImages(existingImageURLs); err != nil {
+			fmt.Printf("Warning: failed to delete old images: %v\n", err)
+		}
+	}
+
+	if isFilesUpdated && len(existingFileURLs) > 0 {
+		if err := s.uploadService.DeleteFiles(existingFileURLs); err != nil {
+			fmt.Printf("Warning: failed to delete old files: %v\n", err)
+		}
 	}
 
 	return nil
 }
 
 func (s *Service) DeleteBankDesainById(id uint64) error {
-	// DELETE IMAGES (IF ANY)
-	if err := s.uploadService.DeleteImages("bank_desain", id); err != nil {
-		fmt.Printf("Warning: failed to delete images: %v\n", err)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
 	}
 
-	result := s.db.Delete(&BankDesain{}, id)
+	var existingBankDesain BankDesain
+	if err := tx.First(&existingBankDesain, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// DELETE IMAGES AND FILES (IF ANY) - NON-BLOCKING, ASYNC CLEANUP
+	go s.uploadService.DeleteImages(existingBankDesain.ImageURLs)
+	go s.uploadService.DeleteFiles(existingBankDesain.FileURLs)
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&BankDesain{}, id)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

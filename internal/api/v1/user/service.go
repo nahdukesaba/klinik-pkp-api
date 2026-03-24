@@ -1,9 +1,10 @@
 package user
 
 import (
+	"klinik-pkp-api/utils"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"klinik-pkp-api/utils"
 )
 
 // CURRENT INSTANCE
@@ -46,10 +47,17 @@ func (s *Service) GetUserById(id uuid.UUID) (*User, error) {
 }
 
 func (s *Service) EditUserById(id uuid.UUID, payload *EditUserProfilePayload) error {
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	// CHECK IF USER EXISTS
 	existingUser := User{}
 
-	if err := s.db.First(&existingUser, id).Error; err != nil {
+	if err := tx.First(&existingUser, id).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
 
@@ -58,10 +66,16 @@ func (s *Service) EditUserById(id uuid.UUID, payload *EditUserProfilePayload) er
 		Phone: payload.Phone,
 	}
 
-	result := s.db.Model(&User{}).Where("id = ?", id).Updates(newUser)
+	result := tx.Model(&User{}).Where("id = ?", id).Updates(newUser)
 
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

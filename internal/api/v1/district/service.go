@@ -63,12 +63,24 @@ func (s *Service) AddDistrict(payload DistrictPayload) (*District, error) {
 		return nil, err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	newDistrict := District{
 		Name:     payload.Name,
 		RegionID: regionID,
 	}
 
-	if err := s.db.Create(&newDistrict).Error; err != nil {
+	if err := tx.Create(&newDistrict).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
@@ -82,21 +94,34 @@ func (s *Service) EditDistrictById(id uint64, payload DistrictPayload) error {
 		return err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	newDistrict := District{
 		Name:     payload.Name,
 		RegionID: regionID,
 	}
 
-	result := s.db.Model(&District{}).Where("id = ?", id).Updates(&newDistrict)
+	result := tx.Model(&District{}).Where("id = ?", id).Updates(&newDistrict)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
@@ -104,16 +129,30 @@ func (s *Service) EditDistrictById(id uint64, payload DistrictPayload) error {
 
 // SOFT DELETE
 func (s *Service) DeleteDistrictById(id uint64) error {
-	result := s.db.Delete(&District{}, id)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&District{}, id)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

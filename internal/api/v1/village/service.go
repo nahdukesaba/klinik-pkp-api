@@ -1,9 +1,10 @@
 package village
 
 import (
-	"gorm.io/gorm"
 	"klinik-pkp-api/utils"
 	"strconv"
+
+	"gorm.io/gorm"
 )
 
 // CURRENT INSTANCE
@@ -62,12 +63,24 @@ func (s *Service) AddVillage(payload VillagePayload) (*Village, error) {
 		return nil, err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	newVillage := Village{
 		Name:       payload.Name,
 		DistrictID: districtID,
 	}
 
-	if err := s.db.Create(&newVillage).Error; err != nil {
+	if err := tx.Create(&newVillage).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
 
@@ -81,21 +94,34 @@ func (s *Service) EditVillageById(id uint64, payload VillagePayload) error {
 		return err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	newVillage := Village{
 		Name:       payload.Name,
 		DistrictID: districtID,
 	}
 
-	result := s.db.Model(&Village{}).Where("id = ?", id).Updates(&newVillage)
+	result := tx.Model(&Village{}).Where("id = ?", id).Updates(&newVillage)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil
@@ -103,16 +129,30 @@ func (s *Service) EditVillageById(id uint64, payload VillagePayload) error {
 
 // SOFT DELETE
 func (s *Service) DeleteVillageById(id uint64) error {
-	result := s.db.Delete(&Village{}, id)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&Village{}, id)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

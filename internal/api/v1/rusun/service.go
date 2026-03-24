@@ -107,6 +107,12 @@ func (s *Service) AddRusun(payload *RusunPayload) (*Rusun, error) {
 		return nil, err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
 	// CREATE RECORD FIRST TO GET ID
 	newRusun := Rusun{
 		VillageID:  villageID,
@@ -122,7 +128,8 @@ func (s *Service) AddRusun(payload *RusunPayload) (*Rusun, error) {
 		Coordinate: payload.Coordinate,
 	}
 
-	if err := s.db.Create(&newRusun).Error; err != nil {
+	if err := tx.Create(&newRusun).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
@@ -135,15 +142,26 @@ func (s *Service) AddRusun(payload *RusunPayload) (*Rusun, error) {
 		})
 
 		if err != nil {
-			s.db.Delete(&newRusun)
-
+			tx.Rollback()
+			// CLEANUP: IMAGES UPLOADED, DELETE THEM ASYNCHRONOUSLY
+			go s.uploadService.DeleteImages(newRusun.ImageURLs)
 			return nil, fmt.Errorf("failed to upload images: %w", err)
 		}
 
 		newRusun.ImageURLs = imageResponses
 	}
 
-	if err := s.db.Save(&newRusun).Error; err != nil {
+	if err := tx.Save(&newRusun).Error; err != nil {
+		tx.Rollback()
+		// CLEANUP: DELETE UPLOADED IMAGES ASYNCHRONOUSLY
+		go s.uploadService.DeleteImages(newRusun.ImageURLs)
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		// CLEANUP: DELETE UPLOADED IMAGES ASYNCHRONOUSLY
+		go s.uploadService.DeleteImages(newRusun.ImageURLs)
 		return nil, err
 	}
 
@@ -169,12 +187,22 @@ func (s *Service) EditRusunById(id uint64, payload *RusunPayload) error {
 		return err
 	}
 
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
 	// CHECK IF RECORD EXISTS
 	existingRusun := Rusun{}
 
-	if err := s.db.First(&existingRusun, id).Error; err != nil {
+	if err := tx.First(&existingRusun, id).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
+
+	existingImageURLs := append([]string(nil), existingRusun.ImageURLs...)
+	isImagesUpdated := false
 
 	newRusun := Rusun{
 		VillageID:  villageID,
@@ -191,12 +219,7 @@ func (s *Service) EditRusunById(id uint64, payload *RusunPayload) error {
 	}
 
 	if len(payload.Images) > 0 {
-		// DELETE OLD IMAGES
-		if err := s.uploadService.DeleteImages("rusun", id); err != nil {
-			fmt.Printf("Warning: failed to delete old images: %v\n", err)
-		}
-
-		// UPLOAD NEW IMAGES
+		// UPLOAD NEW IMAGES FIRST; OLD IMAGES STAY UNTIL TRANSACTION COMMITS
 		imageResponses, err := s.uploadService.SaveImages(&uploads.FilePayload{
 			Files:    payload.Images,
 			MaxCount: 1,
@@ -205,38 +228,76 @@ func (s *Service) EditRusunById(id uint64, payload *RusunPayload) error {
 		})
 
 		if err != nil {
+			tx.Rollback()
 			return fmt.Errorf("failed to upload new images: %w", err)
 		}
 
 		newRusun.ImageURLs = imageResponses
+		isImagesUpdated = true
 	}
 
-	result := s.db.Model(&Rusun{}).Where("id = ?", id).Updates(newRusun)
+	result := tx.Model(&Rusun{}).Where("id = ?", id).Updates(newRusun)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
+		if isImagesUpdated {
+			go s.uploadService.DeleteImages(newRusun.ImageURLs)
+		}
 		return result.Error
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		if isImagesUpdated {
+			go s.uploadService.DeleteImages(newRusun.ImageURLs)
+		}
+		return err
+	}
+
+	if isImagesUpdated && len(existingImageURLs) > 0 {
+		if err := s.uploadService.DeleteImages(existingImageURLs); err != nil {
+			fmt.Printf("Warning: failed to delete old images: %v\n", err)
+		}
 	}
 
 	return nil
 }
 
 func (s *Service) DeleteRusunById(id uint64) error {
-	// DELETE IMAGES (IF ANY)
-	if err := s.uploadService.DeleteImages("rusun", id); err != nil {
-		fmt.Printf("Warning: failed to delete images: %v\n", err)
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
 	}
 
-	result := s.db.Delete(&Rusun{}, id)
+	var existingRusun Rusun
+	if err := tx.First(&existingRusun, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// DELETE IMAGES (IF ANY) - NON-BLOCKING, ASYNC CLEANUP
+	go s.uploadService.DeleteImages(existingRusun.ImageURLs)
+
+	// DELETE RECORD FROM DATABASE
+	result := tx.Delete(&Rusun{}, id)
 
 	// SERVER ERRORS
 	if result.Error != nil {
+		tx.Rollback()
 		return result.Error
 	}
 
 	// NOT FOUND ERROR
 	if result.RowsAffected == 0 {
+		tx.Rollback()
 		return gorm.ErrRecordNotFound
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 
 	return nil

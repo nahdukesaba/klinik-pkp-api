@@ -26,5 +26,7 @@ Thumbs.db
 go.work
 go.work.sum
 
-# FOLDERS
-storage/**
+# ALL FOLDER INSIDE STORAGE EXCEPT /others
+storage/*
+!storage/others/
+!storage/others/**

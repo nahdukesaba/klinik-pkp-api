@@ -14,5 +14,6 @@ func SetupRoutes(app fiber.Router, handler *Handler) {
 	// PROTECTED ROUTES (REQUIRES AUTH MIDDLEWARE)
 	users.Get("/", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.GetUsersHandler)
 	users.Get("/:id", utils.AuthMiddleware(), handler.GetUserByIdHandler)
+	users.Post("/", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PostUserHandler)
 	users.Put("/:id", utils.AuthMiddleware(), handler.PutUserByIdHandler)
 }

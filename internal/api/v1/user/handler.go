@@ -61,6 +61,30 @@ func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
+func (h *Handler) PostUserHandler(ctx *fiber.Ctx) error {
+	var payload AddUserPayload
+
+	// VALIDATE CONTENT TYPE
+	if err := ctx.BodyParser(&payload); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
+	}
+
+	// VALIDATE PAYLOAD STRUCT
+	if message, err := h.service.validator.ValidateStruct(payload); err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
+	}
+
+	data, err := h.service.AddUser(&payload)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
+	}
+
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "user created", fiber.Map{
+		"id": data.ID,
+	}, false)
+}
+
 // UPDATE PROFILE UPDATES CURRENT USER PROFILE
 func (h *Handler) PutUserByIdHandler(ctx *fiber.Ctx) error {
 	authID := ctx.Locals("id").(uuid.UUID)

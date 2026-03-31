@@ -67,6 +67,7 @@ func (s *Service) AddAuthentication(payload AddAuthenticationPayload) (fiber.Map
 		return nil, err
 	}
 
+	// START TRANSACTION
 	tx := s.db.Begin()
 	if tx.Error != nil {
 		return nil, tx.Error
@@ -81,6 +82,7 @@ func (s *Service) AddAuthentication(payload AddAuthenticationPayload) (fiber.Map
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
+	
 
 	return fiber.Map{
 		"id":            user.ID,

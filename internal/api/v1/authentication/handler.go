@@ -46,7 +46,10 @@ func (h *Handler) PostAuthenticationHandler(ctx *fiber.Ctx) error {
 
 	h.service.tokenManager.SetRefreshTokenCookie(ctx, data["refresh_token"].(string))
 
-	return utils.JSONResponse(ctx, fiber.StatusCreated, "authentication created", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusCreated, "authentication created", fiber.Map{
+		"id":           data["id"],
+		"access_token": data["access_token"],
+	}, false)
 }
 
 // VALIDATES REFRESH TOKEN, GENERATES NEW ACCESS TOKEN

@@ -13,6 +13,17 @@ type Service struct {
 	validator *utils.Validator
 }
 
+// PAYLOAD FOR CREATING NEW USER (ADMIN ONLY)
+type AddUserPayload struct {
+	Name     string `json:"name" validate:"required,ne=null,ne=NULL,ne=Null"`
+	Email    string `json:"email" validate:"required,email"`
+	NIP      string `json:"nip" validate:"required"`
+	Password string `json:"password" validate:"required"`
+	Phone    string `json:"phone" validate:"-"`
+	Role     string `json:"role" validate:"required,oneof=admin user"`
+	IsActive bool   `json:"is_active" validate:"required"`
+}
+
 // PAYLOAD FOR UPDATING USER PROFILE
 type EditUserProfilePayload struct {
 	Name  string `json:"name" validate:"required,ne=null,ne=NULL,ne=Null"`
@@ -44,6 +55,37 @@ func (s *Service) GetUserById(id uuid.UUID) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+func (s *Service) AddUser(payload *AddUserPayload) (*User, error) {
+	// START TRANSACTION
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	newUser := User{
+		ID:       uuid.New(),
+		Name:     payload.Name,
+		Email:    payload.Email,
+		Password: payload.Password,
+		NIP:      payload.NIP,
+		Phone:    payload.Phone,
+		Role:     payload.Role,
+		IsActive: payload.IsActive,
+	}
+
+	if err := tx.Create(&newUser).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// COMMIT TRANSACTION
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	return &newUser, nil
 }
 
 func (s *Service) EditUserById(id uuid.UUID, payload *EditUserProfilePayload) error {

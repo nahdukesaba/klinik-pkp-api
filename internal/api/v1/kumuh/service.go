@@ -27,6 +27,7 @@ type KawasanKumuhPayload struct {
 	TotalArea       float64          `json:"total_area" validate:"required"`
 	TotalPopulation uint64           `json:"total_population" validate:"required"`
 	SlumValue       uint64           `json:"slum_value" validate:"required"`
+	YearInspected   uint64           `json:"year_inspected" validate:"required"`
 	Coordinate      utils.Coordinate `json:"coordinate" validate:"required" gorm:"-"`
 }
 
@@ -47,8 +48,9 @@ func NewService(db *gorm.DB) *Service {
 	}
 }
 
-func (s *Service) GetKumuh(filter KawasanKumuhFilter) ([]KawasanKumuh, error) {
+func (s *Service) GetKumuh(filter KawasanKumuhFilter, pagination utils.PaginationQuery) ([]KawasanKumuh, int64, error) {
 	var kumuh []KawasanKumuh
+	var totalRecords int64
 
 	query := s.db.Preload("District").Preload("Region").Model(&KawasanKumuh{})
 
@@ -67,7 +69,7 @@ func (s *Service) GetKumuh(filter KawasanKumuhFilter) ([]KawasanKumuh, error) {
 		var village village.Village
 
 		if err := s.db.First(&village, *filter.VillageID).Error; err != nil {
-			return nil, fmt.Errorf("village with id %d not found", *filter.VillageID)
+			return nil, 0, fmt.Errorf("village with id %d not found", *filter.VillageID)
 		}
 
 		query = query.Where("kawasan_kumuh.villages LIKE ?", "%"+village.Name+"%")
@@ -83,11 +85,15 @@ func (s *Service) GetKumuh(filter KawasanKumuhFilter) ([]KawasanKumuh, error) {
 		query = query.Where("kawasan_kumuh.year_inspected = ?", *filter.YearInspected)
 	}
 
-	if err := query.Find(&kumuh).Error; err != nil {
-		return nil, err
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return kumuh, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&kumuh).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return kumuh, totalRecords, nil
 }
 
 func (s *Service) GetKumuhById(id uint64) (*KawasanKumuh, error) {
@@ -121,14 +127,15 @@ func (s *Service) AddKumuh(payload *KawasanKumuhPayload) (*KawasanKumuh, error) 
 
 	// CREATE RECORD FIRST TO GET ID
 	newKumuh := KawasanKumuh{
-		Environments:    payload.Environments,
-		AreaName:        payload.AreaName,
-		Villages:        payload.Villages,
 		DistrictID:      districtID,
 		RegionID:        regionID,
+		AreaName:        payload.AreaName,
+		Environments:    payload.Environments,
+		Villages:        payload.Villages,
 		TotalArea:       payload.TotalArea,
 		TotalPopulation: payload.TotalPopulation,
 		SlumValue:       payload.SlumValue,
+		YearInspected:   payload.YearInspected,
 		Coordinate:      payload.Coordinate,
 	}
 
@@ -182,6 +189,7 @@ func (s *Service) EditKumuhById(id uint64, payload *KawasanKumuhPayload) error {
 		TotalPopulation: payload.TotalPopulation,
 		SlumValue:       payload.SlumValue,
 		Coordinate:      payload.Coordinate,
+		YearInspected:   payload.YearInspected,
 	}
 
 	result := tx.Model(&KawasanKumuh{}).Where("id = ?", id).Updates(newKumuh)

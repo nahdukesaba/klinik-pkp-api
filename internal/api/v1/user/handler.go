@@ -17,13 +17,17 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetUsersHandler(ctx *fiber.Ctx) error {
-	data, err := h.service.GetUsers()
+	pagination, err := utils.ParsePaginationQuery(ctx)
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
 
+	data, totalRecords, err := h.service.GetUsers(pagination)
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {

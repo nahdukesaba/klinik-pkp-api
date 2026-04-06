@@ -62,13 +62,19 @@ func (h *Handler) GetSosialisasiHandler(ctx *fiber.Ctx) error {
 		filter.Title = &val
 	}
 
-	data, err := h.service.GetSosialisasi(filter)
+	pagination, err := utils.ParsePaginationQuery(ctx)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
+
+	data, totalRecords, err := h.service.GetSosialisasi(filter, pagination)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetSosialisasiByIdHandler(ctx *fiber.Ctx) error {

@@ -25,7 +25,6 @@ func (h *Handler) GetVillagesHandler(ctx *fiber.Ctx) error {
 	// PARSE OPTIONAL QUERY PARAMETERS
 	if val := ctx.Query("district_id"); val != "" {
 		id, err := strconv.ParseUint(val, 10, 64)
-
 		if err != nil {
 			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid district_id", err, true)
 		}
@@ -33,24 +32,26 @@ func (h *Handler) GetVillagesHandler(ctx *fiber.Ctx) error {
 		filter.DistrictID = &id
 	}
 
-	data, err := h.service.GetVillages(filter)
+	pagination, err := utils.ParsePaginationQuery(ctx)
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
 
+	data, totalRecords, err := h.service.GetVillages(filter, pagination)
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetVillageByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
-
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village id", err, true)
 	}
 
 	data, err := h.service.GetVillageById(id)
-
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
@@ -76,7 +77,6 @@ func (h *Handler) PostVillageHandler(ctx *fiber.Ctx) error {
 	}
 
 	data, err := h.service.AddVillage(payload)
-
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
@@ -88,7 +88,6 @@ func (h *Handler) PostVillageHandler(ctx *fiber.Ctx) error {
 
 func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
-
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village id", err, true)
 	}
@@ -118,7 +117,6 @@ func (h *Handler) PutVillageByIdHandler(ctx *fiber.Ctx) error {
 
 func (h *Handler) DeleteVillageByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
-
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid village id", err, true)
 	}

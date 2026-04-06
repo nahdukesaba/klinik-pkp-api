@@ -22,14 +22,21 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: utils.NewValidator()}
 }
 
-func (s *Service) GetProvinces() ([]Province, error) {
+func (s *Service) GetProvinces(pagination utils.PaginationQuery) ([]Province, int64, error) {
 	var provinces []Province
+	var totalRecords int64
 
-	if err := s.db.Find(&provinces).Error; err != nil {
-		return nil, err
+	query := s.db.Model(&Province{})
+
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return provinces, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&provinces).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return provinces, totalRecords, nil
 }
 
 func (s *Service) GetProvinceById(id uint64) (*Province, error) {

@@ -29,21 +29,24 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: utils.NewValidator()}
 }
 
-func (s *Service) GetDistricts(filter DistrictFilter) ([]District, error) {
+func (s *Service) GetDistricts(filter DistrictFilter, pagination utils.PaginationQuery) ([]District, int64, error) {
 	var districts []District
+	var totalRecords int64
 
 	query := s.db.Preload("Region.Province").Model(&District{})
-
-	// FILTER BY REGION
 	if filter.RegionID != nil {
 		query = query.Where("district.region_id = ?", *filter.RegionID)
 	}
 
-	if err := query.Find(&districts).Error; err != nil {
-		return nil, err
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return districts, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&districts).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return districts, totalRecords, nil
 }
 
 func (s *Service) GetDistrictById(id uint64) (*District, error) {

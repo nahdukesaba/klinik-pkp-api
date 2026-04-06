@@ -54,13 +54,19 @@ func (h *Handler) GetRusunHandler(ctx *fiber.Ctx) error {
 		filter.RegionID = &id
 	}
 
-	data, err := h.service.GetRusun(filter)
+	pagination, err := utils.ParsePaginationQuery(ctx)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
+
+	data, totalRecords, err := h.service.GetRusun(filter, pagination)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetRusunByIdHandler(ctx *fiber.Ctx) error {

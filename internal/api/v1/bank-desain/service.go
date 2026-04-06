@@ -46,8 +46,9 @@ func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	}
 }
 
-func (s *Service) GetBankDesain(filter BankDesainFilter) ([]BankDesain, error) {
+func (s *Service) GetBankDesain(filter BankDesainFilter, pagination utils.PaginationQuery) ([]BankDesain, int64, error) {
 	var bankDesains []BankDesain
+	var totalRecords int64
 
 	query := s.db.Model(&BankDesain{})
 
@@ -76,11 +77,15 @@ func (s *Service) GetBankDesain(filter BankDesainFilter) ([]BankDesain, error) {
 		query = query.Where("bank_desain.name LIKE ?", "%"+*filter.Name+"%")
 	}
 
-	if err := query.Find(&bankDesains).Error; err != nil {
-		return nil, err
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return bankDesains, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&bankDesains).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return bankDesains, totalRecords, nil
 }
 
 func (s *Service) GetBankDesainById(id uint64) (*BankDesain, error) {

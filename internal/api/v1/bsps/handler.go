@@ -57,13 +57,19 @@ func (h *Handler) GetBSPSHandler(ctx *fiber.Ctx) error {
 		filter.Status = &val
 	}
 
-	data, err := h.service.GetBSPS(filter)
+	pagination, err := utils.ParsePaginationQuery(ctx)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
+
+	data, totalRecords, err := h.service.GetBSPS(filter, pagination)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {

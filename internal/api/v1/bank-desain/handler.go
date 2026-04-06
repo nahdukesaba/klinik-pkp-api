@@ -56,13 +56,19 @@ func (h *Handler) GetBankDesainHandler(ctx *fiber.Ctx) error {
 		filter.Name = &val
 	}
 
-	data, err := h.service.GetBankDesain(filter)
+	pagination, err := utils.ParsePaginationQuery(ctx)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
+
+	data, totalRecords, err := h.service.GetBankDesain(filter, pagination)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetBankDesainByIdHandler(ctx *fiber.Ctx) error {
@@ -111,7 +117,7 @@ func (h *Handler) PostBankDesainHandler(ctx *fiber.Ctx) error {
 	}
 
 	return utils.JSONResponse(ctx, fiber.StatusCreated, "bank desain created", fiber.Map{
-		"id":        fmt.Sprintf("%d", data.ID),
+		"id":         fmt.Sprintf("%d", data.ID),
 		"image_urls": data.ImageURLs,
 		"file_urls":  data.FileURLs,
 	}, false)

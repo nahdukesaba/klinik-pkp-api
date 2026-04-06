@@ -33,13 +33,17 @@ func (h *Handler) GetDistrictsHandler(ctx *fiber.Ctx) error {
 		filter.RegionID = &id
 	}
 
-	data, err := h.service.GetDistricts(filter)
+	pagination, err := utils.ParsePaginationQuery(ctx)
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
 
+	data, totalRecords, err := h.service.GetDistricts(filter, pagination)
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetDistrictByIDHandler(ctx *fiber.Ctx) error {

@@ -53,8 +53,9 @@ func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	}
 }
 
-func (s *Service) GetSosialisasi(filter SosialisasiFilter) ([]Sosialisasi, error) {
+func (s *Service) GetSosialisasi(filter SosialisasiFilter, pagination utils.PaginationQuery) ([]Sosialisasi, int64, error) {
 	var sosialisasi []Sosialisasi
+	var totalRecords int64
 
 	query := s.db.Preload("Village").Preload("District").Preload("Region.Province").Model(&Sosialisasi{})
 
@@ -83,11 +84,15 @@ func (s *Service) GetSosialisasi(filter SosialisasiFilter) ([]Sosialisasi, error
 		query = query.Where("sosialisasi.title LIKE ?", "%"+*filter.Title+"%")
 	}
 
-	if err := query.Find(&sosialisasi).Error; err != nil {
-		return nil, err
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return sosialisasi, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&sosialisasi).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return sosialisasi, totalRecords, nil
 }
 
 func (s *Service) GetSosialisasiById(id uint64) (*Sosialisasi, error) {

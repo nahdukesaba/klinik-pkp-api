@@ -37,14 +37,21 @@ func NewService(db *gorm.DB) *Service {
 	}
 }
 
-func (s *Service) GetUsers() ([]User, error) {
+func (s *Service) GetUsers(pagination utils.PaginationQuery) ([]User, int64, error) {
 	var users []User
+	var totalRecords int64
 
-	if err := s.db.Find(&users).Error; err != nil {
-		return nil, err
+	query := s.db.Model(&User{})
+
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return users, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return users, totalRecords, nil
 }
 
 func (s *Service) GetUserById(id uuid.UUID) (*User, error) {

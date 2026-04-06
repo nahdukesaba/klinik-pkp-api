@@ -67,13 +67,19 @@ func (h *Handler) GetKumuhHandler(ctx *fiber.Ctx) error {
 		filter.YearInspected = &year
 	}
 
-	data, err := h.service.GetKumuh(filter)
+	pagination, err := utils.ParsePaginationQuery(ctx)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
+
+	data, totalRecords, err := h.service.GetKumuh(filter, pagination)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetKumuhByIdHandler(ctx *fiber.Ctx) error {
@@ -101,7 +107,7 @@ func (h *Handler) PostKumuhHandler(ctx *fiber.Ctx) error {
 
 	// VALIDATE CONTENT TYPE
 	if err := ctx.BodyParser(&payload); err != nil {
-		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadGateway.Message, err, true)
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, fiber.ErrBadRequest.Message, err, true)
 	}
 
 	// VALIDATE PAYLOAD STRUCT

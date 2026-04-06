@@ -29,8 +29,9 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: utils.NewValidator()}
 }
 
-func (s *Service) GetVillages(filter VillageFilter) ([]Village, error) {
+func (s *Service) GetVillages(filter VillageFilter, pagination utils.PaginationQuery) ([]Village, int64, error) {
 	var villages []Village
+	var totalRecords int64
 
 	query := s.db.Preload("District.Region.Province").Model(&Village{})
 
@@ -39,11 +40,15 @@ func (s *Service) GetVillages(filter VillageFilter) ([]Village, error) {
 		query = query.Where("village.district_id = ?", *filter.DistrictID)
 	}
 
-	if err := query.Find(&villages).Error; err != nil {
-		return nil, err
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return villages, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&villages).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return villages, totalRecords, nil
 }
 
 func (s *Service) GetVillageById(id uint64) (*Village, error) {

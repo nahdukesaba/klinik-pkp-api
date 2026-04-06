@@ -51,8 +51,9 @@ func NewService(db *gorm.DB, uploadService *uploads.Service) *Service {
 	}
 }
 
-func (s *Service) GetRusun(filter RusunFilter) ([]Rusun, error) {
+func (s *Service) GetRusun(filter RusunFilter, pagination utils.PaginationQuery) ([]Rusun, int64, error) {
 	var rusuns []Rusun
+	var totalRecords int64
 
 	query := s.db.Preload("Village").Preload("District").Preload("Region").Model(&Rusun{})
 
@@ -71,11 +72,15 @@ func (s *Service) GetRusun(filter RusunFilter) ([]Rusun, error) {
 		query = query.Where("rusun.region_id = ?", *filter.RegionID)
 	}
 
-	if err := query.Find(&rusuns).Error; err != nil {
-		return nil, err
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return rusuns, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&rusuns).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return rusuns, totalRecords, nil
 }
 
 func (s *Service) GetRusunById(id uint64) (*Rusun, error) {

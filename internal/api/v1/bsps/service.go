@@ -37,8 +37,9 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db, validator: utils.NewValidator()}
 }
 
-func (s *Service) GetBSPS(filter BSPSFilter) ([]BSPS, error) {
+func (s *Service) GetBSPS(filter BSPSFilter, pagination utils.PaginationQuery) ([]BSPS, int64, error) {
 	var bsps []BSPS
+	var totalRecords int64
 
 	query := s.db.Preload("Village").Preload("District").Preload("Region").Model(&BSPS{})
 
@@ -62,11 +63,15 @@ func (s *Service) GetBSPS(filter BSPSFilter) ([]BSPS, error) {
 		query = query.Where("bsps.status = ?", *filter.Status)
 	}
 
-	if err := query.Find(&bsps).Error; err != nil {
-		return nil, err
+	if err := query.Count(&totalRecords).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return bsps, nil
+	if err := query.Limit(pagination.Limit).Offset(pagination.Offset()).Find(&bsps).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return bsps, totalRecords, nil
 }
 
 func (s *Service) GetBSPSById(id uint64) (*BSPS, error) {

@@ -20,13 +20,19 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) GetProvincesHandler(ctx *fiber.Ctx) error {
-	data, err := h.service.GetProvinces()
+	pagination, err := utils.ParsePaginationQuery(ctx)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, err.Error(), err, true)
+	}
+
+	data, totalRecords, err := h.service.GetProvinces(pagination)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
 func (h *Handler) GetProvinceByIdHandler(ctx *fiber.Ctx) error {

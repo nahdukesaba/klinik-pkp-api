@@ -7,6 +7,7 @@ import (
 	"klinik-pkp-api/internal/api/v1/bank-desain"
 	"klinik-pkp-api/internal/api/v1/bsps"
 	"klinik-pkp-api/internal/api/v1/district"
+	"klinik-pkp-api/internal/api/v1/faq"
 	"klinik-pkp-api/internal/api/v1/kumuh"
 	"klinik-pkp-api/internal/api/v1/province"
 	"klinik-pkp-api/internal/api/v1/region"
@@ -40,6 +41,7 @@ func createTables(db *gorm.DB, models ...string) error {
 			&sosialisasi.Sosialisasi{},
 			&bank_desain.BankDesain{},
 			&kumuh.KawasanKumuh{},
+			&faq.FAQ{},
 		)
 
 		if err != nil {
@@ -127,6 +129,13 @@ func createTables(db *gorm.DB, models ...string) error {
 				}
 
 				log.Println("✓ Kawasan Kumuh table migrated")
+			case "faq", "faqs":
+				if err := db.AutoMigrate(&faq.FAQ{}); err != nil {
+					return err
+				}
+				log.Println("✓ FAQ table migrated")
+			default:
+				return fmt.Errorf("Unknown migration %s. Available migrations: user, rusun, bsps, province, region, district, village\n", strings.ToLower(model))
 			}
 		}
 	}

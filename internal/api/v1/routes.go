@@ -1,13 +1,12 @@
 package v1
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 	"klinik-pkp-api/config"
 	"klinik-pkp-api/internal/api/v1/authentication"
 	"klinik-pkp-api/internal/api/v1/bank-desain"
 	"klinik-pkp-api/internal/api/v1/bsps"
 	"klinik-pkp-api/internal/api/v1/district"
+	"klinik-pkp-api/internal/api/v1/faq"
 	"klinik-pkp-api/internal/api/v1/kumuh"
 	"klinik-pkp-api/internal/api/v1/province"
 	"klinik-pkp-api/internal/api/v1/region"
@@ -16,6 +15,9 @@ import (
 	"klinik-pkp-api/internal/api/v1/uploads"
 	"klinik-pkp-api/internal/api/v1/user"
 	"klinik-pkp-api/internal/api/v1/village"
+
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // REGISTER ALL ROUTES FOR API V1
@@ -54,6 +56,7 @@ func SetupRoutes(api fiber.Router, db *gorm.DB) {
 	rusun.SetupRoutes(api, rusun.NewHandler(rusun.NewService(db, uploads.NewService("./storage"))))
 	bank_desain.SetupRoutes(api, bank_desain.NewHandler(bank_desain.NewService(db, uploads.NewService("./storage"))))
 	sosialisasi.SetupRoutes(api, sosialisasi.NewHandler(sosialisasi.NewService(db, uploads.NewService("./storage"))))
+	faq.SetupRoutes(api, faq.NewHandler(faq.NewService(db)))
 	uploads.SetupRoutes(api)
 
 	// NOT FOUND ROUTE

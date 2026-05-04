@@ -34,6 +34,9 @@ func (s *Service) GetFAQs(page int, limit int, search string) ([]FAQ, int64, err
 	}
 
 	// PAGINATION
+	if page < 1 {
+		page = 1
+	}
 	offset := (page - 1) * limit
 
 	if err := query.

@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"klinik-pkp-api/config"
-	"klinik-pkp-api/internal/api/v1"
+	v1 "klinik-pkp-api/internal/api/v1"
 	"log"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -53,7 +58,34 @@ func main() {
 
 	log.Printf("Server starting on port %s (Environment: %s)", cfg.AppPort, cfg.AppEnv)
 
-	if err := app.Listen(cfg.AppPort); err != nil {
-		log.Fatal("Failed to start server:", err)
+	go func() {
+		if err := app.Listen(cfg.AppPort); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+
+	signal.Notify(
+		quit,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
+
+	<-quit
+
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+
+	defer cancel()
+
+	if err := app.ShutdownWithContext(ctx); err != nil {
+		log.Fatal(err)
 	}
+
+	log.Println("Server stopped")
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"klinik-pkp-api/config"
 	"klinik-pkp-api/internal/api/v1"
+	"klinik-pkp-api/internal/middleware"
 	"log"
 	"strings"
 
@@ -50,6 +51,9 @@ func main() {
 	// /api/v2 ROUTES (PLACEHOLDER FOR FUTURE VERSION)
 	// apiVersion2 := app.Group("/api/v2")
 	// v2.SetupRoutes(apiVersion2, db)
+
+	middleware.StartViewerWorker(db)
+	app.Use(middleware.ViewerMiddleware())
 
 	log.Printf("Server starting on port %s (Environment: %s)", cfg.AppPort, cfg.AppEnv)
 

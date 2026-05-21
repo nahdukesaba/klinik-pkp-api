@@ -318,3 +318,44 @@ func (s *Service) DeleteBankDesainById(id uint64) error {
 
 	return nil
 }
+
+type DownloadPayload struct {
+	Name    string `json:"name" validate:"required"`
+	Address string `json:"address" validate:"required"`
+}
+
+func (s *Service) DownloadBankDesain(id uint64, payload *DownloadPayload) (*BankDesain, error) {
+	tx := s.db.Begin()
+
+	var data BankDesain
+	if err := tx.First(&data, id).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// SAVE DOWNLOAD LOG
+	log := BankDesainDownload{
+		BankDesainID: id,
+		Name:         payload.Name,
+		Address:      payload.Address,
+	}
+
+	if err := tx.Create(&log).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// INCREMENT COUNTER (SAFE)
+	if err := tx.Model(&BankDesain{}).
+		Where("id = ?", id).
+		UpdateColumn("download_count", gorm.Expr("download_count + 1")).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	return &data, nil
+}

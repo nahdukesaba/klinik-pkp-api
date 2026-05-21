@@ -179,3 +179,25 @@ func (h *Handler) DeleteBankDesainByIdHandler(ctx *fiber.Ctx) error {
 
 	return utils.JSONResponse(ctx, fiber.StatusOK, "bank desain deleted", nil, false)
 }
+
+func (h *Handler) DownloadBankDesainHandler(ctx *fiber.Ctx) error {
+	id, _ := strconv.ParseUint(ctx.Params("id"), 10, 64)
+
+	payload := new(DownloadPayload)
+
+	if err := ctx.BodyParser(payload); err != nil {
+		return utils.JSONResponse(ctx, 400, "invalid request", err, true)
+	}
+
+	if payload.Name == "" || payload.Address == "" {
+		return utils.JSONResponse(ctx, 400, "name and address required", nil, true)
+	}
+
+	data, err := h.service.DownloadBankDesain(id, payload)
+
+	if err != nil {
+		return utils.JSONResponse(ctx, 500, "", err, true)
+	}
+
+	return utils.JSONResponse(ctx, 200, "success", data, false)
+}

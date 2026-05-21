@@ -12,4 +12,5 @@ func SetupRoutes(app fiber.Router, handler *Handler) {
 	bankDesain.Post("/", handler.PostBankDesainHandler)
 	bankDesain.Put("/:id", handler.PutBankDesainByIdHandler)
 	bankDesain.Delete("/:id", handler.DeleteBankDesainByIdHandler)
+	bankDesain.Post("/:id/download", handler.DownloadBankDesainHandler)
 }

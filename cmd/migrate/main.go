@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strings"
+
 	"klinik-pkp-api/config"
 	"klinik-pkp-api/internal/api/v1/authentication"
 	"klinik-pkp-api/internal/api/v1/bank-desain"
@@ -14,11 +18,9 @@ import (
 	"klinik-pkp-api/internal/api/v1/rusun"
 	"klinik-pkp-api/internal/api/v1/sosialisasi"
 	"klinik-pkp-api/internal/api/v1/user"
+	"klinik-pkp-api/internal/api/v1/viewer"
 	"klinik-pkp-api/internal/api/v1/village"
 	"klinik-pkp-api/utils"
-	"log"
-	"os"
-	"strings"
 
 	"gorm.io/gorm"
 )
@@ -42,6 +44,7 @@ func createTables(db *gorm.DB, models ...string) error {
 			&bank_desain.BankDesain{},
 			&kumuh.KawasanKumuh{},
 			&faq.FAQ{},
+			&viewer.Viewer{},
 		)
 
 		if err != nil {
@@ -133,7 +136,14 @@ func createTables(db *gorm.DB, models ...string) error {
 				if err := db.AutoMigrate(&faq.FAQ{}); err != nil {
 					return err
 				}
+
 				log.Println("✓ FAQ table migrated")
+			case "viewer", "viewers":
+				if err := db.AutoMigrate(&viewer.Viewer{}); err != nil {
+					return err
+				}
+
+				log.Println("✓ Viewer table migrated")
 			default:
 				return fmt.Errorf("Unknown migration %s. Available migrations: user, rusun, bsps, province, region, district, village\n", strings.ToLower(model))
 			}

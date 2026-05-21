@@ -16,6 +16,7 @@ type BankDesain struct {
 	HasGarage     *bool    `json:"has_garage"`
 	ImageURLs     []string `gorm:"serializer:json" json:"image_urls"`
 	FileURLs      []string `gorm:"serializer:json" json:"file_urls"`
+	DownloadCount uint64   `gorm:"default:0" json:"download_count"`
 
 	CreatedAt time.Time      `json:"-"`
 	UpdatedAt time.Time      `json:"-"`

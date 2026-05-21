@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"slices"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // AUTH MIDDLEWARE - VALIDATES ACCESS TOKEN ON PROTECTED ROUTES

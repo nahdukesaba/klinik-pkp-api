@@ -2,8 +2,9 @@ package utils
 
 import (
 	"fmt"
-	"klinik-pkp-api/migrations"
 	"log"
+
+	"klinik-pkp-api/migrations"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -17,12 +18,14 @@ type MigrationFunction func(*gorm.DB) error
 var MigrationRegistry = map[string]MigrationFunction{
 	"20260201_add_status_column_to_bsps":          migrations.Migration20260201AddStatusColumnToBSPS,
 	"20260208_add_type_constraint_to_bank_desain": migrations.Migration20260208AddTypeConstraintToBankDesain,
+	"20260423_add_download_count_to_bank_desain":  migrations.Migration20260423AddDownloadCountToBankDesain,
 }
 
 // MAPS ROLLBACK FILENAMES TO THEIR FUNCTIONS
 var RollbackRegistry = map[string]MigrationFunction{
 	"20260201_add_status_column_to_bsps":          migrations.Migration20260201AddStatusColumnToBSPSRollback,
 	"20260208_add_type_constraint_to_bank_desain": migrations.Migration20260208AddTypeConstraintToBankDesainRollback,
+	"20260423_add_download_count_to_bank_desain":  migrations.Migration20260423AddDownloadCountToBankDesainRollback,
 }
 
 func DropTable(db *gorm.DB, table string) error {

@@ -9,7 +9,7 @@ import (
 
 const (
 	DefaultPageLimit = 10
-	MaxPageLimit     = 10
+	MaxPageLimit     = 100
 )
 
 type PaginationQuery struct {

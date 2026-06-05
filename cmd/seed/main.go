@@ -66,6 +66,7 @@ func seedAll(db *gorm.DB) error {
 	err = seeders.BSPSSeeder(db)
 	err = seeders.KumuhSeeder(db)
 	err = seeders.UserSeeder(db)
+	err = seeders.SosialisasiSeeder(db)
 
 	return err
 }
@@ -103,6 +104,10 @@ func seedOnly(db *gorm.DB, modelName string) error {
 		}
 	case "kawasan_kumuh", "kumuh":
 		if err := seeders.KumuhSeeder(db); err != nil {
+			return err
+		}
+	case "sosialisasi":
+		if err := seeders.SosialisasiSeeder(db); err != nil {
 			return err
 		}
 	default:

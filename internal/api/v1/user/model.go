@@ -27,9 +27,9 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-func (User) TableName() string {
-	return "user"
-}
+// func (User) TableName() string {
+// 	return "user"
+// }
 
 // HASH PASSWORD BEFORE CREATING USER
 func (u *User) BeforeCreate(tx *gorm.DB) error {

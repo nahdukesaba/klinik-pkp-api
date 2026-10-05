@@ -54,27 +54,27 @@ func (s *Service) GetBankDesain(filter BankDesainFilter, pagination utils.Pagina
 
 	// FILTER BY TYPE
 	if filter.Type != nil {
-		query = query.Where("bank_desain.type = ?", *filter.Type)
+		query = query.Where("type = ?", *filter.Type)
 	}
 
 	// FILTER BY BEDROOM COUNT
 	if filter.BedroomCount != nil {
-		query = query.Where("bank_desain.bedroom_count = ?", *filter.BedroomCount)
+		query = query.Where("bedroom_count = ?", *filter.BedroomCount)
 	}
 
 	// FILTER BY BATHROOM COUNT
 	if filter.BathroomCount != nil {
-		query = query.Where("bank_desain.bathroom_count = ?", *filter.BathroomCount)
+		query = query.Where("bathroom_count = ?", *filter.BathroomCount)
 	}
 
 	// FILTER BY HAS GARAGE
 	if filter.HasGarage != nil {
-		query = query.Where("bank_desain.has_garage = ?", *filter.HasGarage)
+		query = query.Where("has_garage = ?", *filter.HasGarage)
 	}
 
 	// FILTER BY NAME (SEARCH)
 	if filter.Name != nil {
-		query = query.Where("bank_desain.name LIKE ?", "%"+*filter.Name+"%")
+		query = query.Where("name LIKE ?", "%"+*filter.Name+"%")
 	}
 
 	if err := query.Count(&totalRecords).Error; err != nil {

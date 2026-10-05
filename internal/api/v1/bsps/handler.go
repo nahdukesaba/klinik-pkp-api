@@ -72,6 +72,30 @@ func (h *Handler) GetBSPSHandler(ctx *fiber.Ctx) error {
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", utils.NewPaginatedData(data, totalRecords, pagination), false)
 }
 
+func (h *Handler) GetAvailableYearsHandler(ctx *fiber.Ctx) error {
+	years, err := h.service.GetAvailableYears()
+
+	if err != nil {
+		return utils.JSONResponse(
+			ctx,
+			fiber.StatusInternalServerError,
+			"",
+			err,
+			true,
+		)
+	}
+
+	return utils.JSONResponse(
+		ctx,
+		fiber.StatusOK,
+		"success",
+		fiber.Map{
+			"years": years,
+		},
+		false,
+	)
+}
+
 func (h *Handler) GetBSPSByIdHandler(ctx *fiber.Ctx) error {
 	id, err := strconv.ParseUint(ctx.Params("id"), 10, 64)
 

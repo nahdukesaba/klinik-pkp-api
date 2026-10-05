@@ -22,6 +22,6 @@ type BankDesain struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
 }
 
-func (BankDesain) TableName() string {
-	return "bank_desain"
-}
+// func (BankDesain) TableName() string {
+// 	return "bank_desain"
+// }

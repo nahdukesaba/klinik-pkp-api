@@ -4,6 +4,7 @@ import (
 	"context"
 	"klinik-pkp-api/config"
 	v1 "klinik-pkp-api/internal/api/v1"
+	"klinik-pkp-api/utils"
 	"log"
 	"os"
 	"os/signal"
@@ -19,6 +20,11 @@ func main() {
 	// LOAD CONFIGURATION
 	cfg := config.LoadConfig()
 
+	// FAIL FAST IF JWT CONFIGURATION IS UNSAFE
+	if err := utils.ValidateJWTConfig(); err != nil {
+		log.Fatalf("invalid JWT configuration: %v", err)
+	}
+
 	// SET DATABASE CONNECTION
 	db := config.ConnectDatabase(cfg.GetDSN())
 
@@ -32,9 +38,17 @@ func main() {
 				code = e.Code
 			}
 
+			message := err.Error()
+
+			if code >= fiber.StatusInternalServerError {
+				log.Printf("internal server error: method=%s path=%s error=%v", ctx.Method(), ctx.Path(), err)
+
+				message = fiber.ErrInternalServerError.Message
+			}
+
 			return ctx.Status(code).JSON(fiber.Map{
 				"success": false,
-				"error":   err.Error(),
+				"error":   message,
 			})
 		},
 		BodyLimit: 4 * 1024 * 1024, // 4MB max body size

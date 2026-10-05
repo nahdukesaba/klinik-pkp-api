@@ -16,6 +16,6 @@ type Province struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
 }
 
-func (Province) TableName() string {
-	return "province"
-}
+// func (Province) TableName() string {
+// 	return "province"
+// }

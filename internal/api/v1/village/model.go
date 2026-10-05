@@ -19,6 +19,6 @@ type Village struct {
 	District *district.District `gorm:"foreignKey:DistrictID;constraint:OnDelete:CASCADE;" json:"district,omitempty"`
 }
 
-func (Village) TableName() string {
-	return "village"
-}
+// func (Village) TableName() string {
+// 	return "village"
+// }

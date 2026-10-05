@@ -20,6 +20,6 @@ type Region struct {
 }
 
 // TABLE NAME
-func (Region) TableName() string {
-	return "region"
-}
+// func (Region) TableName() string {
+// 	return "region"
+// }

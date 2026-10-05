@@ -37,7 +37,7 @@ func (s *Service) GetVillages(filter VillageFilter, pagination utils.PaginationQ
 
 	// FILTER BY DISTRICT
 	if filter.DistrictID != nil {
-		query = query.Where("village.district_id = ?", *filter.DistrictID)
+		query = query.Where("district_id = ?", *filter.DistrictID)
 	}
 
 	if err := query.Count(&totalRecords).Error; err != nil {

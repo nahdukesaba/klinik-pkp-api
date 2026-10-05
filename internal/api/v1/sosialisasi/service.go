@@ -61,27 +61,27 @@ func (s *Service) GetSosialisasi(filter SosialisasiFilter, pagination utils.Pagi
 
 	// FILTER BY VILLAGE
 	if filter.VillageID != nil {
-		query = query.Where("sosialisasi.village_id = ?", *filter.VillageID)
+		query = query.Where("village_id = ?", *filter.VillageID)
 	}
 
 	// FILTER BY DISTRICT
 	if filter.DistrictID != nil {
-		query = query.Where("sosialisasi.district_id = ?", *filter.DistrictID)
+		query = query.Where("district_id = ?", *filter.DistrictID)
 	}
 
 	// FILTER BY REGION
 	if filter.RegionID != nil {
-		query = query.Where("sosialisasi.region_id = ?", *filter.RegionID)
+		query = query.Where("region_id = ?", *filter.RegionID)
 	}
 
 	// FILTER BY LOCATION (SEARCH)
 	if filter.Location != nil {
-		query = query.Where("sosialisasi.location LIKE ?", "%"+*filter.Location+"%")
+		query = query.Where("location LIKE ?", "%"+*filter.Location+"%")
 	}
 
 	// FILTER BY TITLE (SEARCH)
 	if filter.Title != nil {
-		query = query.Where("sosialisasi.title LIKE ?", "%"+*filter.Title+"%")
+		query = query.Where("title LIKE ?", "%"+*filter.Title+"%")
 	}
 
 	if err := query.Count(&totalRecords).Error; err != nil {

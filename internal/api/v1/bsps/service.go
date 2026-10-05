@@ -45,22 +45,22 @@ func (s *Service) GetBSPS(filter BSPSFilter, pagination utils.PaginationQuery) (
 
 	// FILTER BY VILLAGE
 	if filter.VillageID != nil {
-		query = query.Where("bsps.village_id = ?", *filter.VillageID)
+		query = query.Where("village_id = ?", *filter.VillageID)
 	}
 
 	// FILTER BY DISTRICT
 	if filter.DistrictID != nil {
-		query = query.Where("bsps.district_id = ?", *filter.DistrictID)
+		query = query.Where("district_id = ?", *filter.DistrictID)
 	}
 
 	// FILTER BY REGION
 	if filter.RegionID != nil {
-		query = query.Where("bsps.region_id = ?", *filter.RegionID)
+		query = query.Where("region_id = ?", *filter.RegionID)
 	}
 
 	// FILTER BY STATUS
 	if filter.Status != nil {
-		query = query.Where("bsps.status = ?", *filter.Status)
+		query = query.Where("status = ?", *filter.Status)
 	}
 
 	if err := query.Count(&totalRecords).Error; err != nil {
@@ -72,6 +72,21 @@ func (s *Service) GetBSPS(filter BSPSFilter, pagination utils.PaginationQuery) (
 	}
 
 	return bsps, totalRecords, nil
+}
+
+func (s *Service) GetAvailableYears() ([]uint64, error) {
+	var years []uint64
+
+	if err := s.db.
+		Model(&BSPS{}).
+		Where("year_given > 0").
+		Distinct("year_given").
+		Order("year_given DESC").
+		Pluck("year_given", &years).Error; err != nil {
+		return nil, err
+	}
+
+	return years, nil
 }
 
 func (s *Service) GetBSPSById(id uint64) (*BSPS, error) {

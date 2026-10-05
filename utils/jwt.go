@@ -26,6 +26,26 @@ func NewTokenManager() *TokenManager {
 	return &TokenManager{}
 }
 
+// VALIDATE REQUIRED JWT SECRETS BEFORE THE SERVER STARTS
+func ValidateJWTConfig() error {
+	accessKey := strings.TrimSpace(os.Getenv("ACCESS_TOKEN_KEY"))
+	refreshKey := strings.TrimSpace(os.Getenv("REFRESH_TOKEN_KEY"))
+
+	if len(accessKey) < 32 {
+		return errors.New("ACCESS_TOKEN_KEY must be at least 32 characters")
+	}
+
+	if len(refreshKey) < 32 {
+		return errors.New("REFRESH_TOKEN_KEY must be at least 32 characters")
+	}
+
+	if accessKey == refreshKey {
+		return errors.New("ACCESS_TOKEN_KEY and REFRESH_TOKEN_KEY must be different")
+	}
+
+	return nil
+}
+
 // GENERATE ACCESS TOKEN (SHORT-LIVED) FOR API AUTHORIZATION
 func (tm *TokenManager) GenerateAccessToken(userID uuid.UUID, email, role string) (string, error) {
 	expirationStr := os.Getenv("ACCESS_TOKEN_EXPIRATION")
@@ -48,6 +68,7 @@ func (tm *TokenManager) GenerateAccessToken(userID uuid.UUID, email, role string
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
+			ID:        uuid.NewString(),
 		},
 	}
 
@@ -78,6 +99,7 @@ func (tm *TokenManager) GenerateRefreshToken(userID uuid.UUID, email, role strin
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
+			ID:        uuid.NewString(),
 		},
 	}
 
@@ -88,14 +110,14 @@ func (tm *TokenManager) GenerateRefreshToken(userID uuid.UUID, email, role strin
 
 // VERIFY ACCESS TOKEN AND RETURN CLAIMS
 func (tm *TokenManager) VerifyAccessToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
-		// ENSURE SIGNING METHOD IS HMAC
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("signature method is not valid")
-		}
-
-		return []byte(os.Getenv("ACCESS_TOKEN_KEY")), nil
-	})
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&Claims{},
+		func(token *jwt.Token) (any, error) {
+			return []byte(os.Getenv("ACCESS_TOKEN_KEY")), nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+	)
 
 	if err != nil {
 		return nil, err
@@ -110,14 +132,14 @@ func (tm *TokenManager) VerifyAccessToken(tokenString string) (*Claims, error) {
 
 // VERIFY REFRESH TOKEN AND RETURN CLAIMS
 func (tm *TokenManager) VerifyRefreshToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
-		// ENSURE SIGNING METHOD IS HMAC
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("signature method is not valid")
-		}
-
-		return []byte(os.Getenv("REFRESH_TOKEN_KEY")), nil
-	})
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&Claims{},
+		func(token *jwt.Token) (any, error) {
+			return []byte(os.Getenv("REFRESH_TOKEN_KEY")), nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+	)
 
 	if err != nil {
 		return nil, err

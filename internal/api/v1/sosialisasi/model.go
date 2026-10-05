@@ -34,6 +34,6 @@ type Sosialisasi struct {
 	Region   *region.Region     `gorm:"foreignKey:RegionID" json:"region,omitempty"`
 }
 
-func (Sosialisasi) TableName() string {
-	return "sosialisasi"
-}
+// func (Sosialisasi) TableName() string {
+// 	return "sosialisasi"
+// }

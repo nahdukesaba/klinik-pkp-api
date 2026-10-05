@@ -30,6 +30,6 @@ type BSPS struct {
 	Region   *region.Region     `gorm:"foreignKey:RegionID" json:"region,omitempty"`
 }
 
-func (BSPS) TableName() string {
-	return "bsps"
-}
+// func (BSPS) TableName() string {
+// 	return "bsps"
+// }

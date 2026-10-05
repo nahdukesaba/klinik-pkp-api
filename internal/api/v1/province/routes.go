@@ -2,6 +2,7 @@ package province
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"klinik-pkp-api/utils"
 )
 
 func SetupRoutes(app fiber.Router, handler *Handler) {
@@ -9,7 +10,7 @@ func SetupRoutes(app fiber.Router, handler *Handler) {
 
 	provinces.Get("/", handler.GetProvincesHandler)
 	provinces.Get("/:id", handler.GetProvinceByIdHandler)
-	provinces.Post("/", handler.PostProvinceHandler)
-	provinces.Put("/:id", handler.PutProvinceByIdHandler)
-	provinces.Delete("/:id", handler.DeleteProvinceByIdHandler)
+	provinces.Post("/", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PostProvinceHandler)
+	provinces.Put("/:id", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PutProvinceByIdHandler)
+	provinces.Delete("/:id", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.DeleteProvinceByIdHandler)
 }

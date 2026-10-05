@@ -7,6 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+
+	"crypto/sha256"
+	"encoding/hex"
 )
 
 // CURRENT INSTANCE
@@ -30,6 +33,32 @@ func NewService(db *gorm.DB) *Service {
 		validator:    utils.NewValidator(),
 		tokenManager: utils.NewTokenManager(),
 	}
+}
+
+func hashRefreshToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+func (s *Service) findAuthentication(refreshToken string) (*Authentication, error) {
+	var authentication Authentication
+
+	hashedToken := hashRefreshToken(refreshToken)
+
+	// NEW FORMAT: SHA-256 HASH
+	if err := s.db.Where("token = ?", hashedToken).First(&authentication).Error; err == nil {
+		return &authentication, nil
+	} else if err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+
+	// LEGACY FALLBACK:
+	// Allows sessions created before this security change to rotate once.
+	if err := s.db.Where("token = ?", refreshToken).First(&authentication).Error; err != nil {
+		return nil, err
+	}
+
+	return &authentication, nil
 }
 
 // VERIFIES CREDENTIALS, GENERATES BOTH TOKENS, STORES REFRESH TOKEN IN DB
@@ -73,7 +102,7 @@ func (s *Service) AddAuthentication(payload AddAuthenticationPayload) (fiber.Map
 		return nil, tx.Error
 	}
 
-	if err := tx.Create(&Authentication{Token: refreshToken}).Error; err != nil {
+	if err := tx.Create(&Authentication{Token: hashRefreshToken(refreshToken)}).Error; err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -82,7 +111,6 @@ func (s *Service) AddAuthentication(payload AddAuthenticationPayload) (fiber.Map
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
-	
 
 	return fiber.Map{
 		"id":            user.ID,
@@ -93,13 +121,14 @@ func (s *Service) AddAuthentication(payload AddAuthenticationPayload) (fiber.Map
 
 // VERIFIES REFRESH TOKEN, THEN GENERATES NEW ACCESS TOKEN
 func (s *Service) UpdateAuthentication(refreshToken string) (fiber.Map, error) {
-	// CHECK IF REFRESH TOKEN EXISTS
-	if err := s.db.Where("token = ?", refreshToken).First(&Authentication{}).Error; err != nil {
+	// VERIFY SIGNATURE AND EXPIRATION FIRST
+	claims, err := s.tokenManager.VerifyRefreshToken(refreshToken)
+	if err != nil {
 		return nil, err
 	}
 
-	// VERIFY REFRESH TOKEN SIGNATURE AND EXTRACT CLAIMS
-	claims, err := s.tokenManager.VerifyRefreshToken(refreshToken)
+	// CHECK WHETHER TOKEN IS STILL AN ACTIVE SESSION
+	authentication, err := s.findAuthentication(refreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -110,14 +139,58 @@ func (s *Service) UpdateAuthentication(refreshToken string) (fiber.Map, error) {
 		return nil, err
 	}
 
+	// ROTATE REFRESH TOKEN
+	newRefreshToken, err := s.tokenManager.GenerateRefreshToken(claims.UserID, claims.Email, claims.Role)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	// REVOKE OLD TOKEN ATOMICALLY.
+	// RowsAffected prevents the same refresh token being reused concurrently.
+	result := tx.Where("token = ?", authentication.Token).
+		Delete(&Authentication{})
+
+	if result.Error != nil {
+		tx.Rollback()
+		return nil, result.Error
+	}
+
+	if result.RowsAffected != 1 {
+		tx.Rollback()
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	// STORE ONLY HASH OF NEW REFRESH TOKEN
+	if err := tx.Create(&Authentication{
+		Token: hashRefreshToken(newRefreshToken),
+	}).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
 	return fiber.Map{
-		"access_token": accessToken,
+		"access_token":  accessToken,
+		"refresh_token": newRefreshToken,
 	}, nil
 }
 
 // VERIFIES REFRESH TOKEN EXISTS IN DB, THEN REMOVES IT
 func (s *Service) DeleteAuthentication(refreshToken string) error {
-	result := s.db.Where("token = ?", refreshToken).Delete(&Authentication{})
+	hashedToken := hashRefreshToken(refreshToken)
+
+	// Support both new hashed sessions and legacy plaintext sessions.
+	result := s.db.
+		Where("token = ? OR token = ?", hashedToken, refreshToken).
+		Delete(&Authentication{})
 
 	if result.Error != nil {
 		return result.Error

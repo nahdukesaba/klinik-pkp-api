@@ -5,11 +5,11 @@ import (
 )
 
 type Authentication struct {
-	Token     string    `gorm:"primaryKey;size:500;not null" json:"token"`
+	Token     string    `gorm:"primaryKey;size:500;not null" json:"-"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 // TABLE NAME
-func (Authentication) TableName() string {
-	return "authentication"
-}
+// func (Authentication) TableName() string {
+// 	return "authentication"
+// }

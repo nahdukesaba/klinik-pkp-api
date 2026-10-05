@@ -19,6 +19,6 @@ type District struct {
 	Region *region.Region `gorm:"foreignKey:RegionID;constraint:OnDelete:CASCADE;" json:"region,omitempty"`
 }
 
-func (District) TableName() string {
-	return "district"
-}
+// func (District) TableName() string {
+// 	return "district"
+// }

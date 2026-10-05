@@ -33,15 +33,11 @@ func (h *Handler) PostAuthenticationHandler(ctx *fiber.Ctx) error {
 	data, err := h.service.AddAuthentication(payload)
 
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
+		if err == gorm.ErrRecordNotFound || err == bcrypt.ErrMismatchedHashAndPassword {
+			return utils.JSONResponse(ctx, fiber.StatusUnauthorized, "invalid credentials", fiber.ErrUnauthorized, true)
 		}
 
-		if err == bcrypt.ErrMismatchedHashAndPassword {
-			return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, err, true)
-		}
-
-		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, fiber.ErrInternalServerError.Message, fiber.ErrInternalServerError, true)
 	}
 
 	h.service.tokenManager.SetRefreshTokenCookie(ctx, data["refresh_token"].(string))
@@ -66,7 +62,22 @@ func (h *Handler) PutAuthenticationHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, err, true)
 	}
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "access token refreshed", data, false)
+	newRefreshToken, ok := data["refresh_token"].(string)
+	if !ok || newRefreshToken == "" {
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, fiber.ErrInternalServerError.Message, fiber.ErrInternalServerError, true)
+	}
+
+	h.service.tokenManager.SetRefreshTokenCookie(ctx, newRefreshToken)
+
+	return utils.JSONResponse(
+		ctx,
+		fiber.StatusOK,
+		"access token refreshed",
+		fiber.Map{
+			"access_token": data["access_token"],
+		},
+		false,
+	)
 }
 
 // VALIDATES AND REMOVES REFRESH TOKEN FROM DATABASE

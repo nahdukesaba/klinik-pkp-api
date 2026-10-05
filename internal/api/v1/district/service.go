@@ -35,7 +35,7 @@ func (s *Service) GetDistricts(filter DistrictFilter, pagination utils.Paginatio
 
 	query := s.db.Preload("Region.Province").Model(&District{})
 	if filter.RegionID != nil {
-		query = query.Where("district.region_id = ?", *filter.RegionID)
+		query = query.Where("region_id = ?", *filter.RegionID)
 	}
 
 	if err := query.Count(&totalRecords).Error; err != nil {

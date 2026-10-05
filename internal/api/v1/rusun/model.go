@@ -35,6 +35,6 @@ type Rusun struct {
 }
 
 // TABLE NAME
-func (Rusun) TableName() string {
-	return "rusun"
-}
+// func (Rusun) TableName() string {
+// 	return "rusun"
+// }

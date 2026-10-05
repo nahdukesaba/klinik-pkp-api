@@ -31,6 +31,6 @@ type KawasanKumuh struct {
 }
 
 // TABLE NAME
-func (KawasanKumuh) TableName() string {
-	return "kawasan_kumuh"
-}
+// func (KawasanKumuh) TableName() string {
+// 	return "kawasan_kumuh"
+// }

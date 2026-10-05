@@ -56,12 +56,12 @@ func (s *Service) GetKumuh(filter KawasanKumuhFilter, pagination utils.Paginatio
 
 	// FILTER BY REGION
 	if filter.RegionID != nil {
-		query = query.Where("kawasan_kumuh.region_id = ?", *filter.RegionID)
+		query = query.Where("region_id = ?", *filter.RegionID)
 	}
 
 	// FILTER BY DISTRICT
 	if filter.DistrictID != nil {
-		query = query.Where("kawasan_kumuh.district_id = ?", *filter.DistrictID)
+		query = query.Where("district_id = ?", *filter.DistrictID)
 	}
 
 	// FILTER BY VILLAGE (special case: lookup village name then LIKE match)
@@ -72,17 +72,17 @@ func (s *Service) GetKumuh(filter KawasanKumuhFilter, pagination utils.Paginatio
 			return nil, 0, fmt.Errorf("village with id %d not found", *filter.VillageID)
 		}
 
-		query = query.Where("kawasan_kumuh.villages LIKE ?", "%"+village.Name+"%")
+		query = query.Where("villages LIKE ?", "%"+village.Name+"%")
 	}
 
 	// FILTER BY AREA NAME
 	if filter.AreaName != nil {
-		query = query.Where("kawasan_kumuh.area_name LIKE ?", "%"+*filter.AreaName+"%")
+		query = query.Where("area_name LIKE ?", "%"+*filter.AreaName+"%")
 	}
 
 	// FILTER BY YEAR INSPECTED
 	if filter.YearInspected != nil {
-		query = query.Where("kawasan_kumuh.year_inspected = ?", *filter.YearInspected)
+		query = query.Where("year_inspected = ?", *filter.YearInspected)
 	}
 
 	if err := query.Count(&totalRecords).Error; err != nil {
@@ -94,6 +94,21 @@ func (s *Service) GetKumuh(filter KawasanKumuhFilter, pagination utils.Paginatio
 	}
 
 	return kumuh, totalRecords, nil
+}
+
+func (s *Service) GetAvailableYears() ([]uint64, error) {
+	var years []uint64
+
+	if err := s.db.
+		Model(&KawasanKumuh{}).
+		Where("year_inspected > 0").
+		Distinct("year_inspected").
+		Order("year_inspected DESC").
+		Pluck("year_inspected", &years).Error; err != nil {
+		return nil, err
+	}
+
+	return years, nil
 }
 
 func (s *Service) GetKumuhById(id uint64) (*KawasanKumuh, error) {

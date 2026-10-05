@@ -17,6 +17,6 @@ type FAQ struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
-func (FAQ) TableName() string {
-	return "faqs"
-}
+// func (FAQ) TableName() string {
+// 	return "faqs"
+// }

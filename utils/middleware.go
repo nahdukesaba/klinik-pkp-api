@@ -1,58 +1,123 @@
 package utils
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"errors"
 	"slices"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
 )
 
-// AUTH MIDDLEWARE - VALIDATES ACCESS TOKEN ON PROTECTED ROUTES
+// AUTH MIDDLEWARE - ACCEPTS LEGACY KLINIK JWT OR SSO TOKEN.
 func AuthMiddleware() fiber.Handler {
 	tokenManager := NewTokenManager()
+	ssoClient := NewSSOClient()
 
 	return func(ctx *fiber.Ctx) error {
-		// GET AUTHORIZATION HEADER
-		authHeader := ctx.Get("Authorization")
+		authHeader := strings.TrimSpace(
+			ctx.Get("Authorization"),
+		)
 
 		if authHeader == "" {
-			return JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, fiber.ErrUnauthorized, true)
+			return JSONResponse(
+				ctx,
+				fiber.StatusUnauthorized,
+				fiber.ErrUnauthorized.Message,
+				fiber.ErrUnauthorized,
+				true,
+			)
 		}
 
-		// EXTRACT TOKEN FROM "Bearer <token>" FORMAT
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			return JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, fiber.ErrUnauthorized, true)
+		parts := strings.Fields(authHeader)
+
+		if len(parts) != 2 ||
+			!strings.EqualFold(parts[0], "Bearer") ||
+			strings.TrimSpace(parts[1]) == "" {
+
+			return JSONResponse(
+				ctx,
+				fiber.StatusUnauthorized,
+				fiber.ErrUnauthorized.Message,
+				fiber.ErrUnauthorized,
+				true,
+			)
 		}
 
-		// VERIFY ACCESS TOKEN SIGNATURE AND EXPIRATION
-		claims, err := tokenManager.VerifyAccessToken(parts[1])
-		if err != nil {
-			return JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, fiber.ErrUnauthorized, true)
+		accessToken := parts[1]
+
+		// FIRST: preserve compatibility with existing Klinik JWT.
+		claims, err := tokenManager.VerifyAccessToken(
+			accessToken,
+		)
+		if err == nil {
+			ctx.Locals("id", claims.UserID)
+			ctx.Locals("email", claims.Email)
+			ctx.Locals("role", claims.Role)
+
+			return ctx.Next()
 		}
 
-		// STORE USER INFO IN CONTEXT LOCALS FOR NEXT HANDLERS
-		ctx.Locals("id", claims.UserID)
-		ctx.Locals("email", claims.Email)
-		ctx.Locals("role", claims.Role)
+		// SECOND: fallback to SSO.
+		ssoContext, ssoErr := ssoClient.ResolveKlinikContext(
+			ctx.UserContext(),
+			accessToken,
+		)
+		if ssoErr != nil {
+			if errors.Is(
+				ssoErr,
+				ErrSSOUnavailable,
+			) {
+				return JSONResponse(
+					ctx,
+					fiber.StatusServiceUnavailable,
+					"SSO service unavailable",
+					fiber.ErrServiceUnavailable,
+					true,
+				)
+			}
+
+			return JSONResponse(
+				ctx,
+				fiber.StatusUnauthorized,
+				fiber.ErrUnauthorized.Message,
+				fiber.ErrUnauthorized,
+				true,
+			)
+		}
+
+		ctx.Locals("id", ssoContext.ID)
+		ctx.Locals("email", ssoContext.Email)
+		ctx.Locals("role", ssoContext.Role)
 
 		return ctx.Next()
 	}
 }
 
-// ROLE MIDDLEWARE - RESTRICTS ACCESS TO SPECIFIC ROLES
-// MUST BE USED AFTER AUTH MIDDLEWARE
+// ROLE MIDDLEWARE - RESTRICTS ACCESS TO SPECIFIC ROLES.
+// MUST BE USED AFTER AUTH MIDDLEWARE.
 func RoleMiddleware(allowedRoles ...string) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		role, ok := ctx.Locals("role").(string)
 		if !ok {
-			return JSONResponse(ctx, fiber.StatusForbidden, fiber.ErrForbidden.Message, fiber.ErrForbidden, true)
+			return JSONResponse(
+				ctx,
+				fiber.StatusForbidden,
+				fiber.ErrForbidden.Message,
+				fiber.ErrForbidden,
+				true,
+			)
 		}
 
-		// CHECK IF USER ROLE IS IN ALLOWED ROLES
 		if slices.Contains(allowedRoles, role) {
 			return ctx.Next()
 		}
 
-		return JSONResponse(ctx, fiber.StatusForbidden, fiber.ErrForbidden.Message, fiber.ErrForbidden, true)
+		return JSONResponse(
+			ctx,
+			fiber.StatusForbidden,
+			fiber.ErrForbidden.Message,
+			fiber.ErrForbidden,
+			true,
+		)
 	}
 }

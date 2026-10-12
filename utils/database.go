@@ -17,12 +17,14 @@ type MigrationFunction func(*gorm.DB) error
 var MigrationRegistry = map[string]MigrationFunction{
 	"20260201_add_status_column_to_bsps":          migrations.Migration20260201AddStatusColumnToBSPS,
 	"20260208_add_type_constraint_to_bank_desain": migrations.Migration20260208AddTypeConstraintToBankDesain,
+	"20261012_add_app_user_id_to_klinik_user":     migrations.Migration20261012AddAppUserIDToKlinikUser,
 }
 
 // MAPS ROLLBACK FILENAMES TO THEIR FUNCTIONS
 var RollbackRegistry = map[string]MigrationFunction{
 	"20260201_add_status_column_to_bsps":          migrations.Migration20260201AddStatusColumnToBSPSRollback,
 	"20260208_add_type_constraint_to_bank_desain": migrations.Migration20260208AddTypeConstraintToBankDesainRollback,
+	"20261012_add_app_user_id_to_klinik_user":     migrations.Migration20261012AddAppUserIDToKlinikUserRollback,
 }
 
 func DropTable(db *gorm.DB, table string) error {

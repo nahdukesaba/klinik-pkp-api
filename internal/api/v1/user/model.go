@@ -9,14 +9,15 @@ import (
 )
 
 type User struct {
-	ID       uuid.UUID `gorm:"primaryKey" json:"id"`
-	Name     string    `gorm:"size:255;not null" json:"name"`
-	Email    string    `gorm:"size:255;uniqueIndex;not null" json:"email"`
-	Password string    `gorm:"size:255;not null" json:"-"`
-	Phone    string    `gorm:"size:20;uniqueIndex" json:"phone,omitempty"`
-	NIP      string    `gorm:"column:nip;size:50;uniqueIndex:idx_user_nip" json:"nip,omitempty"`
-	Role     string    `gorm:"type:varchar(50);not null" json:"role"`
-	IsActive bool      `gorm:"default:true" json:"is_active"`
+	ID        uuid.UUID  `gorm:"primaryKey" json:"id"`
+	AppUserID *uuid.UUID `gorm:"column:app_user_id;type:uuid" json:"-"`
+	Name      string     `gorm:"size:255;not null" json:"name"`
+	Email     string     `gorm:"size:255;uniqueIndex;not null" json:"email"`
+	Password  string     `gorm:"size:255;not null" json:"-"`
+	Phone     string     `gorm:"size:20;uniqueIndex" json:"phone,omitempty"`
+	NIP       string     `gorm:"column:nip;size:50;uniqueIndex:idx_user_nip" json:"nip,omitempty"`
+	Role      string     `gorm:"type:varchar(50);not null" json:"role"`
+	IsActive  bool       `gorm:"default:true" json:"is_active"`
 
 	CreatedBy uuid.UUID `gorm:"index;" json:"created_by,omitempty"`
 	UpdatedBy uuid.UUID `gorm:"index;" json:"updated_by,omitempty"`

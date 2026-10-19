@@ -10,7 +10,6 @@ import (
 
 // AUTH MIDDLEWARE - ACCEPTS LEGACY KLINIK JWT OR SSO TOKEN.
 func AuthMiddleware() fiber.Handler {
-	tokenManager := NewTokenManager()
 	ssoClient := NewSSOClient()
 
 	return func(ctx *fiber.Ctx) error {
@@ -45,19 +44,7 @@ func AuthMiddleware() fiber.Handler {
 
 		accessToken := parts[1]
 
-		// FIRST: preserve compatibility with existing Klinik JWT.
-		claims, err := tokenManager.VerifyAccessToken(
-			accessToken,
-		)
-		if err == nil {
-			ctx.Locals("id", claims.UserID)
-			ctx.Locals("email", claims.Email)
-			ctx.Locals("role", claims.Role)
-
-			return ctx.Next()
-		}
-
-		// SECOND: fallback to SSO.
+		// Protected API authentication is delegated to Central SSO.
 		ssoContext, ssoErr := ssoClient.ResolveKlinikContext(
 			ctx.UserContext(),
 			accessToken,

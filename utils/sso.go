@@ -186,10 +186,11 @@ func (c *SSOClient) ResolveKlinikContext(
 
 	if result.ID == uuid.Nil ||
 		strings.TrimSpace(result.Email) == "" ||
-		strings.TrimSpace(result.Role) == "" {
+		!IsKlinikRole(strings.ToLower(strings.TrimSpace(result.Role))) {
 
 		return nil, ErrSSOUnauthorized
 	}
+	result.Role = strings.ToLower(strings.TrimSpace(result.Role))
 
 	return &result, nil
 }

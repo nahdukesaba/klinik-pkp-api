@@ -34,7 +34,7 @@ func SetupRoutes(app fiber.Router, handler *Handler) {
 
 	authentications.Post("/", loginLimiter, handler.PostAuthenticationHandler)
 	authentications.Put("/", handler.PutAuthenticationHandler)
-	authentications.Delete("/", handler.DeleteAuthenticationHandler)
+	authentications.Delete("/", utils.OptionalAuthMiddleware(handler.service.db), handler.DeleteAuthenticationHandler)
 
 	browserSSO := app.Group("/auth/sso")
 	browserSSO.Get("/start", handler.BrowserSSOStartHandler)

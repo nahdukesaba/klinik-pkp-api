@@ -11,7 +11,7 @@ func SetupRoutes(app fiber.Router, handler *Handler) {
 	bsps.Get("/", handler.GetBSPSHandler)
 	bsps.Get("/years", handler.GetAvailableYearsHandler)
 	bsps.Get("/:id", handler.GetBSPSByIdHandler)
-	bsps.Post("/", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PostBSPSHandler)
-	bsps.Put("/:id", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PutBSPSByIdHandler)
-	bsps.Delete("/:id", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.DeleteBSPSByIdHandler)
+	bsps.Post("/", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.PostBSPSHandler)
+	bsps.Put("/:id", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.PutBSPSByIdHandler)
+	bsps.Delete("/:id", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.DeleteBSPSByIdHandler)
 }

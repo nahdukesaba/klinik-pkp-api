@@ -10,7 +10,7 @@ func SetupRoutes(app fiber.Router, handler *Handler) {
 
 	bankDesain.Get("/", handler.GetBankDesainHandler)
 	bankDesain.Get("/:id", handler.GetBankDesainByIdHandler)
-	bankDesain.Post("/", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PostBankDesainHandler)
-	bankDesain.Put("/:id", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PutBankDesainByIdHandler)
-	bankDesain.Delete("/:id", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.DeleteBankDesainByIdHandler)
+	bankDesain.Post("/", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.PostBankDesainHandler)
+	bankDesain.Put("/:id", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.PutBankDesainByIdHandler)
+	bankDesain.Delete("/:id", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.DeleteBankDesainByIdHandler)
 }

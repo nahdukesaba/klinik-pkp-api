@@ -113,10 +113,12 @@ func (h *Handler) PostAuthenticationHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusBadRequest, message, err, true)
 	}
 
-	data, err := h.service.AddAuthentication(payload)
+	data, err := h.service.AddAuthentication(ctx.UserContext(), payload)
 
 	if err != nil {
-		if err == gorm.ErrRecordNotFound || err == bcrypt.ErrMismatchedHashAndPassword {
+		if errors.Is(err, gorm.ErrRecordNotFound) ||
+			errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) ||
+			errors.Is(err, utils.ErrKlinikAuthorizationDenied) {
 			return utils.JSONResponse(ctx, fiber.StatusUnauthorized, "invalid credentials", fiber.ErrUnauthorized, true)
 		}
 
@@ -139,7 +141,7 @@ func (h *Handler) PutAuthenticationHandler(ctx *fiber.Ctx) error {
 		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, fiber.ErrUnauthorized, true)
 	}
 
-	data, err := h.service.UpdateAuthentication(refreshToken)
+	data, err := h.service.UpdateAuthentication(ctx.UserContext(), refreshToken)
 
 	if err != nil {
 		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, err, true)
@@ -165,17 +167,22 @@ func (h *Handler) PutAuthenticationHandler(ctx *fiber.Ctx) error {
 
 // VALIDATES AND REMOVES REFRESH TOKEN FROM DATABASE
 func (h *Handler) DeleteAuthenticationHandler(ctx *fiber.Ctx) error {
+	centralLogoutRequired := false
+	if trusted, ok := utils.TrustedAuthContext(ctx); ok {
+		centralLogoutRequired = trusted.LoginSource == utils.LoginSourceSSO
+	}
+	responseData := fiber.Map{"centralLogoutRequired": centralLogoutRequired}
 	refreshToken := ctx.Cookies("refresh_token")
 
 	if refreshToken == "" {
 		h.service.tokenManager.ClearRefreshTokenCookie(ctx)
-		return utils.JSONResponse(ctx, fiber.StatusOK, "session terminated", nil, false)
+		return utils.JSONResponse(ctx, fiber.StatusOK, "session terminated", responseData, false)
 	}
 
-	if err := h.service.DeleteAuthentication(refreshToken); err != nil {
+	if err := h.service.DeleteAuthentication(ctx.UserContext(), refreshToken); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			h.service.tokenManager.ClearRefreshTokenCookie(ctx)
-			return utils.JSONResponse(ctx, fiber.StatusOK, "session terminated", nil, false)
+			return utils.JSONResponse(ctx, fiber.StatusOK, "session terminated", responseData, false)
 		}
 
 		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
@@ -183,5 +190,5 @@ func (h *Handler) DeleteAuthenticationHandler(ctx *fiber.Ctx) error {
 
 	h.service.tokenManager.ClearRefreshTokenCookie(ctx)
 
-	return utils.JSONResponse(ctx, fiber.StatusOK, "session terminated", nil, false)
+	return utils.JSONResponse(ctx, fiber.StatusOK, "session terminated", responseData, false)
 }

@@ -1,22 +1,36 @@
 package authentication
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"klinik-pkp-api/internal/api/v1/user"
 	"klinik-pkp-api/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-
-	"crypto/sha256"
-	"encoding/hex"
 )
 
 // CURRENT INSTANCE
 type Service struct {
-	db           *gorm.DB
-	validator    *utils.Validator
-	tokenManager *utils.TokenManager
+	db            *gorm.DB
+	store         legacyAuthenticationStore
+	validator     *utils.Validator
+	tokenManager  *utils.TokenManager
+	authorization utils.KlinikAuthorizationResolver
+}
+
+type legacyAuthenticationStore interface {
+	FindUserByEmail(context.Context, string) (*user.User, error)
+	FindAuthentication(context.Context, string, string) (*Authentication, error)
+	CreateAuthentication(context.Context, string) error
+	RotateAuthentication(context.Context, string, string) error
+	DeleteAuthentication(context.Context, string, string) error
+}
+
+type gormLegacyAuthenticationStore struct {
+	db *gorm.DB
 }
 
 // PAYLOAD FOR LOGIN REQUEST
@@ -29,10 +43,23 @@ type AddAuthenticationPayload struct {
 // CONSTRUCTOR
 func NewService(db *gorm.DB) *Service {
 	return &Service{
-		db:           db,
-		validator:    utils.NewValidator(),
-		tokenManager: utils.NewTokenManager(),
+		db:            db,
+		store:         &gormLegacyAuthenticationStore{db: db},
+		validator:     utils.NewValidator(),
+		tokenManager:  utils.NewTokenManager(),
+		authorization: utils.NewKlinikAuthorizationResolver(db),
 	}
+}
+
+func newServiceWithDependencies(
+	db *gorm.DB,
+	store legacyAuthenticationStore,
+	authorization utils.KlinikAuthorizationResolver,
+) *Service {
+	service := NewService(db)
+	service.store = store
+	service.authorization = authorization
+	return service
 }
 
 func hashRefreshToken(token string) string {
@@ -40,13 +67,32 @@ func hashRefreshToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (s *Service) findAuthentication(refreshToken string) (*Authentication, error) {
-	var authentication Authentication
+func (s *gormLegacyAuthenticationStore) FindUserByEmail(
+	ctx context.Context,
+	email string,
+) (*user.User, error) {
+	var localUser user.User
+	if s.db == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	if err := s.db.WithContext(ctx).Where("email = ?", email).First(&localUser).Error; err != nil {
+		return nil, err
+	}
+	return &localUser, nil
+}
 
-	hashedToken := hashRefreshToken(refreshToken)
+func (s *gormLegacyAuthenticationStore) FindAuthentication(
+	ctx context.Context,
+	hashedToken string,
+	plainToken string,
+) (*Authentication, error) {
+	var authentication Authentication
+	if s.db == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
 
 	// NEW FORMAT: SHA-256 HASH
-	if err := s.db.Where("token = ?", hashedToken).First(&authentication).Error; err == nil {
+	if err := s.db.WithContext(ctx).Where("token = ?", hashedToken).First(&authentication).Error; err == nil {
 		return &authentication, nil
 	} else if err != gorm.ErrRecordNotFound {
 		return nil, err
@@ -54,73 +100,121 @@ func (s *Service) findAuthentication(refreshToken string) (*Authentication, erro
 
 	// LEGACY FALLBACK:
 	// Allows sessions created before this security change to rotate once.
-	if err := s.db.Where("token = ?", refreshToken).First(&authentication).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("token = ?", plainToken).First(&authentication).Error; err != nil {
 		return nil, err
 	}
 
 	return &authentication, nil
 }
 
-// VERIFIES CREDENTIALS, GENERATES BOTH TOKENS, STORES REFRESH TOKEN IN DB
-func (s *Service) AddAuthentication(payload AddAuthenticationPayload) (fiber.Map, error) {
-	var user user.User
+func (s *gormLegacyAuthenticationStore) CreateAuthentication(ctx context.Context, token string) error {
+	if s.db == nil {
+		return gorm.ErrInvalidDB
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return tx.Create(&Authentication{Token: token}).Error
+	})
+}
 
-	// FIND USER BY EMAIL
-	if err := s.db.Where("email = ?", payload.Email).First(&user).Error; err != nil {
+func (s *gormLegacyAuthenticationStore) RotateAuthentication(
+	ctx context.Context,
+	oldToken string,
+	newToken string,
+) error {
+	if s.db == nil {
+		return gorm.ErrInvalidDB
+	}
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		result := tx.Where("token = ?", oldToken).Delete(&Authentication{})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected != 1 {
+			return gorm.ErrRecordNotFound
+		}
+		return tx.Create(&Authentication{Token: newToken}).Error
+	})
+}
+
+func (s *gormLegacyAuthenticationStore) DeleteAuthentication(
+	ctx context.Context,
+	hashedToken string,
+	plainToken string,
+) error {
+	if s.db == nil {
+		return gorm.ErrInvalidDB
+	}
+	result := s.db.WithContext(ctx).
+		Where("token = ? OR token = ?", hashedToken, plainToken).
+		Delete(&Authentication{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+// VERIFIES CREDENTIALS, GENERATES BOTH TOKENS, STORES REFRESH TOKEN IN DB
+func (s *Service) AddAuthentication(ctx context.Context, payload AddAuthenticationPayload) (fiber.Map, error) {
+	localUser, err := s.store.FindUserByEmail(ctx, payload.Email)
+	if err != nil {
 		return nil, err
 	}
 
-	if payload.NIP != user.NIP {
-		return nil, gorm.ErrRecordNotFound
-	}
-
-	// CHECK IF USER IS ACTIVE
-	if !user.IsActive {
-		return nil, gorm.ErrRecordNotFound
-	}
-
-	// VERIFY PASSWORD
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password)); err != nil {
+	trusted, err := s.authorizeLegacyCredentials(ctx, payload, localUser)
+	if err != nil {
 		return nil, err
 	}
 
 	// GENERATE ACCESS TOKEN (SHORT-LIVED)
-	accessToken, err := s.tokenManager.GenerateAccessToken(user.ID, user.Email, user.Role)
+	accessToken, err := s.tokenManager.GenerateAccessToken(
+		trusted.LocalUserID,
+		trusted.Email,
+		trusted.Role,
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	// GENERATE REFRESH TOKEN (LONG-LIVED)
-	refreshToken, err := s.tokenManager.GenerateRefreshToken(user.ID, user.Email, user.Role)
+	refreshToken, err := s.tokenManager.GenerateRefreshToken(
+		trusted.LocalUserID,
+		trusted.Email,
+		trusted.Role,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	// START TRANSACTION
-	tx := s.db.Begin()
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
-
-	if err := tx.Create(&Authentication{Token: hashRefreshToken(refreshToken)}).Error; err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-
-	// COMMIT TRANSACTION
-	if err := tx.Commit().Error; err != nil {
+	if err := s.store.CreateAuthentication(ctx, hashRefreshToken(refreshToken)); err != nil {
 		return nil, err
 	}
 
 	return fiber.Map{
-		"id":            user.ID,
+		"id":            trusted.LocalUserID,
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	}, nil
 }
 
+func (s *Service) authorizeLegacyCredentials(
+	ctx context.Context,
+	payload AddAuthenticationPayload,
+	localUser *user.User,
+) (*utils.AuthContext, error) {
+	if localUser == nil || payload.NIP != localUser.NIP || !localUser.IsActive {
+		return nil, gorm.ErrRecordNotFound
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(localUser.Password), []byte(payload.Password)); err != nil {
+		return nil, err
+	}
+	return s.authorization.ResolveKlinikAuthorization(ctx, localUser.ID)
+}
+
 // VERIFIES REFRESH TOKEN, THEN GENERATES NEW ACCESS TOKEN
-func (s *Service) UpdateAuthentication(refreshToken string) (fiber.Map, error) {
+func (s *Service) UpdateAuthentication(ctx context.Context, refreshToken string) (fiber.Map, error) {
 	// VERIFY SIGNATURE AND EXPIRATION FIRST
 	claims, err := s.tokenManager.VerifyRefreshToken(refreshToken)
 	if err != nil {
@@ -128,52 +222,44 @@ func (s *Service) UpdateAuthentication(refreshToken string) (fiber.Map, error) {
 	}
 
 	// CHECK WHETHER TOKEN IS STILL AN ACTIVE SESSION
-	authentication, err := s.findAuthentication(refreshToken)
+	authentication, err := s.store.FindAuthentication(
+		ctx,
+		hashRefreshToken(refreshToken),
+		refreshToken,
+	)
+	if err != nil {
+		return nil, err
+	}
+	trusted, err := s.authorization.ResolveKlinikAuthorization(ctx, claims.UserID)
 	if err != nil {
 		return nil, err
 	}
 
 	// GENERATE NEW ACCESS TOKEN
-	accessToken, err := s.tokenManager.GenerateAccessToken(claims.UserID, claims.Email, claims.Role)
+	accessToken, err := s.tokenManager.GenerateAccessToken(
+		trusted.LocalUserID,
+		trusted.Email,
+		trusted.Role,
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	// ROTATE REFRESH TOKEN
-	newRefreshToken, err := s.tokenManager.GenerateRefreshToken(claims.UserID, claims.Email, claims.Role)
+	newRefreshToken, err := s.tokenManager.GenerateRefreshToken(
+		trusted.LocalUserID,
+		trusted.Email,
+		trusted.Role,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	tx := s.db.Begin()
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
-
-	// REVOKE OLD TOKEN ATOMICALLY.
-	// RowsAffected prevents the same refresh token being reused concurrently.
-	result := tx.Where("token = ?", authentication.Token).
-		Delete(&Authentication{})
-
-	if result.Error != nil {
-		tx.Rollback()
-		return nil, result.Error
-	}
-
-	if result.RowsAffected != 1 {
-		tx.Rollback()
-		return nil, gorm.ErrRecordNotFound
-	}
-
-	// STORE ONLY HASH OF NEW REFRESH TOKEN
-	if err := tx.Create(&Authentication{
-		Token: hashRefreshToken(newRefreshToken),
-	}).Error; err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-
-	if err := tx.Commit().Error; err != nil {
+	if err := s.store.RotateAuthentication(
+		ctx,
+		authentication.Token,
+		hashRefreshToken(newRefreshToken),
+	); err != nil {
 		return nil, err
 	}
 
@@ -184,21 +270,6 @@ func (s *Service) UpdateAuthentication(refreshToken string) (fiber.Map, error) {
 }
 
 // VERIFIES REFRESH TOKEN EXISTS IN DB, THEN REMOVES IT
-func (s *Service) DeleteAuthentication(refreshToken string) error {
-	hashedToken := hashRefreshToken(refreshToken)
-
-	// Support both new hashed sessions and legacy plaintext sessions.
-	result := s.db.
-		Where("token = ? OR token = ?", hashedToken, refreshToken).
-		Delete(&Authentication{})
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
-
-	return nil
+func (s *Service) DeleteAuthentication(ctx context.Context, refreshToken string) error {
+	return s.store.DeleteAuthentication(ctx, hashRefreshToken(refreshToken), refreshToken)
 }

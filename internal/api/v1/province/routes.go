@@ -10,7 +10,7 @@ func SetupRoutes(app fiber.Router, handler *Handler) {
 
 	provinces.Get("/", handler.GetProvincesHandler)
 	provinces.Get("/:id", handler.GetProvinceByIdHandler)
-	provinces.Post("/", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PostProvinceHandler)
-	provinces.Put("/:id", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.PutProvinceByIdHandler)
-	provinces.Delete("/:id", utils.AuthMiddleware(), utils.RoleMiddleware("admin"), handler.DeleteProvinceByIdHandler)
+	provinces.Post("/", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.PostProvinceHandler)
+	provinces.Put("/:id", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.PutProvinceByIdHandler)
+	provinces.Delete("/:id", utils.AuthMiddleware(handler.service.db), utils.RoleMiddleware("admin"), handler.DeleteProvinceByIdHandler)
 }

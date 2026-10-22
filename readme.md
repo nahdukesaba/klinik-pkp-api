@@ -61,6 +61,27 @@ and must not be committed. Production URLs are deployment-specific and are
 not finalized. Migration `20261023_create_klinik_sso_flow` creates
 `public.klinikpkp_sso_flow`; run it only against the intended environment.
 
+### Klinik authorization and logout
+
+Klinik authorization is sourced from the shared Central SSO tables. Every
+protected request, including requests using a legacy local HS256 JWT, resolves
+the linked `app_user_id` and requires an approved `app_memberships` row for
+`klinik_pkp`. The only accepted application roles are `user` and `admin`.
+`klinikpkp_user.role` and roles embedded in legacy JWTs are retained only for
+compatibility and are not authorization sources.
+
+The legacy `/authentications` login and refresh endpoints remain compatibility
+paths. Both revalidate the current Central membership before issuing tokens,
+and issued roles come from `app_memberships`. Consequently, an existing token
+is denied on its next protected request after its membership is rejected or
+disabled.
+
+Logout returns `data.centralLogoutRequired`. Direct password and legacy local
+sessions return `false`; a verified Browser SSO session returns `true`. The
+value is derived server-side from the verified token's authentication method.
+The existing `GET /api/v1/auth/sso/logout` bridge remains the trusted Central
+logout target when that value is `true`.
+
 #### Rusun:
 - `GET /rusun` - List all rusun
 - `GET /rusun/:id` - Get rusun detail

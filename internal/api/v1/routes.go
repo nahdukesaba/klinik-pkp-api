@@ -15,16 +15,14 @@ import (
 	"klinik-pkp-api/internal/api/v1/uploads"
 	"klinik-pkp-api/internal/api/v1/user"
 	"klinik-pkp-api/internal/api/v1/village"
+	"klinik-pkp-api/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
 // REGISTER ALL ROUTES FOR API V1
-func SetupRoutes(api fiber.Router, db *gorm.DB) {
-	// LOAD CONFIGURATION
-	cfg := config.LoadConfig()
-
+func SetupRoutes(api fiber.Router, db *gorm.DB, cfg config.Config) {
 	// MAIN ROUTES
 	api.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.JSON(fiber.Map{
@@ -43,7 +41,17 @@ func SetupRoutes(api fiber.Router, db *gorm.DB) {
 	})
 
 	// PUBLIC ROUTES
-	authentication.SetupRoutes(api, authentication.NewHandler(authentication.NewService(db)))
+	browserSSORepository := authentication.NewBrowserSSORepository(db)
+	browserSSOService := authentication.NewBrowserSSOService(
+		cfg,
+		browserSSORepository,
+		utils.NewSSOClientWithBaseURL(cfg.SSOBaseURL),
+		browserSSORepository,
+	)
+	authentication.SetupRoutes(
+		api,
+		authentication.NewHandler(authentication.NewService(db), browserSSOService),
+	)
 	user.SetupRoutes(api, user.NewHandler(user.NewService(db)))
 
 	// DATA ROUTES

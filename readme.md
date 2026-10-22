@@ -29,6 +29,38 @@
 
 Base URL: `http://localhost:3000/api/v1`
 
+### Central Browser SSO
+
+Browser SSO is an additional authorization-code + PKCE login path. It does not
+remove or change the existing `/authentications` login, refresh, and logout
+routes.
+
+- `GET /api/v1/auth/sso/start` creates a short-lived flow and redirects to the
+  trusted Central `/authorize` endpoint.
+- `POST /api/v1/auth/sso/exchange` accepts `code`, `state`, and the optional
+  safe Central `status`. The backend atomically consumes the hashed state,
+  derives the PKCE verifier, exchanges the code server-to-server, validates
+  the `klinik_pkp` context, and resolves `klinikpkp_user` by `app_user_id`.
+- `GET /api/v1/auth/sso/logout` redirects to Central `/logout` using only the
+  configured client ID and post-logout URI.
+
+Local configuration:
+
+```env
+SSO_BROWSER_ENABLED=true
+SSO_BASE_URL=http://127.0.0.1:18082
+SSO_CLIENT_ID=klinik-pkp-web
+SSO_REDIRECT_URI=http://localhost:3000/auth/sso/callback
+SSO_POST_LOGOUT_REDIRECT_URI=http://localhost:3000/login
+SSO_FLOW_TTL=5m
+SSO_FLOW_HMAC_KEY=
+```
+
+`SSO_FLOW_HMAC_KEY` must be a base64-encoded random key of at least 32 bytes
+and must not be committed. Production URLs are deployment-specific and are
+not finalized. Migration `20261023_create_klinik_sso_flow` creates
+`public.klinikpkp_sso_flow`; run it only against the intended environment.
+
 #### Rusun:
 - `GET /rusun` - List all rusun
 - `GET /rusun/:id` - Get rusun detail

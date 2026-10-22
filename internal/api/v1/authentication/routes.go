@@ -10,7 +10,7 @@ import (
 
 // SETUP ROUTES CONFIGURES AUTHENTICATION ENDPOINTS
 func SetupRoutes(app fiber.Router, handler *Handler) {
-	auth := app.Group("/authentications")
+	authentications := app.Group("/authentications")
 
 	loginLimiter := limiter.New(limiter.Config{
 		Max:        10,
@@ -32,7 +32,12 @@ func SetupRoutes(app fiber.Router, handler *Handler) {
 		},
 	})
 
-	auth.Post("/", loginLimiter, handler.PostAuthenticationHandler)
-	auth.Put("/", handler.PutAuthenticationHandler)
-	auth.Delete("/", handler.DeleteAuthenticationHandler)
+	authentications.Post("/", loginLimiter, handler.PostAuthenticationHandler)
+	authentications.Put("/", handler.PutAuthenticationHandler)
+	authentications.Delete("/", handler.DeleteAuthenticationHandler)
+
+	browserSSO := app.Group("/auth/sso")
+	browserSSO.Get("/start", handler.BrowserSSOStartHandler)
+	browserSSO.Post("/exchange", loginLimiter, handler.BrowserSSOExchangeHandler)
+	browserSSO.Get("/logout", handler.BrowserSSOLogoutHandler)
 }

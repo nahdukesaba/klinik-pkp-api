@@ -19,6 +19,9 @@ import (
 func main() {
 	// LOAD CONFIGURATION
 	cfg := config.LoadConfig()
+	if err := cfg.ValidateBrowserSSO(); err != nil {
+		log.Fatalf("invalid browser SSO configuration: %v", err)
+	}
 
 	// FAIL FAST IF JWT CONFIGURATION IS UNSAFE
 	if err := utils.ValidateJWTConfig(); err != nil {
@@ -64,7 +67,7 @@ func main() {
 
 	// /api/v1 ROUTES
 	apiVersion1 := app.Group("/api/v1")
-	v1.SetupRoutes(apiVersion1, db)
+	v1.SetupRoutes(apiVersion1, db, cfg)
 
 	// /api/v2 ROUTES (PLACEHOLDER FOR FUTURE VERSION)
 	// apiVersion2 := app.Group("/api/v2")

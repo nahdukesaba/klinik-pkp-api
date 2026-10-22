@@ -1,10 +1,14 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -45,6 +49,15 @@ type Config struct {
 
 	// CORS
 	CORSAllowOrigins []string
+
+	// CENTRAL BROWSER SSO
+	SSOBrowserEnabled        bool
+	SSOBaseURL               string
+	SSOClientID              string
+	SSORedirectURI           string
+	SSOPostLogoutRedirectURI string
+	SSOFlowTTL               time.Duration
+	SSOFlowHMACKey           string
 }
 
 func LoadConfig() Config {
@@ -85,6 +98,15 @@ func LoadConfig() Config {
 
 		// CORS
 		CORSAllowOrigins: parseCSV(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:5173")),
+
+		// CENTRAL BROWSER SSO
+		SSOBrowserEnabled:        getEnvBool("SSO_BROWSER_ENABLED", false),
+		SSOBaseURL:               strings.TrimSpace(getEnv("SSO_BASE_URL", "")),
+		SSOClientID:              strings.TrimSpace(getEnv("SSO_CLIENT_ID", "klinik-pkp-web")),
+		SSORedirectURI:           strings.TrimSpace(getEnv("SSO_REDIRECT_URI", "")),
+		SSOPostLogoutRedirectURI: strings.TrimSpace(getEnv("SSO_POST_LOGOUT_REDIRECT_URI", "")),
+		SSOFlowTTL:               getEnvDuration("SSO_FLOW_TTL", 5*time.Minute),
+		SSOFlowHMACKey:           strings.TrimSpace(getEnv("SSO_FLOW_HMAC_KEY", "")),
 	}
 
 	// VALIDATE REQUIRED CONFIGURATIONS
@@ -93,6 +115,48 @@ func LoadConfig() Config {
 	}
 
 	return cfg
+}
+
+func (c Config) ValidateBrowserSSO() error {
+	if !c.SSOBrowserEnabled {
+		return nil
+	}
+	if strings.TrimSpace(c.SSOClientID) == "" {
+		return fmt.Errorf("SSO_CLIENT_ID is required when browser SSO is enabled")
+	}
+	for name, value := range map[string]string{
+		"SSO_BASE_URL":                 c.SSOBaseURL,
+		"SSO_REDIRECT_URI":             c.SSORedirectURI,
+		"SSO_POST_LOGOUT_REDIRECT_URI": c.SSOPostLogoutRedirectURI,
+	} {
+		if !validAbsoluteHTTPURL(value) {
+			return fmt.Errorf("%s must be an absolute HTTP(S) URL", name)
+		}
+	}
+	if c.SSOFlowTTL < time.Minute || c.SSOFlowTTL > 15*time.Minute {
+		return fmt.Errorf("SSO_FLOW_TTL must be between 1m and 15m")
+	}
+	key, err := base64.StdEncoding.DecodeString(c.SSOFlowHMACKey)
+	if err != nil {
+		key, err = base64.RawStdEncoding.DecodeString(c.SSOFlowHMACKey)
+	}
+	if err != nil || len(key) < 32 {
+		return fmt.Errorf("SSO_FLOW_HMAC_KEY must be a base64-encoded key of at least 32 bytes")
+	}
+	return nil
+}
+
+func validAbsoluteHTTPURL(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" || strings.ContainsAny(value, "*#") {
+		return false
+	}
+	parsed, err := url.ParseRequestURI(value)
+	if err != nil || parsed.Host == "" || parsed.User != nil {
+		return false
+	}
+	scheme := strings.ToLower(parsed.Scheme)
+	return scheme == "http" || scheme == "https"
 }
 
 // GET DATA SOURCE NAME FOR DATABASE CONNECTION
@@ -107,6 +171,30 @@ func getEnv(key, defaultValue string) string {
 	}
 
 	return defaultValue
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return defaultValue
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return defaultValue
+	}
+	return parsed
+}
+
+func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return defaultValue
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return 0
+	}
+	return parsed
 }
 
 // SPLIT A COMMA-SEPARATED STRING INTO A SLICE OF STRINGS

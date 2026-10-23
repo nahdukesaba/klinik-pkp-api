@@ -45,7 +45,7 @@ func TestUsersMeReturnsCanonicalDataWithoutLocalUser(t *testing.T) {
 			Role: "admin", MembershipStatus: "approved",
 		})
 		return ctx.Next()
-	}, handler.GetUserByIdHandler)
+	}, handler.GetCurrentUserHandler)
 
 	response, err := app.Test(httptest.NewRequest(http.MethodGet, "/users/me", nil))
 	if err != nil {

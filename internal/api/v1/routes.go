@@ -54,7 +54,7 @@ func SetupRoutes(api fiber.Router, db *gorm.DB, cfg config.Config) {
 		api,
 		authentication.NewHandler(authentication.NewService(db), browserSSOService),
 	)
-	user.SetupRoutes(api, user.NewHandler(user.NewServiceWithIdentityStore(db, klinikIdentities)))
+	user.SetupRoutes(api, user.NewHandler(user.NewService(db, cfg.SSOBaseURL)))
 
 	// DATA ROUTES
 	province.SetupRoutes(api, province.NewHandler(province.NewService(db)))

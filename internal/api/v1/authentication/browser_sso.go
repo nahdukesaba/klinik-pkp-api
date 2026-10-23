@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"klinik-pkp-api/config"
-	"klinik-pkp-api/internal/api/v1/user"
+	"klinik-pkp-api/internal/identity"
 	"klinik-pkp-api/utils"
 
 	"github.com/google/uuid"
@@ -37,7 +37,7 @@ type BrowserSSOCentralClient interface {
 }
 
 type BrowserSSOUserStore interface {
-	GetActiveByAppUserID(context.Context, uuid.UUID) (*user.User, error)
+	GetByAppUserID(context.Context, uuid.UUID) (*identity.KlinikIdentity, error)
 }
 
 type BrowserSSOError struct {
@@ -49,12 +49,14 @@ type BrowserSSOError struct {
 func (e *BrowserSSOError) Error() string { return e.Message }
 
 type BrowserSSOUser struct {
-	ID    uuid.UUID `json:"id"`
-	Name  string    `json:"name"`
-	Email string    `json:"email"`
-	Phone string    `json:"phone,omitempty"`
-	NIP   string    `json:"nip,omitempty"`
-	Role  string    `json:"role"`
+	ID        uuid.UUID `json:"id"`
+	AppUserID uuid.UUID `json:"appUserId"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Phone     string    `json:"phone,omitempty"`
+	NIP       string    `json:"nip,omitempty"`
+	Role      string    `json:"role"`
+	Status    string    `json:"status"`
 }
 
 type BrowserSSOCompletion struct {
@@ -204,7 +206,8 @@ func (s *BrowserSSOService) Complete(
 	if errors.Is(err, utils.ErrSSOUnavailable) {
 		return nil, browserSSOUnavailable()
 	}
-	if err != nil || contextResult == nil || contextResult.ID == uuid.Nil ||
+	if err != nil || contextResult == nil || contextResult.AppUserID == uuid.Nil ||
+		contextResult.AppUserID != session.User.ID || contextResult.Status != "approved" ||
 		(contextResult.Role != "admin" && contextResult.Role != "user") {
 		return nil, &BrowserSSOError{
 			StatusCode: http.StatusForbidden,
@@ -212,24 +215,34 @@ func (s *BrowserSSOService) Complete(
 			Message:    "Klinik PKP access is not available",
 		}
 	}
-	localUser, err := s.users.GetActiveByAppUserID(ctx, session.User.ID)
+	canonical, err := s.users.GetByAppUserID(ctx, session.User.ID)
 	if err != nil {
 		return nil, browserSSOUnavailable()
 	}
-	if localUser == nil || localUser.AppUserID == nil || *localUser.AppUserID != session.User.ID ||
-		localUser.ID != contextResult.ID || !localUser.IsActive {
+	if canonical == nil || !canonical.IsApproved() || canonical.AppUserID != session.User.ID ||
+		canonical.Role != contextResult.Role {
 		return nil, &BrowserSSOError{
 			StatusCode: http.StatusForbidden,
-			Code:       "KLINIK_IDENTITY_NOT_LINKED",
-			Message:    "Central identity is not linked to an active Klinik user",
+			Code:       "KLINIK_ACCESS_DENIED",
+			Message:    "Klinik PKP access is not available",
 		}
+	}
+	phone := ""
+	if canonical.Phone != nil {
+		phone = *canonical.Phone
+	}
+	nip := ""
+	if canonical.NIP != nil {
+		nip = *canonical.NIP
 	}
 	return &BrowserSSOCompletion{
 		Status:  "authenticated",
 		Session: session,
 		User: &BrowserSSOUser{
-			ID: localUser.ID, Name: localUser.Name, Email: localUser.Email,
-			Phone: localUser.Phone, NIP: localUser.NIP, Role: contextResult.Role,
+			ID: canonical.AppUserID, AppUserID: canonical.AppUserID,
+			Name: canonical.FullName, Email: canonical.Email,
+			Phone: phone, NIP: nip, Role: canonical.Role,
+			Status: canonical.MembershipStatus,
 		},
 	}, nil
 }

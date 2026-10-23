@@ -167,10 +167,13 @@ func (s *Service) AddAuthentication(ctx context.Context, payload AddAuthenticati
 	if err != nil {
 		return nil, err
 	}
+	if trusted.LocalUserID == nil {
+		return nil, utils.ErrKlinikAuthorizationDenied
+	}
 
 	// GENERATE ACCESS TOKEN (SHORT-LIVED)
 	accessToken, err := s.tokenManager.GenerateAccessToken(
-		trusted.LocalUserID,
+		*trusted.LocalUserID,
 		trusted.Email,
 		trusted.Role,
 	)
@@ -180,7 +183,7 @@ func (s *Service) AddAuthentication(ctx context.Context, payload AddAuthenticati
 
 	// GENERATE REFRESH TOKEN (LONG-LIVED)
 	refreshToken, err := s.tokenManager.GenerateRefreshToken(
-		trusted.LocalUserID,
+		*trusted.LocalUserID,
 		trusted.Email,
 		trusted.Role,
 	)
@@ -193,7 +196,8 @@ func (s *Service) AddAuthentication(ctx context.Context, payload AddAuthenticati
 	}
 
 	return fiber.Map{
-		"id":            trusted.LocalUserID,
+		"id":            *trusted.LocalUserID,
+		"app_user_id":   trusted.AppUserID,
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
 	}, nil
@@ -210,7 +214,7 @@ func (s *Service) authorizeLegacyCredentials(
 	if err := bcrypt.CompareHashAndPassword([]byte(localUser.Password), []byte(payload.Password)); err != nil {
 		return nil, err
 	}
-	return s.authorization.ResolveKlinikAuthorization(ctx, localUser.ID)
+	return s.authorization.ResolveLegacyKlinikAuthorization(ctx, localUser.ID)
 }
 
 // VERIFIES REFRESH TOKEN, THEN GENERATES NEW ACCESS TOKEN
@@ -230,14 +234,17 @@ func (s *Service) UpdateAuthentication(ctx context.Context, refreshToken string)
 	if err != nil {
 		return nil, err
 	}
-	trusted, err := s.authorization.ResolveKlinikAuthorization(ctx, claims.UserID)
+	trusted, err := s.authorization.ResolveLegacyKlinikAuthorization(ctx, claims.UserID)
 	if err != nil {
 		return nil, err
+	}
+	if trusted.LocalUserID == nil {
+		return nil, utils.ErrKlinikAuthorizationDenied
 	}
 
 	// GENERATE NEW ACCESS TOKEN
 	accessToken, err := s.tokenManager.GenerateAccessToken(
-		trusted.LocalUserID,
+		*trusted.LocalUserID,
 		trusted.Email,
 		trusted.Role,
 	)
@@ -247,7 +254,7 @@ func (s *Service) UpdateAuthentication(ctx context.Context, refreshToken string)
 
 	// ROTATE REFRESH TOKEN
 	newRefreshToken, err := s.tokenManager.GenerateRefreshToken(
-		trusted.LocalUserID,
+		*trusted.LocalUserID,
 		trusted.Email,
 		trusted.Role,
 	)

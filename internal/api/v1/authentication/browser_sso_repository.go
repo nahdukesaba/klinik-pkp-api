@@ -3,10 +3,6 @@ package authentication
 import (
 	"context"
 	"fmt"
-
-	"klinik-pkp-api/internal/api/v1/user"
-
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -49,21 +45,4 @@ RETURNING state_hash, created_at, expires_at, used_at
 		return nil, nil
 	}
 	return &flow, nil
-}
-
-func (r *BrowserSSORepository) GetActiveByAppUserID(
-	ctx context.Context,
-	appUserID uuid.UUID,
-) (*user.User, error) {
-	var localUser user.User
-	err := r.db.WithContext(ctx).
-		Where("app_user_id = ? AND is_active = ?", appUserID, true).
-		First(&localUser).Error
-	if err == gorm.ErrRecordNotFound {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("resolve linked Klinik user: %w", err)
-	}
-	return &localUser, nil
 }

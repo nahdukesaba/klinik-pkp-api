@@ -98,7 +98,7 @@ func newAuthMiddleware(
 func (m *authMiddleware) authenticate(ctx context.Context, accessToken string) (*AuthContext, error) {
 	claims, localErr := m.local.VerifyAccessToken(accessToken)
 	if localErr == nil {
-		trusted, err := m.authorization.ResolveKlinikAuthorization(ctx, claims.UserID)
+		trusted, err := m.authorization.ResolveLegacyKlinikAuthorization(ctx, claims.UserID)
 		if err != nil {
 			return nil, err
 		}
@@ -110,11 +110,14 @@ func (m *authMiddleware) authenticate(ctx context.Context, accessToken string) (
 	if err != nil {
 		return nil, err
 	}
-	if ssoContext.ID == uuid.Nil || !IsKlinikRole(strings.ToLower(strings.TrimSpace(ssoContext.Role))) {
+	if ssoContext.AppUserID == uuid.Nil ||
+		(ssoContext.ID != uuid.Nil && ssoContext.ID != ssoContext.AppUserID) ||
+		ssoContext.Status != "approved" ||
+		!IsKlinikRole(strings.ToLower(strings.TrimSpace(ssoContext.Role))) {
 		return nil, ErrSSOUnauthorized
 	}
 
-	trusted, err := m.authorization.ResolveKlinikAuthorization(ctx, ssoContext.ID)
+	trusted, err := m.authorization.ResolveKlinikAuthorization(ctx, ssoContext.AppUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +130,11 @@ func (m *authMiddleware) authenticate(ctx context.Context, accessToken string) (
 
 func setTrustedAuthContext(ctx *fiber.Ctx, trusted *AuthContext) {
 	ctx.Locals("auth_context", trusted)
-	ctx.Locals("id", trusted.LocalUserID)
+	contextID := trusted.AppUserID
+	if trusted.LocalUserID != nil {
+		contextID = *trusted.LocalUserID
+	}
+	ctx.Locals("id", contextID)
 	ctx.Locals("app_user_id", trusted.AppUserID)
 	ctx.Locals("email", trusted.Email)
 	ctx.Locals("role", trusted.Role)

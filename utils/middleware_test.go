@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"klinik-pkp-api/internal/identity"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -39,16 +40,41 @@ func (f *fakeKlinikSSOResolver) ResolveKlinikContext(context.Context, string) (*
 }
 
 type fakeKlinikAuthorizationResolver struct {
-	context *AuthContext
-	err     error
-	calls   int
+	context        *AuthContext
+	err            error
+	canonicalCalls int
+	legacyCalls    int
+}
+
+type fakeCanonicalIdentityStore struct {
+	canonical *identity.KlinikIdentity
+	err       error
+}
+
+func (f *fakeCanonicalIdentityStore) GetByAppUserID(
+	context.Context,
+	uuid.UUID,
+) (*identity.KlinikIdentity, error) {
+	return f.canonical, f.err
 }
 
 func (f *fakeKlinikAuthorizationResolver) ResolveKlinikAuthorization(
 	context.Context,
 	uuid.UUID,
 ) (*AuthContext, error) {
-	f.calls++
+	f.canonicalCalls++
+	if f.context == nil {
+		return nil, f.err
+	}
+	copyContext := *f.context
+	return &copyContext, f.err
+}
+
+func (f *fakeKlinikAuthorizationResolver) ResolveLegacyKlinikAuthorization(
+	context.Context,
+	uuid.UUID,
+) (*AuthContext, error) {
+	f.legacyCalls++
 	if f.context == nil {
 		return nil, f.err
 	}
@@ -57,11 +83,13 @@ func (f *fakeKlinikAuthorizationResolver) ResolveKlinikAuthorization(
 }
 
 func approvedTestAuthContext(role string) *AuthContext {
+	localID := middlewareLocalUserID
 	return &AuthContext{
-		LocalUserID: middlewareLocalUserID,
-		AppUserID:   middlewareAppUserID,
-		Email:       "person@example.com",
-		Role:        role,
+		LocalUserID:      &localID,
+		AppUserID:        middlewareAppUserID,
+		Email:            "person@example.com",
+		Role:             role,
+		MembershipStatus: "approved",
 	}
 }
 
@@ -96,31 +124,30 @@ func runProtectedRequest(
 func TestAuthorizedKlinikContextMembershipRules(t *testing.T) {
 	tests := []struct {
 		name      string
-		localID   uuid.UUID
 		appUserID uuid.UUID
 		status    string
 		role      string
 		wantRole  string
 		wantErr   bool
 	}{
-		{name: "approved user", localID: middlewareLocalUserID, appUserID: middlewareAppUserID, status: "approved", role: "user", wantRole: "user"},
-		{name: "approved admin", localID: middlewareLocalUserID, appUserID: middlewareAppUserID, status: "approved", role: "admin", wantRole: "admin"},
-		{name: "pending", localID: middlewareLocalUserID, appUserID: middlewareAppUserID, status: "pending", role: "user", wantErr: true},
-		{name: "rejected", localID: middlewareLocalUserID, appUserID: middlewareAppUserID, status: "rejected", role: "user", wantErr: true},
-		{name: "disabled", localID: middlewareLocalUserID, appUserID: middlewareAppUserID, status: "disabled", role: "user", wantErr: true},
-		{name: "missing membership", localID: uuid.Nil, appUserID: uuid.Nil, status: "", role: "", wantErr: true},
-		{name: "missing app user id", localID: middlewareLocalUserID, appUserID: uuid.Nil, status: "approved", role: "user", wantErr: true},
-		{name: "invalid role", localID: middlewareLocalUserID, appUserID: middlewareAppUserID, status: "approved", role: "superadmin", wantErr: true},
+		{name: "approved user", appUserID: middlewareAppUserID, status: "approved", role: "user", wantRole: "user"},
+		{name: "approved admin", appUserID: middlewareAppUserID, status: "approved", role: "admin", wantRole: "admin"},
+		{name: "pending", appUserID: middlewareAppUserID, status: "pending", role: "user", wantErr: true},
+		{name: "rejected", appUserID: middlewareAppUserID, status: "rejected", role: "user", wantErr: true},
+		{name: "disabled", appUserID: middlewareAppUserID, status: "disabled", role: "user", wantErr: true},
+		{name: "missing membership", appUserID: uuid.Nil, status: "", role: "", wantErr: true},
+		{name: "missing app user id", appUserID: uuid.Nil, status: "approved", role: "user", wantErr: true},
+		{name: "invalid role", appUserID: middlewareAppUserID, status: "approved", role: "superadmin", wantErr: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			trusted, err := authorizedKlinikContext(
-				test.localID,
-				test.appUserID,
-				"person@example.com",
-				test.role,
-				test.status,
-			)
+			authUserID := uuid.MustParse("cccccccc-cccc-4ccc-8ccc-cccccccccccc")
+			trusted, err := authorizedKlinikContext(&identity.KlinikIdentity{
+				AppUserID: test.appUserID, AuthUserID: &authUserID,
+				Email: "person@example.com", Role: test.role,
+				MembershipStatus: test.status,
+				ApplicationCode:  identity.KlinikApplicationCode,
+			})
 			if test.wantErr {
 				if !errors.Is(err, ErrKlinikAuthorizationDenied) {
 					t.Fatalf("expected authorization denial, got %v", err)
@@ -187,8 +214,8 @@ func TestExistingLocalJWTIsDeniedAfterMembershipRevocation(t *testing.T) {
 	authorization.context = nil
 	authorization.err = ErrKlinikAuthorizationDenied
 	status, _ = runProtectedRequest(t, middleware)
-	if status != http.StatusForbidden || authorization.calls != 2 {
-		t.Fatalf("existing token bypassed revalidation: status=%d calls=%d", status, authorization.calls)
+	if status != http.StatusForbidden || authorization.legacyCalls != 2 {
+		t.Fatalf("existing token bypassed revalidation: status=%d calls=%d", status, authorization.legacyCalls)
 	}
 }
 
@@ -210,8 +237,11 @@ func TestCentralContextPathAndVerifiedAMRLoginSource(t *testing.T) {
 		t.Run(method.name, func(t *testing.T) {
 			token := "header." + base64.RawURLEncoding.EncodeToString([]byte(`{"amr":`+method.amr+`}`)) + ".signature"
 			middleware := &authMiddleware{
-				local:   &fakeLocalTokenVerifier{err: errors.New("not local")},
-				central: &fakeKlinikSSOResolver{resolved: &SSOContext{ID: middlewareLocalUserID, Email: "person@example.com", Role: "user"}},
+				local: &fakeLocalTokenVerifier{err: errors.New("not local")},
+				central: &fakeKlinikSSOResolver{resolved: &SSOContext{
+					ID: middlewareAppUserID, AppUserID: middlewareAppUserID,
+					Email: "person@example.com", Role: "user", Status: "approved",
+				}},
 				authorization: &fakeKlinikAuthorizationResolver{
 					context: approvedTestAuthContext("user"),
 				},
@@ -221,6 +251,72 @@ func TestCentralContextPathAndVerifiedAMRLoginSource(t *testing.T) {
 				t.Fatalf("unexpected login source: %#v %v", trusted, err)
 			}
 		})
+	}
+}
+
+func TestCentralTokenApprovedMembershipDoesNotRequireLocalUser(t *testing.T) {
+	trusted := approvedTestAuthContext("user")
+	trusted.LocalUserID = nil
+	authorization := &fakeKlinikAuthorizationResolver{context: trusted}
+	middleware := &authMiddleware{
+		local: &fakeLocalTokenVerifier{err: errors.New("not local")},
+		central: &fakeKlinikSSOResolver{resolved: &SSOContext{
+			ID: middlewareAppUserID, AppUserID: middlewareAppUserID,
+			Email: "person@example.com", Role: "user", Status: "approved",
+		}},
+		authorization: authorization,
+	}
+
+	result, err := middleware.authenticate(context.Background(), "central-token")
+	if err != nil || result.AppUserID != middlewareAppUserID || result.LocalUserID != nil ||
+		authorization.canonicalCalls != 1 || authorization.legacyCalls != 0 {
+		t.Fatalf("canonical token required local identity: result=%#v err=%v", result, err)
+	}
+}
+
+func TestDatabaseResolverCanonicalPathSucceedsWithoutLocalDatabase(t *testing.T) {
+	authUserID := uuid.MustParse("cccccccc-cccc-4ccc-8ccc-cccccccccccc")
+	phone := "08123456789"
+	nip := "198001012010011001"
+	resolver := &databaseKlinikAuthorizationResolver{
+		identities: &fakeCanonicalIdentityStore{canonical: &identity.KlinikIdentity{
+			AppUserID: middlewareAppUserID, AuthUserID: &authUserID,
+			Email: "person@example.com", FullName: "Pegawai Klinik",
+			Phone: &phone, NIP: &nip, Role: "admin",
+			MembershipStatus: "approved",
+			ApplicationCode:  identity.KlinikApplicationCode,
+		}},
+	}
+
+	trusted, err := resolver.ResolveKlinikAuthorization(context.Background(), middlewareAppUserID)
+	if err != nil || trusted.AppUserID != middlewareAppUserID || trusted.LocalUserID != nil ||
+		trusted.Role != "admin" || trusted.NIP == nil || *trusted.NIP != nip {
+		t.Fatalf("canonical resolver required local database: trusted=%#v err=%v", trusted, err)
+	}
+}
+
+func TestCentralTokenRevokedMembershipFailsNextRequest(t *testing.T) {
+	trusted := approvedTestAuthContext("user")
+	trusted.LocalUserID = nil
+	authorization := &fakeKlinikAuthorizationResolver{context: trusted}
+	middleware := newAuthMiddleware(
+		&fakeLocalTokenVerifier{err: errors.New("not local")},
+		&fakeKlinikSSOResolver{resolved: &SSOContext{
+			ID: middlewareAppUserID, AppUserID: middlewareAppUserID,
+			Email: "person@example.com", Role: "user", Status: "approved",
+		}},
+		authorization,
+		false,
+	)
+	status, _ := runProtectedRequest(t, middleware)
+	if status != http.StatusOK {
+		t.Fatalf("approved canonical membership was denied: %d", status)
+	}
+	authorization.context = nil
+	authorization.err = ErrKlinikAuthorizationDenied
+	status, _ = runProtectedRequest(t, middleware)
+	if status != http.StatusForbidden || authorization.canonicalCalls != 2 {
+		t.Fatalf("revoked canonical membership bypassed revalidation: status=%d calls=%d", status, authorization.canonicalCalls)
 	}
 }
 

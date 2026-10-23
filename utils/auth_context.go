@@ -5,12 +5,12 @@ import (
 	"errors"
 	"strings"
 
+	"klinik-pkp-api/internal/identity"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
-
-const klinikApplicationCode = "klinik_pkp"
 
 type LoginSource string
 
@@ -27,100 +27,133 @@ var (
 // AuthContext is the trusted authorization context used by downstream handlers.
 // Its role is always loaded from the Central app_memberships table.
 type AuthContext struct {
-	LocalUserID uuid.UUID   `json:"localUserId"`
-	AppUserID   uuid.UUID   `json:"appUserId"`
-	Email       string      `json:"email"`
-	Role        string      `json:"role"`
-	LoginSource LoginSource `json:"loginSource"`
+	AppUserID        uuid.UUID   `json:"appUserId"`
+	AuthUserID       *uuid.UUID  `json:"authUserId,omitempty"`
+	Email            string      `json:"email"`
+	FullName         string      `json:"fullName"`
+	Phone            *string     `json:"phone,omitempty"`
+	NIP              *string     `json:"nip,omitempty"`
+	Role             string      `json:"role"`
+	MembershipStatus string      `json:"membershipStatus"`
+	LoginSource      LoginSource `json:"loginSource"`
+	LocalUserID      *uuid.UUID  `json:"localUserId,omitempty"`
 }
 
 type KlinikAuthorizationResolver interface {
 	ResolveKlinikAuthorization(context.Context, uuid.UUID) (*AuthContext, error)
+	ResolveLegacyKlinikAuthorization(context.Context, uuid.UUID) (*AuthContext, error)
 }
 
 type databaseKlinikAuthorizationResolver struct {
-	db *gorm.DB
+	db         *gorm.DB
+	identities identity.Store
 }
 
 func NewKlinikAuthorizationResolver(db *gorm.DB) KlinikAuthorizationResolver {
-	return &databaseKlinikAuthorizationResolver{db: db}
+	return &databaseKlinikAuthorizationResolver{
+		db:         db,
+		identities: identity.NewRepository(db),
+	}
 }
 
 func (r *databaseKlinikAuthorizationResolver) ResolveKlinikAuthorization(
 	ctx context.Context,
+	appUserID uuid.UUID,
+) (*AuthContext, error) {
+	if r == nil || r.identities == nil || appUserID == uuid.Nil {
+		return nil, ErrKlinikAuthorizationDenied
+	}
+	canonical, err := r.identities.GetByAppUserID(ctx, appUserID)
+	if err != nil {
+		return nil, errors.Join(ErrKlinikAuthorizationUnavailable, err)
+	}
+	trusted, err := authorizedKlinikContext(canonical)
+	if err != nil {
+		return nil, err
+	}
+
+	// Local ID is retained only as best-effort compatibility for legacy CRUD.
+	// A missing local row must never deny canonical authentication.
+	trusted.LocalUserID = r.findOptionalLocalUserID(ctx, appUserID)
+	return trusted, nil
+}
+
+func (r *databaseKlinikAuthorizationResolver) ResolveLegacyKlinikAuthorization(
+	ctx context.Context,
 	localUserID uuid.UUID,
 ) (*AuthContext, error) {
-	if r.db == nil || localUserID == uuid.Nil {
+	if r == nil || r.db == nil || localUserID == uuid.Nil {
 		return nil, ErrKlinikAuthorizationDenied
 	}
 
 	var result struct {
-		LocalUserID uuid.UUID `gorm:"column:local_user_id"`
-		AppUserID   uuid.UUID `gorm:"column:app_user_id"`
-		Email       string    `gorm:"column:email"`
-		Role        string    `gorm:"column:role"`
-		Status      string    `gorm:"column:status"`
+		AppUserID uuid.UUID `gorm:"column:app_user_id"`
 	}
 
 	query := r.db.WithContext(ctx).Raw(`
 SELECT
-    ku.id AS local_user_id,
-    ku.app_user_id,
-    ku.email,
-    membership.role,
-    membership.status
+    ku.app_user_id
 FROM public.klinikpkp_user AS ku
-JOIN public.app_users AS app_user
-    ON app_user.id = ku.app_user_id
-   AND app_user.deleted_at IS NULL
-JOIN public.applications AS application
-    ON application.code = ?
-   AND application.is_active = TRUE
-JOIN public.app_memberships AS membership
-    ON membership.app_user_id = app_user.id
-   AND membership.application_id = application.id
-   AND membership.deleted_at IS NULL
 WHERE ku.id = ?
   AND ku.app_user_id IS NOT NULL
   AND ku.is_active = TRUE
   AND ku.deleted_at IS NULL
-LIMIT 1`, klinikApplicationCode, localUserID).Scan(&result)
+LIMIT 1`, localUserID).Scan(&result)
 	if query.Error != nil {
 		return nil, errors.Join(ErrKlinikAuthorizationUnavailable, query.Error)
 	}
-	if query.RowsAffected != 1 || result.LocalUserID == uuid.Nil || result.AppUserID == uuid.Nil {
+	if query.RowsAffected != 1 || result.AppUserID == uuid.Nil {
 		return nil, ErrKlinikAuthorizationDenied
 	}
 
-	return authorizedKlinikContext(
-		result.LocalUserID,
-		result.AppUserID,
-		result.Email,
-		result.Role,
-		result.Status,
-	)
+	trusted, err := r.ResolveKlinikAuthorization(ctx, result.AppUserID)
+	if err != nil {
+		return nil, err
+	}
+	trusted.LocalUserID = &localUserID
+	return trusted, nil
 }
 
-func authorizedKlinikContext(
-	localUserID uuid.UUID,
+func (r *databaseKlinikAuthorizationResolver) findOptionalLocalUserID(
+	ctx context.Context,
 	appUserID uuid.UUID,
-	email string,
-	role string,
-	status string,
-) (*AuthContext, error) {
-	role = strings.ToLower(strings.TrimSpace(role))
-	if localUserID == uuid.Nil || appUserID == uuid.Nil || status != "approved" || !IsKlinikRole(role) {
+) *uuid.UUID {
+	if r == nil || r.db == nil {
+		return nil
+	}
+	var result struct {
+		ID uuid.UUID `gorm:"column:id"`
+	}
+	query := r.db.WithContext(ctx).Raw(`
+SELECT id
+FROM public.klinikpkp_user
+WHERE app_user_id = ?
+  AND deleted_at IS NULL
+LIMIT 1`, appUserID).Scan(&result)
+	if query.Error != nil || query.RowsAffected != 1 || result.ID == uuid.Nil {
+		return nil
+	}
+	return &result.ID
+}
+
+func authorizedKlinikContext(canonical *identity.KlinikIdentity) (*AuthContext, error) {
+	if canonical == nil || !canonical.IsApproved() {
 		return nil, ErrKlinikAuthorizationDenied
 	}
 	return &AuthContext{
-		LocalUserID: localUserID,
-		AppUserID:   appUserID,
-		Email:       strings.TrimSpace(email),
-		Role:        role,
+		AppUserID:        canonical.AppUserID,
+		AuthUserID:       canonical.AuthUserID,
+		Email:            strings.TrimSpace(canonical.Email),
+		FullName:         strings.TrimSpace(canonical.FullName),
+		Phone:            canonical.Phone,
+		NIP:              canonical.NIP,
+		Role:             canonical.Role,
+		MembershipStatus: canonical.MembershipStatus,
 	}, nil
 }
 
 func IsKlinikRole(role string) bool {
+	role = strings.ToLower(strings.TrimSpace(role))
 	return role == "admin" || role == "user"
 }
 

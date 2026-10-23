@@ -20,9 +20,15 @@ var (
 )
 
 type SSOContext struct {
-	ID    uuid.UUID `json:"id"`
-	Email string    `json:"email"`
-	Role  string    `json:"role"`
+	ID         uuid.UUID `json:"id"`
+	AppUserID  uuid.UUID `json:"appUserId"`
+	AuthUserID uuid.UUID `json:"authUserId"`
+	Email      string    `json:"email"`
+	FullName   string    `json:"fullName"`
+	Phone      *string   `json:"phone,omitempty"`
+	NIP        *string   `json:"nip,omitempty"`
+	Role       string    `json:"role"`
+	Status     string    `json:"status"`
 }
 
 type SSOSessionUser struct {
@@ -184,13 +190,24 @@ func (c *SSOClient) ResolveKlinikContext(
 		)
 	}
 
-	if result.ID == uuid.Nil ||
+	if result.AppUserID == uuid.Nil {
+		result.AppUserID = result.ID
+	}
+	if result.ID == uuid.Nil {
+		result.ID = result.AppUserID
+	}
+
+	if result.AppUserID == uuid.Nil ||
+		result.ID != result.AppUserID ||
+		result.AuthUserID == uuid.Nil ||
 		strings.TrimSpace(result.Email) == "" ||
+		strings.ToLower(strings.TrimSpace(result.Status)) != "approved" ||
 		!IsKlinikRole(strings.ToLower(strings.TrimSpace(result.Role))) {
 
 		return nil, ErrSSOUnauthorized
 	}
 	result.Role = strings.ToLower(strings.TrimSpace(result.Role))
+	result.Status = strings.ToLower(strings.TrimSpace(result.Status))
 
 	return &result, nil
 }

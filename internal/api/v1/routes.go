@@ -15,6 +15,7 @@ import (
 	"klinik-pkp-api/internal/api/v1/uploads"
 	"klinik-pkp-api/internal/api/v1/user"
 	"klinik-pkp-api/internal/api/v1/village"
+	"klinik-pkp-api/internal/identity"
 	"klinik-pkp-api/utils"
 
 	"github.com/gofiber/fiber/v2"
@@ -42,17 +43,18 @@ func SetupRoutes(api fiber.Router, db *gorm.DB, cfg config.Config) {
 
 	// PUBLIC ROUTES
 	browserSSORepository := authentication.NewBrowserSSORepository(db)
+	klinikIdentities := identity.NewRepository(db)
 	browserSSOService := authentication.NewBrowserSSOService(
 		cfg,
 		browserSSORepository,
 		utils.NewSSOClientWithBaseURL(cfg.SSOBaseURL),
-		browserSSORepository,
+		klinikIdentities,
 	)
 	authentication.SetupRoutes(
 		api,
 		authentication.NewHandler(authentication.NewService(db), browserSSOService),
 	)
-	user.SetupRoutes(api, user.NewHandler(user.NewService(db)))
+	user.SetupRoutes(api, user.NewHandler(user.NewServiceWithIdentityStore(db, klinikIdentities)))
 
 	// DATA ROUTES
 	province.SetupRoutes(api, province.NewHandler(province.NewService(db)))

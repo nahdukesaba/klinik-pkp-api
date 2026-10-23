@@ -91,6 +91,18 @@ func (f *fakeServiceAuthorizationResolver) ResolveKlinikAuthorization(
 	return &copyContext, f.err
 }
 
+func (f *fakeServiceAuthorizationResolver) ResolveLegacyKlinikAuthorization(
+	context.Context,
+	uuid.UUID,
+) (*utils.AuthContext, error) {
+	f.calls++
+	if f.trusted == nil {
+		return nil, f.err
+	}
+	copyContext := *f.trusted
+	return &copyContext, f.err
+}
+
 func setLegacyJWTTestConfig(t *testing.T) {
 	t.Helper()
 	t.Setenv("ACCESS_TOKEN_KEY", "test-access-token-key-32-characters-minimum")
@@ -118,11 +130,13 @@ func legacyTestUser(t *testing.T, localRole string) *user.User {
 }
 
 func serviceAuthorization(role string) *utils.AuthContext {
+	localID := serviceLocalUserID
 	return &utils.AuthContext{
-		LocalUserID: serviceLocalUserID,
-		AppUserID:   serviceAppUserID,
-		Email:       "person@example.com",
-		Role:        role,
+		LocalUserID:      &localID,
+		AppUserID:        serviceAppUserID,
+		Email:            "person@example.com",
+		Role:             role,
+		MembershipStatus: "approved",
 	}
 }
 

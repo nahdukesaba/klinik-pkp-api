@@ -31,25 +31,40 @@ func (h *Handler) GetUsersHandler(ctx *fiber.Ctx) error {
 }
 
 func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {
-	var authID = ctx.Locals("id").(uuid.UUID)
+	trusted, ok := utils.TrustedAuthContext(ctx)
+	if !ok {
+		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, fiber.ErrUnauthorized, true)
+	}
+
+	if ctx.Params("id") == "me" {
+		data, err := h.service.GetCurrentUser(ctx.UserContext(), trusted.AppUserID)
+		if err != nil {
+			if err == ErrCanonicalIdentityUnavailable {
+				return utils.JSONResponse(ctx, fiber.StatusNotFound, fiber.ErrNotFound.Message, err, true)
+			}
+			return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
+		}
+		return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+	}
+
+	// Explicit-ID user management remains on the legacy local directory during
+	// this transition phase.
+	authID, ok := ctx.Locals("id").(uuid.UUID)
+	if !ok {
+		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, fiber.ErrUnauthorized, true)
+	}
 	var userID uuid.UUID
 	var err error
 
-	if ctx.Params("id") == "me" {
-		// SET USER ID TO AUTHENTICATED USER ID IF PARAMETER IS "me"
-		userID = authID
-	} else {
-		// SET USER ID TO PARAMETER VALUE IF NOT "me"
-		userID, err = uuid.Parse(ctx.Params("id"))
+	userID, err = uuid.Parse(ctx.Params("id"))
 
-		if err != nil {
-			return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid user ID", err, true)
-		}
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusBadRequest, "invalid user ID", err, true)
+	}
 
-		// PREVENT ACCESS TO OTHER USERS' PROFILES EXCEPT FOR ADMINS
-		if userID != authID && ctx.Locals("role").(string) != "admin" {
-			return utils.JSONResponse(ctx, fiber.StatusForbidden, fiber.ErrForbidden.Message, fiber.ErrForbidden, true)
-		}
+	// PREVENT ACCESS TO OTHER USERS' PROFILES EXCEPT FOR ADMINS
+	if userID != authID && ctx.Locals("role").(string) != "admin" {
+		return utils.JSONResponse(ctx, fiber.StatusForbidden, fiber.ErrForbidden.Message, fiber.ErrForbidden, true)
 	}
 
 	data, err := h.service.GetUserById(userID)

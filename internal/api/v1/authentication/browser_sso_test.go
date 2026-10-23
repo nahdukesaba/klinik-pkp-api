@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"klinik-pkp-api/config"
-	"klinik-pkp-api/internal/api/v1/user"
+	"klinik-pkp-api/internal/identity"
 	"klinik-pkp-api/utils"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,7 +22,6 @@ import (
 
 var (
 	testAppUserID = uuid.MustParse("11111111-1111-4111-8111-111111111111")
-	testLocalID   = uuid.MustParse("22222222-2222-4222-8222-222222222222")
 )
 
 type fakeBrowserSSOFlowStore struct {
@@ -85,17 +84,17 @@ func (f *fakeBrowserSSOCentral) ResolveKlinikContext(
 }
 
 type fakeBrowserSSOUsers struct {
-	localUser *user.User
+	canonical *identity.KlinikIdentity
 	err       error
 	requested uuid.UUID
 }
 
-func (f *fakeBrowserSSOUsers) GetActiveByAppUserID(
+func (f *fakeBrowserSSOUsers) GetByAppUserID(
 	_ context.Context,
 	appUserID uuid.UUID,
-) (*user.User, error) {
+) (*identity.KlinikIdentity, error) {
 	f.requested = appUserID
-	return f.localUser, f.err
+	return f.canonical, f.err
 }
 
 func browserSSOTestConfig() config.Config {
@@ -120,12 +119,20 @@ func browserSSOTestService() (*BrowserSSOService, *fakeBrowserSSOFlowStore, *fak
 			ExpiresIn: 3600, ExpiresAt: 9999999999,
 			User: utils.SSOSessionUser{ID: testAppUserID, Email: "person@example.com"},
 		},
-		context: &utils.SSOContext{ID: testLocalID, Email: "person@example.com", Role: "user"},
+		context: &utils.SSOContext{
+			ID: testAppUserID, AppUserID: testAppUserID,
+			AuthUserID: uuid.MustParse("33333333-3333-4333-8333-333333333333"),
+			Email:      "person@example.com", Role: "user", Status: "approved",
+		},
 	}
-	linkedID := testAppUserID
-	users := &fakeBrowserSSOUsers{localUser: &user.User{
-		ID: testLocalID, AppUserID: &linkedID, Name: "Pegawai Klinik", Email: "person@example.com",
-		Role: "Super Admin", IsActive: true,
+	authUserID := central.context.AuthUserID
+	phone := "08123456789"
+	nip := "198001012010011001"
+	users := &fakeBrowserSSOUsers{canonical: &identity.KlinikIdentity{
+		AppUserID: testAppUserID, AuthUserID: &authUserID,
+		Email: "person@example.com", FullName: "Pegawai Klinik",
+		Phone: &phone, NIP: &nip, Role: "user", MembershipStatus: "approved",
+		ApplicationCode: identity.KlinikApplicationCode,
 	}}
 	return NewBrowserSSOService(browserSSOTestConfig(), flows, central, users), flows, central, users
 }
@@ -222,8 +229,9 @@ func TestBrowserSSOExchangeUsesTrustedContractAndLinkedIdentity(t *testing.T) {
 	if central.contextCalls != 1 || central.contextToken != "central-access" || users.requested != testAppUserID {
 		t.Fatal("approved Klinik context was not resolved through app_user_id")
 	}
-	if result.Session.AccessToken != "central-access" || result.User.ID != testLocalID ||
-		result.User.Role != "user" || result.User.Role == users.localUser.Role {
+	if result.Session.AccessToken != "central-access" || result.User.ID != testAppUserID ||
+		result.User.AppUserID != testAppUserID || result.User.Role != "user" ||
+		result.User.NIP != "198001012010011001" {
 		t.Fatalf("unexpected authenticated result: %#v", result)
 	}
 }
@@ -249,12 +257,24 @@ func TestBrowserSSOMembershipAndIdentityFailures(t *testing.T) {
 	}
 
 	service, _, _, users := browserSSOTestService()
-	users.localUser = nil
+	users.canonical = nil
 	state, _ = startBrowserSSO(t, service)
 	_, err := service.Complete(context.Background(), state, "code", "")
 	var ssoError *BrowserSSOError
-	if !errors.As(err, &ssoError) || ssoError.Code != "KLINIK_IDENTITY_NOT_LINKED" {
+	if !errors.As(err, &ssoError) || ssoError.Code != "KLINIK_ACCESS_DENIED" {
 		t.Fatalf("unlinked identity did not return controlled error: %v", err)
+	}
+}
+
+func TestBrowserSSOApprovedCanonicalIdentityNeedsNoLocalUser(t *testing.T) {
+	service, _, _, users := browserSSOTestService()
+	state, _ := startBrowserSSO(t, service)
+	result, err := service.Complete(context.Background(), state, "code", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.User.ID != testAppUserID || users.canonical.AppUserID != testAppUserID {
+		t.Fatalf("browser SSO did not use canonical app user identity: %#v", result.User)
 	}
 }
 

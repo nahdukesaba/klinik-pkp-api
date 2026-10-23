@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestSSOClientExchangeBrowserSSOContract(t *testing.T) {
@@ -47,5 +49,41 @@ func TestSSOClientExchangeBrowserSSOContract(t *testing.T) {
 	}
 	if session.AccessToken != "access" || session.RefreshToken != "refresh" || session.User.Email != "person@example.com" {
 		t.Fatalf("unexpected Central session response: %#v", session)
+	}
+}
+
+func TestSSOClientResolvesCanonicalKlinikContext(t *testing.T) {
+	appUserID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
+	authUserID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet || request.URL.Path != "/api/v1/auth/klinik-context" ||
+			request.Header.Get("Authorization") != "Bearer central-access" {
+			t.Fatalf("unexpected Central context request: %s %s", request.Method, request.URL.Path)
+		}
+		response.Header().Set("Content-Type", "application/json")
+		_, _ = response.Write([]byte(`{
+            "id":"` + appUserID.String() + `",
+            "appUserId":"` + appUserID.String() + `",
+            "authUserId":"` + authUserID.String() + `",
+            "email":"person@example.com",
+            "fullName":"Pegawai Klinik",
+            "nip":"198001012010011001",
+            "role":"admin",
+            "status":"approved"
+        }`))
+	}))
+	defer server.Close()
+
+	result, err := NewSSOClientWithBaseURL(server.URL).ResolveKlinikContext(
+		context.Background(),
+		"central-access",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.AppUserID != appUserID || result.AuthUserID != authUserID ||
+		result.Role != "admin" || result.Status != "approved" ||
+		result.NIP == nil || *result.NIP != "198001012010011001" {
+		t.Fatalf("unexpected canonical Klinik context: %#v", result)
 	}
 }

@@ -307,6 +307,23 @@ func TestBrowserSSOLogoutAndRoutesUseTrustedTargets(t *testing.T) {
 		t.Fatalf("logout bridge accepted browser override: %d %q", logoutResponse.StatusCode, location.String())
 	}
 
+	validCancelReq := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/auth/sso/logout?cancel_return=/admin/users?page=2%26status=active",
+		nil,
+	)
+	validCancelResp, err := app.Test(validCancelReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancelLoc, err := url.Parse(validCancelResp.Header.Get("Location"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cancelLoc.Query().Get("cancel_return") != "/admin/users?page=2&status=active" {
+		t.Fatalf("cancel_return was not forwarded: %q", cancelLoc.String())
+	}
+
 	startResponse, err := app.Test(httptest.NewRequest(http.MethodGet, "/api/v1/auth/sso/start", nil))
 	if err != nil {
 		t.Fatal(err)

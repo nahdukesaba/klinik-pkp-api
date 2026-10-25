@@ -116,7 +116,7 @@ func (s *BrowserSSOService) Start(ctx context.Context) (string, error) {
 	return authorizeURL.String(), nil
 }
 
-func (s *BrowserSSOService) LogoutURL() (string, error) {
+func (s *BrowserSSOService) LogoutURL(cancelReturn ...string) (string, error) {
 	if !s.config.SSOBrowserEnabled {
 		return "", browserSSOUnavailable()
 	}
@@ -130,8 +130,27 @@ func (s *BrowserSSOService) LogoutURL() (string, error) {
 	query := logoutURL.Query()
 	query.Set("client_id", s.config.SSOClientID)
 	query.Set("post_logout_redirect_uri", s.config.SSOPostLogoutRedirectURI)
+	if len(cancelReturn) > 0 && cancelReturn[0] != "" {
+		if sanitized := sanitizeBrowserSSOCancelReturn(cancelReturn[0]); sanitized != "" {
+			query.Set("cancel_return", sanitized)
+		}
+	}
 	logoutURL.RawQuery = query.Encode()
 	return logoutURL.String(), nil
+}
+
+func sanitizeBrowserSSOCancelReturn(value string) string {
+	value = strings.TrimSpace(value)
+	if !strings.HasPrefix(value, "/") || strings.HasPrefix(value, "//") || strings.HasPrefix(value, "/\\") ||
+		strings.Contains(value, "\\") || strings.Contains(value, "#") {
+		return ""
+	}
+	for i := 0; i < len(value); i++ {
+		if value[i] <= ' ' || value[i] == 0x7f {
+			return ""
+		}
+	}
+	return value
 }
 
 func (s *BrowserSSOService) Complete(

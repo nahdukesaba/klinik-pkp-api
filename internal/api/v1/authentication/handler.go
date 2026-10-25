@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"errors"
+	"strings"
 
 	"klinik-pkp-api/utils"
 
@@ -82,7 +83,11 @@ func (h *Handler) BrowserSSOLogoutHandler(ctx *fiber.Ctx) error {
 	if h.browserSSO == nil {
 		return browserSSOHandlerError(ctx, browserSSOUnavailable())
 	}
-	logoutURL, err := h.browserSSO.LogoutURL()
+	cancelReturn := strings.TrimSpace(ctx.Query("cancel_return"))
+	if cancelReturn == "" {
+		cancelReturn = strings.TrimSpace(ctx.Query("return_to"))
+	}
+	logoutURL, err := h.browserSSO.LogoutURL(cancelReturn)
 	if err != nil {
 		return browserSSOHandlerError(ctx, err)
 	}

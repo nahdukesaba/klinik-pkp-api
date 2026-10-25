@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"klinik-pkp-api/internal/identity"
@@ -29,14 +28,26 @@ func (f *fakeLocalTokenVerifier) VerifyAccessToken(string) (*Claims, error) {
 }
 
 type fakeKlinikSSOResolver struct {
-	resolved *SSOContext
-	err      error
-	calls    int
+	resolved           *SSOContext
+	err                error
+	calls              int
+	introspectionOK    bool
+	introspectionErr   error
+	introspectionCalls int
+	introspectionSID   string
+	introspectionUser  uuid.UUID
 }
 
 func (f *fakeKlinikSSOResolver) ResolveKlinikContext(context.Context, string) (*SSOContext, error) {
 	f.calls++
 	return f.resolved, f.err
+}
+
+func (f *fakeKlinikSSOResolver) IntrospectBrowserSSO(_ context.Context, sid string, appUserID uuid.UUID) (bool, error) {
+	f.introspectionCalls++
+	f.introspectionSID = sid
+	f.introspectionUser = appUserID
+	return f.introspectionOK, f.introspectionErr
 }
 
 type fakeKlinikAuthorizationResolver struct {
@@ -219,38 +230,33 @@ func TestExistingLocalJWTIsDeniedAfterMembershipRevocation(t *testing.T) {
 	}
 }
 
-func TestCentralContextPathAndVerifiedAMRLoginSource(t *testing.T) {
-	methods := []struct {
-		name string
-		amr  string
-		want LoginSource
-	}{
-		{name: "password", amr: `[{"method":"password"}]`, want: LoginSourceDirect},
-		{name: "magiclink", amr: `[{"method":"magiclink"}]`, want: LoginSourceSSO},
-		{name: "otp", amr: `[{"method":"otp"}]`, want: LoginSourceSSO},
-		{name: "sso", amr: `[{"method":"sso"}]`, want: LoginSourceSSO},
-		{name: "saml", amr: `["saml"]`, want: LoginSourceSSO},
-		{name: "unknown", amr: `[{"method":"webauthn"}]`, want: LoginSourceDirect},
-		{name: "missing", amr: `null`, want: LoginSourceDirect},
+func TestCentralContextUsesTrustedSIDNotJWTClaimsForLoginSource(t *testing.T) {
+	central := &fakeKlinikSSOResolver{resolved: &SSOContext{
+		ID: middlewareAppUserID, AppUserID: middlewareAppUserID,
+		Email: "person@example.com", Role: "user", Status: "approved",
+	}, introspectionOK: true}
+	middleware := &authMiddleware{
+		local:   &fakeLocalTokenVerifier{err: errors.New("not local")},
+		central: central,
+		authorization: &fakeKlinikAuthorizationResolver{
+			context: approvedTestAuthContext("user"),
+		},
 	}
-	for _, method := range methods {
-		t.Run(method.name, func(t *testing.T) {
-			token := "header." + base64.RawURLEncoding.EncodeToString([]byte(`{"amr":`+method.amr+`}`)) + ".signature"
-			middleware := &authMiddleware{
-				local: &fakeLocalTokenVerifier{err: errors.New("not local")},
-				central: &fakeKlinikSSOResolver{resolved: &SSOContext{
-					ID: middlewareAppUserID, AppUserID: middlewareAppUserID,
-					Email: "person@example.com", Role: "user", Status: "approved",
-				}},
-				authorization: &fakeKlinikAuthorizationResolver{
-					context: approvedTestAuthContext("user"),
-				},
-			}
-			trusted, err := middleware.authenticate(context.Background(), token)
-			if err != nil || trusted.LoginSource != method.want {
-				t.Fatalf("unexpected login source: %#v %v", trusted, err)
-			}
-		})
+
+	direct, err := middleware.authenticate(context.Background(), "token-with-arbitrary-amr")
+	if err != nil || direct.LoginSource != LoginSourceDirect || central.introspectionCalls != 0 {
+		t.Fatalf("SID-free direct session was not isolated: %#v err=%v fake=%#v", direct, err, central)
+	}
+
+	sso, err := middleware.authenticate(context.Background(), "password-amr-token", "trusted-central-sid")
+	if err != nil || sso.LoginSource != LoginSourceSSO || central.introspectionCalls != 1 ||
+		central.introspectionSID != "trusted-central-sid" || central.introspectionUser != middlewareAppUserID {
+		t.Fatalf("trusted SID did not establish SSO session: %#v err=%v fake=%#v", sso, err, central)
+	}
+
+	central.introspectionOK = false
+	if _, err := middleware.authenticate(context.Background(), "password-amr-token", "revoked-central-sid"); !errors.Is(err, ErrSSOUnauthorized) {
+		t.Fatalf("revoked SID did not fail closed: %v", err)
 	}
 }
 

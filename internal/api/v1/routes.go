@@ -47,7 +47,7 @@ func SetupRoutes(api fiber.Router, db *gorm.DB, cfg config.Config) {
 	browserSSOService := authentication.NewBrowserSSOService(
 		cfg,
 		browserSSORepository,
-		utils.NewSSOClientWithBaseURL(cfg.SSOBaseURL),
+		utils.NewSSOClientWithConfig(cfg.SSOBaseURL, cfg.SSOClientID, cfg.SSOIntrospectionSecret),
 		klinikIdentities,
 	)
 	authentication.SetupRoutes(

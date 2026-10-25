@@ -11,6 +11,7 @@ func validBrowserSSOConfig() Config {
 		SSOBrowserEnabled:        true,
 		SSOBaseURL:               "http://127.0.0.1:18082",
 		SSOClientID:              "klinik-pkp-web",
+		SSOIntrospectionSecret:   "klinik-test-introspection-secret-00001",
 		SSORedirectURI:           "http://localhost:3000/auth/sso/callback",
 		SSOPostLogoutRedirectURI: "http://localhost:3000/login",
 		SSOFlowTTL:               5 * time.Minute,
@@ -60,6 +61,7 @@ func TestLoadConfigBrowserSSOValues(t *testing.T) {
 	t.Setenv("SSO_BROWSER_ENABLED", "true")
 	t.Setenv("SSO_BASE_URL", " http://127.0.0.1:18082 ")
 	t.Setenv("SSO_CLIENT_ID", " klinik-pkp-web ")
+	t.Setenv("SSO_INTROSPECTION_SECRET", " klinik-test-introspection-secret-00001 ")
 	t.Setenv("SSO_REDIRECT_URI", " http://localhost:3000/auth/sso/callback ")
 	t.Setenv("SSO_POST_LOGOUT_REDIRECT_URI", " http://localhost:3000/login ")
 	t.Setenv("SSO_FLOW_TTL", "5m")

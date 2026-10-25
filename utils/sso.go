@@ -38,6 +38,7 @@ type SSOSessionUser struct {
 }
 
 type SSOSession struct {
+	SID          string         `json:"sid"`
 	AccessToken  string         `json:"accessToken"`
 	RefreshToken string         `json:"refreshToken"`
 	TokenType    string         `json:"tokenType"`
@@ -47,26 +48,69 @@ type SSOSession struct {
 }
 
 type SSOClient struct {
-	baseURL string
-	client  *http.Client
+	baseURL             string
+	clientID            string
+	introspectionSecret string
+	client              *http.Client
 }
 
 func NewSSOClient() *SSOClient {
-	return NewSSOClientWithBaseURL(
+	return NewSSOClientWithConfig(
 		strings.TrimRight(
 			strings.TrimSpace(os.Getenv("SSO_BASE_URL")),
 			"/",
-		),
+		), strings.TrimSpace(os.Getenv("SSO_CLIENT_ID")), strings.TrimSpace(os.Getenv("SSO_INTROSPECTION_SECRET")),
 	)
 }
 
 func NewSSOClientWithBaseURL(baseURL string) *SSOClient {
+	return NewSSOClientWithConfig(baseURL, "", "")
+}
+
+func NewSSOClientWithConfig(baseURL, clientID, introspectionSecret string) *SSOClient {
 	return &SSOClient{
-		baseURL: strings.TrimRight(strings.TrimSpace(baseURL), "/"),
+		baseURL:             strings.TrimRight(strings.TrimSpace(baseURL), "/"),
+		clientID:            strings.TrimSpace(clientID),
+		introspectionSecret: strings.TrimSpace(introspectionSecret),
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
 	}
+}
+
+func (c *SSOClient) IntrospectBrowserSSO(ctx context.Context, sid string, appUserID uuid.UUID) (bool, error) {
+	if c.baseURL == "" || c.clientID == "" || len(c.introspectionSecret) < 32 ||
+		strings.TrimSpace(sid) == "" || appUserID == uuid.Nil {
+		return false, ErrSSOUnauthorized
+	}
+	payload, err := json.Marshal(map[string]string{"clientId": c.clientID, "sid": strings.TrimSpace(sid), "appUserId": appUserID.String()})
+	if err != nil {
+		return false, ErrSSOUnavailable
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/v1/auth/sso/introspect", bytes.NewReader(payload))
+	if err != nil {
+		return false, ErrSSOUnavailable
+	}
+	req.Header.Set("Authorization", "Bearer "+c.introspectionSecret)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("%w: %v", ErrSSOUnavailable, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return false, ErrSSOUnauthorized
+	}
+	if resp.StatusCode != http.StatusOK {
+		return false, ErrSSOUnavailable
+	}
+	var result struct {
+		Active bool `json:"active"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&result) != nil {
+		return false, ErrSSOUnavailable
+	}
+	return result.Active, nil
 }
 
 func (c *SSOClient) ExchangeBrowserSSO(
@@ -115,7 +159,7 @@ func (c *SSOClient) ExchangeBrowserSSO(
 		return nil, fmt.Errorf("%w: decode SSO exchange: %v", ErrSSOUnavailable, err)
 	}
 	if strings.TrimSpace(session.AccessToken) == "" || strings.TrimSpace(session.RefreshToken) == "" ||
-		session.User.ID == uuid.Nil || strings.TrimSpace(session.User.Email) == "" {
+		session.User.ID == uuid.Nil || strings.TrimSpace(session.User.Email) == "" || strings.TrimSpace(session.SID) == "" {
 		return nil, fmt.Errorf("%w: invalid SSO exchange response", ErrSSOUnavailable)
 	}
 	return &session, nil

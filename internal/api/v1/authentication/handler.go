@@ -73,6 +73,7 @@ func (h *Handler) BrowserSSOExchangeHandler(ctx *fiber.Ctx) error {
 		"tokenType":    result.Session.TokenType,
 		"expiresIn":    result.Session.ExpiresIn,
 		"expiresAt":    result.Session.ExpiresAt,
+		"sid":          result.Session.SID,
 		"user":         result.User,
 	}, false)
 }

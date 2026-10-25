@@ -102,6 +102,7 @@ func browserSSOTestConfig() config.Config {
 		SSOBrowserEnabled:        true,
 		SSOBaseURL:               "http://127.0.0.1:18082",
 		SSOClientID:              "klinik-pkp-web",
+		SSOIntrospectionSecret:   "klinik-test-introspection-secret-00001",
 		SSORedirectURI:           "http://localhost:3000/auth/sso/callback",
 		SSOPostLogoutRedirectURI: "http://localhost:3000/login",
 		SSOFlowTTL:               5 * time.Minute,
@@ -115,6 +116,7 @@ func browserSSOTestService() (*BrowserSSOService, *fakeBrowserSSOFlowStore, *fak
 	flows := &fakeBrowserSSOFlowStore{}
 	central := &fakeBrowserSSOCentral{
 		session: &utils.SSOSession{
+			SID:         "11111111-1111-4111-8111-111111111111",
 			AccessToken: "central-access", RefreshToken: "central-refresh", TokenType: "bearer",
 			ExpiresIn: 3600, ExpiresAt: 9999999999,
 			User: utils.SSOSessionUser{ID: testAppUserID, Email: "person@example.com"},

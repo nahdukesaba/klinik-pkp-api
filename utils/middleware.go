@@ -2,8 +2,6 @@ package utils
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"slices"
 	"strings"
@@ -19,6 +17,7 @@ type localAccessTokenVerifier interface {
 
 type klinikSSOContextResolver interface {
 	ResolveKlinikContext(context.Context, string) (*SSOContext, error)
+	IntrospectBrowserSSO(context.Context, string, uuid.UUID) (bool, error)
 }
 
 type authMiddleware struct {
@@ -78,7 +77,7 @@ func newAuthMiddleware(
 			return authenticationError(ctx, fiber.StatusUnauthorized)
 		}
 
-		trusted, err := middleware.authenticate(ctx.UserContext(), parts[1])
+		trusted, err := middleware.authenticate(ctx.UserContext(), parts[1], ctx.Get("X-SSO-Session-ID"))
 		if err != nil {
 			switch {
 			case errors.Is(err, ErrSSOUnavailable), errors.Is(err, ErrKlinikAuthorizationUnavailable):
@@ -95,7 +94,11 @@ func newAuthMiddleware(
 	}
 }
 
-func (m *authMiddleware) authenticate(ctx context.Context, accessToken string) (*AuthContext, error) {
+func (m *authMiddleware) authenticate(ctx context.Context, accessToken string, sessionIDs ...string) (*AuthContext, error) {
+	sid := ""
+	if len(sessionIDs) > 0 {
+		sid = sessionIDs[0]
+	}
 	claims, localErr := m.local.VerifyAccessToken(accessToken)
 	if localErr == nil {
 		trusted, err := m.authorization.ResolveLegacyKlinikAuthorization(ctx, claims.UserID)
@@ -124,7 +127,18 @@ func (m *authMiddleware) authenticate(ctx context.Context, accessToken string) (
 	if trusted.Role != strings.ToLower(strings.TrimSpace(ssoContext.Role)) {
 		return nil, ErrKlinikAuthorizationDenied
 	}
-	trusted.LoginSource = loginSourceFromVerifiedJWT(accessToken)
+	sid = strings.TrimSpace(sid)
+	trusted.LoginSource = LoginSourceDirect
+	if sid != "" {
+		active, introspectionErr := m.central.IntrospectBrowserSSO(ctx, sid, trusted.AppUserID)
+		if introspectionErr != nil {
+			return nil, introspectionErr
+		}
+		if !active {
+			return nil, ErrSSOUnauthorized
+		}
+		trusted.LoginSource = LoginSourceSSO
+	}
 	return trusted, nil
 }
 
@@ -147,41 +161,6 @@ func authenticationError(ctx *fiber.Ctx, status int) error {
 		fiberError = fiber.ErrForbidden
 	}
 	return JSONResponse(ctx, status, fiberError.Message, fiberError, true)
-}
-
-func loginSourceFromVerifiedJWT(token string) LoginSource {
-	parts := strings.Split(token, ".")
-	if len(parts) != 3 {
-		return LoginSourceDirect
-	}
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return LoginSourceDirect
-	}
-	var claims struct {
-		AMR []json.RawMessage `json:"amr"`
-	}
-	if err := json.Unmarshal(payload, &claims); err != nil {
-		return LoginSourceDirect
-	}
-
-	for _, entry := range claims.AMR {
-		var method string
-		if err := json.Unmarshal(entry, &method); err != nil {
-			var structured struct {
-				Method string `json:"method"`
-			}
-			if json.Unmarshal(entry, &structured) != nil {
-				continue
-			}
-			method = structured.Method
-		}
-		switch strings.ToLower(strings.TrimSpace(method)) {
-		case "magiclink", "otp", "sso", "saml":
-			return LoginSourceSSO
-		}
-	}
-	return LoginSourceDirect
 }
 
 // ROLE MIDDLEWARE - RESTRICTS ACCESS TO SPECIFIC ROLES.

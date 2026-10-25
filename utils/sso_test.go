@@ -26,6 +26,7 @@ func TestSSOClientExchangeBrowserSSOContract(t *testing.T) {
 		}
 		response.Header().Set("Content-Type", "application/json")
 		_, _ = response.Write([]byte(`{
+			"sid":"11111111-1111-4111-8111-111111111111",
             "accessToken":"access",
             "refreshToken":"refresh",
             "tokenType":"bearer",

@@ -58,6 +58,7 @@ type Config struct {
 	SSOPostLogoutRedirectURI string
 	SSOFlowTTL               time.Duration
 	SSOFlowHMACKey           string
+	SSOIntrospectionSecret   string
 }
 
 func LoadConfig() Config {
@@ -107,6 +108,7 @@ func LoadConfig() Config {
 		SSOPostLogoutRedirectURI: strings.TrimSpace(getEnv("SSO_POST_LOGOUT_REDIRECT_URI", "")),
 		SSOFlowTTL:               getEnvDuration("SSO_FLOW_TTL", 5*time.Minute),
 		SSOFlowHMACKey:           strings.TrimSpace(getEnv("SSO_FLOW_HMAC_KEY", "")),
+		SSOIntrospectionSecret:   strings.TrimSpace(getEnv("SSO_INTROSPECTION_SECRET", "")),
 	}
 
 	// VALIDATE REQUIRED CONFIGURATIONS
@@ -123,6 +125,9 @@ func (c Config) ValidateBrowserSSO() error {
 	}
 	if strings.TrimSpace(c.SSOClientID) == "" {
 		return fmt.Errorf("SSO_CLIENT_ID is required when browser SSO is enabled")
+	}
+	if len(strings.TrimSpace(c.SSOIntrospectionSecret)) < 32 {
+		return fmt.Errorf("SSO_INTROSPECTION_SECRET must be at least 32 characters")
 	}
 	for name, value := range map[string]string{
 		"SSO_BASE_URL":                 c.SSOBaseURL,

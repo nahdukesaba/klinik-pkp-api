@@ -63,10 +63,6 @@ func NewSSOClient() *SSOClient {
 	)
 }
 
-func NewSSOClientWithBaseURL(baseURL string) *SSOClient {
-	return NewSSOClientWithConfig(baseURL, "", "")
-}
-
 func NewSSOClientWithConfig(baseURL, clientID, introspectionSecret string) *SSOClient {
 	return &SSOClient{
 		baseURL:             strings.TrimRight(strings.TrimSpace(baseURL), "/"),

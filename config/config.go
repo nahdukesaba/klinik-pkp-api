@@ -15,37 +15,16 @@ import (
 
 type Config struct {
 	// APP
-	AppEnv       string
-	DockerTarget string
-	DockerCmd    string
-	AppPort      string
+	AppEnv  string
+	AppPort string
 
 	// DATABASE
-	DBHost          string
-	DBPort          string
-	DBUser          string
-	DBPass          string
-	DBName          string
-	DBSSLMode       string
-	SUPABASE_DB_URL string
-
-	// ROLES
-	RoleSuperAdmin         string
-	RoleAdminEselon1       string
-	RoleVerificatorEselon1 string
-	RoleAdminBalai         string
-	RoleVerificatorBalai   string
-	RoleSurveyor           string
-	RoleUser               string
-
-	// RESOURCES
-	ResourceNegara       string
-	ResourcePengembang   string
-	ResourceSwadaya      string
-	ResourceGotongroyong string
-
-	// BANNED WORDS
-	BannedWords []string
+	DBHost    string
+	DBPort    string
+	DBUser    string
+	DBPass    string
+	DBName    string
+	DBSSLMode string
 
 	// CORS
 	CORSAllowOrigins []string
@@ -66,10 +45,8 @@ func LoadConfig() Config {
 
 	cfg := Config{
 		// APP
-		AppEnv:       getEnv("APP_ENV", "development"),
-		DockerTarget: getEnv("DOCKER_TARGET", "dev"),
-		DockerCmd:    getEnv("DOCKER_CMD", "air"),
-		AppPort:      getEnv("APP_PORT", "8000"),
+		AppEnv:  getEnv("APP_ENV", "development"),
+		AppPort: getEnv("APP_PORT", "8000"),
 
 		// DATABASE
 		DBHost:    getEnv("DB_HOST", "127.0.0.1"),
@@ -78,24 +55,6 @@ func LoadConfig() Config {
 		DBPass:    getEnv("DB_PASS", ""),
 		DBName:    getEnv("DB_NAME", "klinik-pkp-api"),
 		DBSSLMode: getEnv("DB_SSLMODE", "disable"),
-
-		// ROLES
-		RoleSuperAdmin:         getEnv("ROLE_SUPER_ADMIN", "Super Admin"),
-		RoleAdminEselon1:       getEnv("ROLE_ADMIN_ESELON_1", "Admin Eselon 1"),
-		RoleVerificatorEselon1: getEnv("ROLE_VERIFICATOR_ESELON_1", "Verificator Eselon 1"),
-		RoleAdminBalai:         getEnv("ROLE_ADMIN_BALAI", "Admin Balai"),
-		RoleVerificatorBalai:   getEnv("ROLE_VERIFICATOR_BALAI", "Verificator Balai"),
-		RoleSurveyor:           getEnv("ROLE_SURVEYOR", "Surveyor"),
-		RoleUser:               getEnv("ROLE_USER", "User"),
-
-		// RESOURCES
-		ResourceNegara:       getEnv("RESOURCE_NEGARA", "Negara"),
-		ResourcePengembang:   getEnv("RESOURCE_PENGEMBANG", "Pengembang"),
-		ResourceSwadaya:      getEnv("RESOURCE_SWADAYA", "Swadaya"),
-		ResourceGotongroyong: getEnv("RESOURCE_GOTONGROYONG", "Gotong Royong"),
-
-		// BANNED WORDS
-		BannedWords: parseCSV(getEnv("BANNED_WORDS", "")),
 
 		// CORS
 		CORSAllowOrigins: parseCSV(getEnv("CORS_ALLOW_ORIGINS", "http://localhost:5173")),

@@ -255,12 +255,11 @@ func displayAvailableMigrations() {
 	fmt.Println()
 
 	fmt.Println("4. Modifying table(s):")
-	fmt.Println("   > go run cmd/migrate/main.go modify 20260104_add_example_column_to_bsps")
-	fmt.Println("   > go run cmd/migrate/main.go modify 20260104_add_indexes_to_bsps")
+	fmt.Println("   > go run cmd/migrate/main.go modify 20261023_create_klinik_sso_flow")
 	fmt.Println()
 
 	fmt.Println("5. Rolling back table(s):")
-	fmt.Println("   > go run cmd/migrate/main.go rollback 20260104_add_example_column_to_bsps")
+	fmt.Println("   > go run cmd/migrate/main.go rollback 20261023_create_klinik_sso_flow")
 	fmt.Println()
 }
 

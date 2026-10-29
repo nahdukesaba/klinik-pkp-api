@@ -84,14 +84,14 @@ func NewService(db *gorm.DB, centralBaseURL ...string) *Service {
 	if len(centralBaseURL) > 0 {
 		baseURL = centralBaseURL[0]
 	}
-	return NewServiceWithStores(db, identity.NewRepository(db), NewCanonicalRepository(db), NewCentralProvisioner(baseURL))
+	return newServiceWithStores(db, identity.NewRepository(db), NewCanonicalRepository(db), NewCentralProvisioner(baseURL))
 }
 
-func NewServiceWithIdentityStore(db *gorm.DB, identities identity.Store) *Service {
-	return NewServiceWithStores(db, identities, NewCanonicalRepository(db), NewCentralProvisioner(""))
+func newServiceWithIdentityStore(db *gorm.DB, identities identity.Store) *Service {
+	return newServiceWithStores(db, identities, NewCanonicalRepository(db), NewCentralProvisioner(""))
 }
 
-func NewServiceWithStores(db *gorm.DB, identities identity.Store, directory DirectoryStore, provisioner Provisioner) *Service {
+func newServiceWithStores(db *gorm.DB, identities identity.Store, directory DirectoryStore, provisioner Provisioner) *Service {
 	return &Service{db: db, identities: identities, directory: directory, provisioner: provisioner, validator: utils.NewValidator()}
 }
 

@@ -3,7 +3,6 @@ package utils
 import (
 	"errors"
 	"github.com/go-playground/validator/v10"
-	"regexp"
 )
 
 // STRUCT TO INDICATE VALIDATOR UTILITIES
@@ -28,33 +27,6 @@ func (v *Validator) ValidateStruct(payload any) (string, error) {
 	}
 
 	return message, err
-}
-
-// VALIDATE EMAIL FORMAT
-func (v *Validator) ValidateEmail(email string) bool {
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
-	return emailRegex.MatchString(email)
-}
-
-// VALIDATE PASSWORD STRENGTH (MINIMUM 8 CHARACTERS)
-func (v *Validator) ValidatePasswordStrength(password string) (bool, string) {
-	if len(password) < 8 {
-		return false, "Password must be at least 8 characters"
-	}
-
-	return true, ""
-}
-
-// VALIDATE PHONE NUMBER FORMAT
-func (v *Validator) ValidatePhone(phone string) bool {
-	if phone == "" {
-		return true
-	}
-
-	phoneRegex := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
-
-	return phoneRegex.MatchString(phone)
 }
 
 func FormatValidationError(err error, payload any) string {

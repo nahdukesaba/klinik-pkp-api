@@ -37,7 +37,7 @@ func TestSSOClientExchangeBrowserSSOContract(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewSSOClientWithBaseURL(server.URL)
+	client := NewSSOClientWithConfig(server.URL, "", "")
 	session, err := client.ExchangeBrowserSSO(
 		context.Background(),
 		"central-code",
@@ -75,7 +75,7 @@ func TestSSOClientResolvesCanonicalKlinikContext(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := NewSSOClientWithBaseURL(server.URL).ResolveKlinikContext(
+	result, err := NewSSOClientWithConfig(server.URL, "", "").ResolveKlinikContext(
 		context.Background(),
 		"central-access",
 	)

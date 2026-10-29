@@ -1,50 +1,43 @@
-## **Clean Code Best Practices**
+# Klinik PKP API
 
-#### ✅ ImageService.go
-- Single responsibility: setiap function 1 tugas
-- Short functions (< 30 lines)
-- Clear naming: `ExtractImageDimensions`, `UpdateImageDimensions`
-- Error handling yang konsisten
-- No magic numbers (pakai config)
+Backend Go/Fiber untuk aplikasi Klinik PKP. API menyediakan data wilayah dan
+program perumahan, pengelolaan pengguna Klinik, upload berkas, autentikasi
+kompatibilitas, serta Browser SSO melalui Central SSO.
 
-#### ✅ ImageController.go
-- Thin controller, logic di service
-- Consistent response format
-- Proper HTTP status codes
-- Rollback pattern saat error
+## Menjalankan aplikasi
 
-#### ✅ RusunService.go
-- XSS sanitization
-- SQL injection prevention (GORM parameterized queries)
-- payload validation
-- Foreign key validation
+1. Salin `.env.example` menjadi `.env` dan isi konfigurasi database, JWT, CORS,
+   dan Central SSO yang sesuai dengan lingkungan.
+2. Jalankan migrasi yang diperlukan dengan perintah di bawah.
+3. Jalankan API dari root repository.
 
-#### ✅ Seed Files
-- Idempotent (bisa dijalankan berkali-kali)
-- Check existence sebelum insert
-- Clear logging
-- Foreign key dependencies handled
+```bash
+go run cmd/migrate/main.go --help
+go run cmd/seed/main.go --help
+go run .
+```
 
-## **API Endpoints**
+Secara default API mendengarkan `APP_PORT=8000`. Endpoint pemeriksaan tersedia
+pada `GET /api/v1/health`.
 
-Base URL: `http://localhost:3000/api/v1`
+## Model autentikasi
 
-### Central Browser SSO
+Browser SSO adalah jalur authorization-code + PKCE yang dimiliki backend. Alur
+aktifnya adalah:
 
-Browser SSO is an additional authorization-code + PKCE login path. It does not
-remove or change the existing `/authentications` login, refresh, and logout
-routes.
+```text
+Klinik frontend -> GET /api/v1/auth/sso/start
+-> Central /authorize
+-> Klinik frontend callback
+-> POST /api/v1/auth/sso/exchange
+```
 
-- `GET /api/v1/auth/sso/start` creates a short-lived flow and redirects to the
-  trusted Central `/authorize` endpoint.
-- `POST /api/v1/auth/sso/exchange` accepts `code`, `state`, and the optional
-  safe Central `status`. The backend atomically consumes the hashed state,
-  derives the PKCE verifier, exchanges the code server-to-server, validates
-  the `klinik_pkp` context, and resolves `klinikpkp_user` by `app_user_id`.
-- `GET /api/v1/auth/sso/logout` redirects to Central `/logout` using only the
-  configured client ID and post-logout URI.
+Backend menyimpan hash state dan verifier PKCE dalam flow berumur pendek,
+menukar code ke Central secara server-to-server, kemudian memvalidasi konteks
+`klinik_pkp`, status membership, peran, serta identity link sebelum membuat
+sesi aplikasi.
 
-Local configuration:
+Konfigurasi Browser SSO:
 
 ```env
 SSO_BROWSER_ENABLED=true
@@ -54,136 +47,72 @@ SSO_REDIRECT_URI=http://localhost:3000/auth/sso/callback
 SSO_POST_LOGOUT_REDIRECT_URI=http://localhost:3000/login
 SSO_FLOW_TTL=5m
 SSO_FLOW_HMAC_KEY=
+SSO_INTROSPECTION_SECRET=
 ```
 
-`SSO_FLOW_HMAC_KEY` must be a base64-encoded random key of at least 32 bytes
-and must not be committed. Production URLs are deployment-specific and are
-not finalized. Migration `20261023_create_klinik_sso_flow` creates
-`public.klinikpkp_sso_flow`; run it only against the intended environment.
+`SSO_FLOW_HMAC_KEY` harus berupa base64 dari sedikitnya 32 byte acak.
+`SSO_INTROSPECTION_SECRET` harus sama dengan secret Klinik pada Central dan
+panjangnya sedikitnya 32 karakter. Jangan menyimpan nilai produksi dalam Git.
 
-### Klinik authorization and logout
+## Jalur kompatibilitas yang masih aktif
 
-Klinik authorization is sourced from the shared Central SSO tables. Every
-protected request, including requests using a legacy local HS256 JWT, resolves
-the linked `app_user_id` and requires an approved `app_memberships` row for
-`klinik_pkp`. The only accepted application roles are `user` and `admin`.
-`klinikpkp_user.role` and roles embedded in legacy JWTs are retained only for
-compatibility and are not authorization sources.
+Route `POST`, `PUT`, dan `DELETE /api/v1/authentications` masih digunakan oleh
+Klinik frontend/BFF untuk login langsung, refresh, dan logout. JWT HS256 lokal,
+tabel authentication, serta `ACCESS_TOKEN_KEY` dan `REFRESH_TOKEN_KEY` karena
+itu belum boleh dihapus.
 
-The legacy `/authentications` login and refresh endpoints remain compatibility
-paths. Both revalidate the current Central membership before issuing tokens,
-and issued roles come from `app_memberships`. Consequently, an existing token
-is denied on its next protected request after its membership is rejected or
-disabled.
+Setiap request terlindungi tetap memuat ulang membership Central. Role dari
+JWT atau tabel pengguna lokal bukan sumber otorisasi akhir. Role aplikasi yang
+diterima hanya `user` dan `admin` dari membership `klinik_pkp` yang approved.
 
-Logout returns `data.centralLogoutRequired`. Direct password and legacy local
-sessions return `false`; a verified Browser SSO session returns `true`. The
-value is derived server-side from the verified token's authentication method.
-The existing `GET /api/v1/auth/sso/logout` bridge remains the trusted Central
-logout target when that value is `true`.
+Logout mengembalikan `data.centralLogoutRequired`. Nilai tersebut dihitung
+dari konteks autentikasi yang telah diverifikasi, bukan dari input browser.
+Jika bernilai `true`, frontend melanjutkan ke bridge
+`GET /api/v1/auth/sso/logout`.
 
-#### Rusun:
-- `GET /rusun` - List all rusun
-- `GET /rusun/:id` - Get rusun detail
-- `GET /rusun/map` - Get map data
-- `GET /rusun/statistics` - Get statistics
-- `POST /rusun` - Create rusun (admin only)
-- `PUT /rusun/:id` - Update rusun (admin only)
-- `DELETE /rusun/:id` - Delete rusun (admin only)
+## Endpoint utama
 
-## **Security Best Practices**
+- `GET /api/v1/` — informasi API.
+- `GET /api/v1/health` — health check proses dan koneksi awal database.
+- `/api/v1/authentications` — login, refresh, dan logout kompatibilitas.
+- `/api/v1/auth/sso/*` — start, exchange, dan logout Browser SSO.
+- `/api/v1/users` — direktori pengguna Klinik.
+- `/api/v1/provinces`, `/regions`, `/districts`, `/villages` — data wilayah.
+- `/api/v1/bsps`, `/kumuh`, `/rusun`, `/bank-desain`, `/sosialisasi`, `/faq`
+  — data domain Klinik.
+- `/api/v1/uploads` — upload gambar dan PDF tervalidasi.
 
-✅ **SQL Injection Prevention:**
-- Semua query menggunakan GORM parameterized queries
-- Tidak ada string interpolation manual
+Detail method, parameter, dan pembatasan role mengikuti route pada masing-masing
+package di `internal/api/v1`.
 
-✅ **XSS Prevention:**
-- HTML escape semua input
-- Remove script tags
-- Remove event handlers (onclick, dll)
+## Migrasi dan seeder
 
-✅ **File Upload Security:**
-- Whitelist MIME types
-- File size limitation
-- Unique filename generation
-- No executable file upload
+CLI migrasi mendukung migrasi model, modifikasi bernama, rollback, drop, dan
+truncate. Lihat daftar dan sintaks terkini melalui:
 
-✅ **Payload Validation:**
-- Sanitize semua string input
-- Validate foreign keys
-- Validate ranges (lat/long, units, years)
-- Validate enum values (status)
-
-## 📝 Cara Menggunakan
-
-### 1. Run Migrations & Seeder
 ```bash
 go run cmd/migrate/main.go --help
-go run cmd/seed/main.go --help 
-go run cmd/migrate/main.go villages
-go run cmd/seed/main.g villages
 ```
 
-### 2. Run Server
+Migration `20261023_create_klinik_sso_flow` membuat tabel flow Browser SSO.
+Jalankan migrasi hanya pada database lingkungan yang memang dituju. Migration
+lama tetap dipertahankan sebagai histori skema dan tidak boleh dihapus hanya
+karena model aplikasinya berubah.
+
+Seeder dijalankan secara eksplisit, bukan otomatis dari `DB_SEED`:
+
 ```bash
-go run cmd/server/main.go
-# atau
-go build -o klinik-pkp-api.exe .
-./klinik-pkp-api.exe
+go run cmd/seed/main.go --help
 ```
 
-## ✨ Clean Code Principles Applied
+## Verifikasi perubahan
 
-1. **Single Responsibility Principle**
-   - Setiap function melakukan 1 task
-   - Service untuk business logic
-   - Controller hanya handle HTTP
-   - Utils untuk helper functions
+```bash
+go test ./...
+go build ./...
+go vet ./...
+```
 
-2. **DRY (Don't Repeat Yourself)**
-   - Reusable validation functions
-   - Shared sanitization logic
-   - Common response helpers
-
-3. **KISS (Keep It Simple, Stupid)**
-   - Short functions
-   - Clear naming
-   - No over-engineering
-
-4. **Error Handling**
-   - Consistent error messages
-   - Proper error propagation
-   - Rollback on failure
-
-5. **Security First**
-   - payload validation
-   - XSS prevention
-   - SQL injection prevention
-   - File upload security
-
-6. **Maintainability**
-   - Clear comments
-   - Logical file structure
-   - Easy to test
-   - Easy to extend
-
-## 🎯 Testing Checklist
-
-- [x] Build berhasil tanpa error
-- [ ] Migrations berhasil
-- [ ] Seeder berhasil (8 rusun, 2 users)
-- [ ] Upload single image
-- [ ] Upload multiple images
-- [ ] Image width/height extracted
-- [ ] GET /rusun menampilkan data lengkap dengan district & village
-- [ ] Login admin berhasil
-- [ ] Login user berhasil
-
-## 🔧 Next Steps (Optional)
-
-1. Image compression sebelum simpan
-2. Thumbnail generation
-3. Cloud storage integration (S3, GCS)
-4. Image watermark
-5. Rate limiting untuk upload
-6. Virus scanning untuk file upload
+Pengujian otomatis mencakup konfigurasi Browser SSO, PKCE/state replay,
+otorisasi membership, middleware JWT/SSO, kontrak logout, serta direktori
+pengguna canonical.

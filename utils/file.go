@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"mime/multipart"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -48,13 +47,4 @@ func ValidateFileCategory(category string) (string, error) {
 	}
 
 	return formattedCategory, nil
-}
-
-// HELPER TO PARSE STRING TO UINT64
-func ParseUint64(value string) (uint64, error) {
-	id, err := strconv.ParseUint(strings.TrimSpace(value), 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid uint64 format: %w", err)
-	}
-	return id, nil
 }

@@ -77,7 +77,7 @@ func directoryFixture(status MembershipStatus) DirectoryUser {
 
 func TestCanonicalDirectoryIncludesEveryMembershipLifecycleStatus(t *testing.T) {
 	store := &fakeDirectoryStore{users: []DirectoryUser{directoryFixture(StatusApproved), directoryFixture(StatusPending), directoryFixture(StatusRejected), directoryFixture(StatusDisabled)}}
-	service := NewServiceWithStores(nil, nil, store, nil)
+	service := newServiceWithStores(nil, nil, store, nil)
 	users, total, err := service.List(context.Background(), DirectoryQuery{Pagination: utils.PaginationQuery{Page: 1, Limit: 10}})
 	if err != nil || total != 4 || len(users) != 4 {
 		t.Fatalf("unexpected canonical list: total=%d users=%d err=%v", total, len(users), err)
@@ -91,7 +91,7 @@ func TestCanonicalDirectoryIncludesEveryMembershipLifecycleStatus(t *testing.T) 
 
 func TestCanonicalDirectoryFiltersAreMembershipFields(t *testing.T) {
 	store := &fakeDirectoryStore{}
-	service := NewServiceWithStores(nil, nil, store, nil)
+	service := newServiceWithStores(nil, nil, store, nil)
 	_, _, err := service.List(context.Background(), DirectoryQuery{Pagination: utils.PaginationQuery{Page: 2, Limit: 20}, Keyword: " nip ", Role: RoleUser, Status: StatusPending})
 	if err != nil {
 		t.Fatal(err)
@@ -107,12 +107,12 @@ func TestCanonicalDirectoryFiltersAreMembershipFields(t *testing.T) {
 func TestCanonicalDetailUsesAppUserIDAndEmployeeProfile(t *testing.T) {
 	user := directoryFixture(StatusApproved)
 	store := &fakeDirectoryStore{users: []DirectoryUser{user}}
-	result, err := NewServiceWithStores(nil, nil, store, nil).Get(context.Background(), user.AppUserID)
+	result, err := newServiceWithStores(nil, nil, store, nil).Get(context.Background(), user.AppUserID)
 	if err != nil || result == nil || result.AppUserID != user.AppUserID || result.NIP == nil || *result.NIP != "198001012010011001" || result.Role != RoleAdmin {
 		t.Fatalf("unexpected canonical detail: %#v err=%v", result, err)
 	}
 	legacyLocalID := uuid.MustParse("33333333-3333-4333-8333-333333333333")
-	if _, err := NewServiceWithStores(nil, nil, store, nil).Get(context.Background(), legacyLocalID); !errors.Is(err, ErrDirectoryUserNotFound) {
+	if _, err := newServiceWithStores(nil, nil, store, nil).Get(context.Background(), legacyLocalID); !errors.Is(err, ErrDirectoryUserNotFound) {
 		t.Fatalf("legacy local ID unexpectedly resolved: %v", err)
 	}
 }
@@ -121,7 +121,7 @@ func TestCanonicalUpdateCarriesProfileAndMembershipOnly(t *testing.T) {
 	actor, target := uuid.New(), uuid.New()
 	store := &fakeDirectoryStore{}
 	input := DirectoryUpdate{FullName: " Pegawai Baru ", Phone: " 0812 ", NIP: " 123 ", NIK: " 456 ", Alamat: " Jalan ", GelarDepan: " Dr. ", GelarBelakang: " M.T. ", Role: RoleUser, Status: StatusRejected}
-	_, err := NewServiceWithStores(nil, nil, store, nil).Update(context.Background(), actor, target, input)
+	_, err := newServiceWithStores(nil, nil, store, nil).Update(context.Background(), actor, target, input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,14 +133,14 @@ func TestCanonicalUpdateCarriesProfileAndMembershipOnly(t *testing.T) {
 func TestDisableTargetsOnlyCanonicalMembership(t *testing.T) {
 	actor, target := uuid.New(), uuid.New()
 	store := &fakeDirectoryStore{}
-	if err := NewServiceWithStores(nil, nil, store, nil).Disable(context.Background(), actor, target); err != nil {
+	if err := newServiceWithStores(nil, nil, store, nil).Disable(context.Background(), actor, target); err != nil {
 		t.Fatal(err)
 	}
 	if store.disableActor != actor || store.disableTarget != target {
 		t.Fatal("disable did not use canonical IDs")
 	}
 	store.disableErr = ErrSelfAccessMutation
-	if err := NewServiceWithStores(nil, nil, store, nil).Disable(context.Background(), actor, actor); !errors.Is(err, ErrSelfAccessMutation) {
+	if err := newServiceWithStores(nil, nil, store, nil).Disable(context.Background(), actor, actor); !errors.Is(err, ErrSelfAccessMutation) {
 		t.Fatalf("self protection lost: %v", err)
 	}
 }
@@ -151,7 +151,7 @@ func TestCreateDelegatesCanonicalProvisioningWithoutPassword(t *testing.T) {
 	user.AppUserID = id
 	store := &fakeDirectoryStore{users: []DirectoryUser{user}}
 	provisioner := &fakeProvisioner{id: id}
-	result, err := NewServiceWithStores(nil, nil, store, provisioner).Create(context.Background(), "Bearer central-token", DirectoryCreate{Email: " User@Example.com ", DirectoryUpdate: DirectoryUpdate{FullName: " New User ", Role: RoleUser, Status: StatusPending}})
+	result, err := newServiceWithStores(nil, nil, store, provisioner).Create(context.Background(), "Bearer central-token", DirectoryCreate{Email: " User@Example.com ", DirectoryUpdate: DirectoryUpdate{FullName: " New User ", Role: RoleUser, Status: StatusPending}})
 	if err != nil || result == nil {
 		t.Fatalf("create failed: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestCanonicalAdminRepositoryHasNoLegacyDirectoryDependency(t *testing.T) {
 }
 
 func TestCanonicalRouteRejectsNonUUIDInsteadOfFallingBack(t *testing.T) {
-	handler := NewHandler(NewServiceWithStores(nil, nil, &fakeDirectoryStore{}, nil))
+	handler := NewHandler(newServiceWithStores(nil, nil, &fakeDirectoryStore{}, nil))
 	app := fiber.New()
 	app.Get("/users/:id", handler.GetUserByIdHandler)
 	response, err := app.Test(httptest.NewRequest(http.MethodGet, "/users/legacy-email@example.com", nil))

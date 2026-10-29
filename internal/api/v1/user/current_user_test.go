@@ -37,7 +37,7 @@ func TestUsersMeReturnsCanonicalDataWithoutLocalUser(t *testing.T) {
 		Phone: &phone, NIP: &nip, Role: "admin", MembershipStatus: "approved",
 		ApplicationCode: identity.KlinikApplicationCode,
 	}}
-	handler := NewHandler(NewServiceWithIdentityStore(nil, store))
+	handler := NewHandler(newServiceWithIdentityStore(nil, store))
 	app := fiber.New()
 	app.Get("/users/:id", func(ctx *fiber.Ctx) error {
 		ctx.Locals("auth_context", &utils.AuthContext{
@@ -77,7 +77,7 @@ func TestUsersMeDeniesNonApprovedCanonicalIdentity(t *testing.T) {
 				Role: "user", MembershipStatus: status,
 				ApplicationCode: identity.KlinikApplicationCode,
 			}}
-			_, err := NewServiceWithIdentityStore(nil, store).GetCurrentUser(context.Background(), appUserID)
+			_, err := newServiceWithIdentityStore(nil, store).GetCurrentUser(context.Background(), appUserID)
 			if err != ErrCanonicalIdentityUnavailable {
 				t.Fatalf("expected canonical identity unavailable, got %v", err)
 			}

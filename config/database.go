@@ -36,9 +36,10 @@ func ConnectDatabase(dsn string) *gorm.DB {
 		log.Fatal("Failed to get database instance:", err)
 	}
 
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	// Keep this service within the shared Supabase session-pool limit.
+	sqlDB.SetMaxIdleConns(2)
+	sqlDB.SetMaxOpenConns(4)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
 	return db
 }

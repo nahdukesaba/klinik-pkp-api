@@ -68,17 +68,10 @@ func hashRefreshToken(token string) string {
 }
 
 func (s *gormLegacyAuthenticationStore) FindUserByEmail(
-	ctx context.Context,
-	email string,
+	_ context.Context,
+	_ string,
 ) (*user.User, error) {
-	var localUser user.User
-	if s.db == nil {
-		return nil, gorm.ErrRecordNotFound
-	}
-	if err := s.db.WithContext(ctx).Where("email = ?", email).First(&localUser).Error; err != nil {
-		return nil, err
-	}
-	return &localUser, nil
+	return nil, gorm.ErrRecordNotFound
 }
 
 func (s *gormLegacyAuthenticationStore) FindAuthentication(
@@ -137,22 +130,10 @@ func (s *gormLegacyAuthenticationStore) RotateAuthentication(
 }
 
 func (s *gormLegacyAuthenticationStore) DeleteAuthentication(
-	ctx context.Context,
-	hashedToken string,
-	plainToken string,
+	_ context.Context,
+	_ string,
+	_ string,
 ) error {
-	if s.db == nil {
-		return gorm.ErrInvalidDB
-	}
-	result := s.db.WithContext(ctx).
-		Where("token = ? OR token = ?", hashedToken, plainToken).
-		Delete(&Authentication{})
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
 	return nil
 }
 

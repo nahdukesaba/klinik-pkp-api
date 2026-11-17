@@ -79,61 +79,17 @@ func (r *databaseKlinikAuthorizationResolver) ResolveKlinikAuthorization(
 }
 
 func (r *databaseKlinikAuthorizationResolver) ResolveLegacyKlinikAuthorization(
-	ctx context.Context,
-	localUserID uuid.UUID,
+	_ context.Context,
+	_ uuid.UUID,
 ) (*AuthContext, error) {
-	if r == nil || r.db == nil || localUserID == uuid.Nil {
-		return nil, ErrKlinikAuthorizationDenied
-	}
-
-	var result struct {
-		AppUserID uuid.UUID `gorm:"column:app_user_id"`
-	}
-
-	query := r.db.WithContext(ctx).Raw(`
-SELECT
-    ku.app_user_id
-FROM public.klinikpkp_user AS ku
-WHERE ku.id = ?
-  AND ku.app_user_id IS NOT NULL
-  AND ku.is_active = TRUE
-  AND ku.deleted_at IS NULL
-LIMIT 1`, localUserID).Scan(&result)
-	if query.Error != nil {
-		return nil, errors.Join(ErrKlinikAuthorizationUnavailable, query.Error)
-	}
-	if query.RowsAffected != 1 || result.AppUserID == uuid.Nil {
-		return nil, ErrKlinikAuthorizationDenied
-	}
-
-	trusted, err := r.ResolveKlinikAuthorization(ctx, result.AppUserID)
-	if err != nil {
-		return nil, err
-	}
-	trusted.LocalUserID = &localUserID
-	return trusted, nil
+	return nil, ErrKlinikAuthorizationDenied
 }
 
 func (r *databaseKlinikAuthorizationResolver) findOptionalLocalUserID(
-	ctx context.Context,
-	appUserID uuid.UUID,
+	_ context.Context,
+	_ uuid.UUID,
 ) *uuid.UUID {
-	if r == nil || r.db == nil {
-		return nil
-	}
-	var result struct {
-		ID uuid.UUID `gorm:"column:id"`
-	}
-	query := r.db.WithContext(ctx).Raw(`
-SELECT id
-FROM public.klinikpkp_user
-WHERE app_user_id = ?
-  AND deleted_at IS NULL
-LIMIT 1`, appUserID).Scan(&result)
-	if query.Error != nil || query.RowsAffected != 1 || result.ID == uuid.Nil {
-		return nil
-	}
-	return &result.ID
+	return nil
 }
 
 func authorizedKlinikContext(canonical *identity.KlinikIdentity) (*AuthContext, error) {

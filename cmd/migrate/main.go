@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"klinik-pkp-api/config"
-	"klinik-pkp-api/internal/api/v1/authentication"
 	"klinik-pkp-api/internal/api/v1/bank-desain"
 	"klinik-pkp-api/internal/api/v1/bsps"
 	"klinik-pkp-api/internal/api/v1/district"
@@ -13,7 +12,6 @@ import (
 	"klinik-pkp-api/internal/api/v1/region"
 	"klinik-pkp-api/internal/api/v1/rusun"
 	"klinik-pkp-api/internal/api/v1/sosialisasi"
-	"klinik-pkp-api/internal/api/v1/user"
 	"klinik-pkp-api/internal/api/v1/village"
 	"klinik-pkp-api/utils"
 	"log"
@@ -34,8 +32,6 @@ func createTables(db *gorm.DB, models ...string) error {
 			&region.Region{},
 			&district.District{},
 			&village.Village{},
-			&user.User{},
-			&authentication.Authentication{},
 			&rusun.Rusun{},
 			&bsps.BSPS{},
 			&sosialisasi.Sosialisasi{},
@@ -63,18 +59,8 @@ func createTables(db *gorm.DB, models ...string) error {
 		// CREATE SPECIFIC MODELS
 		for _, model := range models {
 			switch strings.ToLower(model) {
-			case "user", "users":
-				if err := db.AutoMigrate(&user.User{}); err != nil {
-					return err
-				}
-
-				log.Println("✓ User table migrated")
-			case "authentication", "authentications":
-				if err := db.AutoMigrate(&authentication.Authentication{}); err != nil {
-					return err
-				}
-
-				log.Println("✓ Authentication table migrated")
+			case "user", "users", "authentication", "authentications":
+				log.Println("✓ User/Authentication tables are managed by Central SSO; skipping local migration")
 			case "province":
 				if err := db.AutoMigrate(&province.Province{}); err != nil {
 					return err

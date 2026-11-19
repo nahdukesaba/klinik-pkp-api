@@ -83,6 +83,9 @@ func (h *Handler) BrowserSSOLogoutHandler(ctx *fiber.Ctx) error {
 	if h.browserSSO == nil {
 		return browserSSOHandlerError(ctx, browserSSOUnavailable())
 	}
+	if h.service != nil && h.service.tokenManager != nil {
+		h.service.tokenManager.ClearRefreshTokenCookie(ctx)
+	}
 	cancelReturn := strings.TrimSpace(ctx.Query("cancel_return"))
 	if cancelReturn == "" {
 		cancelReturn = strings.TrimSpace(ctx.Query("return_to"))

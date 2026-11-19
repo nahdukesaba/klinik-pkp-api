@@ -130,6 +130,7 @@ func (s *BrowserSSOService) LogoutURL(cancelReturn ...string) (string, error) {
 	query := logoutURL.Query()
 	query.Set("client_id", s.config.SSOClientID)
 	query.Set("post_logout_redirect_uri", s.config.SSOPostLogoutRedirectURI)
+	query.Set("immediate", "1")
 	if len(cancelReturn) > 0 && cancelReturn[0] != "" {
 		if sanitized := sanitizeBrowserSSOCancelReturn(cancelReturn[0]); sanitized != "" {
 			query.Set("cancel_return", sanitized)

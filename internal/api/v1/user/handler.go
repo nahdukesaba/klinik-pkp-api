@@ -42,6 +42,18 @@ func (h *Handler) GetCurrentUserHandler(ctx *fiber.Ctx) error {
 	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
 }
 
+func (h *Handler) GetCurrentUserAppsHandler(ctx *fiber.Ctx) error {
+	trusted, ok := utils.TrustedAuthContext(ctx)
+	if !ok {
+		return utils.JSONResponse(ctx, fiber.StatusUnauthorized, fiber.ErrUnauthorized.Message, fiber.ErrUnauthorized, true)
+	}
+	data, err := h.service.ListApprovedApplications(ctx.UserContext(), trusted.AppUserID)
+	if err != nil {
+		return utils.JSONResponse(ctx, fiber.StatusInternalServerError, "", err, true)
+	}
+	return utils.JSONResponse(ctx, fiber.StatusOK, "success", data, false)
+}
+
 func (h *Handler) GetUserByIdHandler(ctx *fiber.Ctx) error {
 	id, err := uuid.Parse(ctx.Params("id"))
 	if err != nil {

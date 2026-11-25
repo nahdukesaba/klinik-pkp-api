@@ -59,6 +59,13 @@ type DirectoryUser struct {
 	UpdatedAt     time.Time        `gorm:"column:updated_at" json:"updatedAt"`
 }
 
+type ApprovedApplication struct {
+	Code      string `gorm:"column:code" json:"code"`
+	Name      string `gorm:"column:name" json:"name"`
+	LaunchURL string `gorm:"column:launch_url" json:"launchUrl"`
+	LogoURL   string `gorm:"column:logo_url" json:"logoUrl"`
+}
+
 // func (User) TableName() string {
 // 	return "user"
 // }

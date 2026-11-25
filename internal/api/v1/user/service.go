@@ -174,6 +174,20 @@ func (s *Service) Disable(ctx context.Context, actorAppUserID, targetAppUserID u
 	return s.directory.Disable(ctx, actorAppUserID, targetAppUserID)
 }
 
+type ApprovedApplicationLister interface {
+	ListApprovedApplications(context.Context, uuid.UUID) ([]ApprovedApplication, error)
+}
+
+func (s *Service) ListApprovedApplications(ctx context.Context, appUserID uuid.UUID) ([]ApprovedApplication, error) {
+	if s == nil || appUserID == uuid.Nil {
+		return []ApprovedApplication{}, nil
+	}
+	if lister, ok := s.directory.(ApprovedApplicationLister); ok && lister != nil {
+		return lister.ListApprovedApplications(ctx, appUserID)
+	}
+	return []ApprovedApplication{}, nil
+}
+
 func normalizeCreate(input *DirectoryCreate) {
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
 	normalizeUpdate(&input.DirectoryUpdate)

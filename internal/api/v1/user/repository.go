@@ -95,6 +95,38 @@ func (r *CanonicalRepository) Disable(ctx context.Context, actorAppUserID, targe
 	return r.mutate(ctx, actorAppUserID, targetAppUserID, DirectoryUpdate{Status: StatusDisabled}, true)
 }
 
+func (r *CanonicalRepository) ListApprovedApplications(ctx context.Context, appUserID uuid.UUID) ([]ApprovedApplication, error) {
+	if r == nil || r.db == nil || appUserID == uuid.Nil {
+		return []ApprovedApplication{}, nil
+	}
+	var apps []ApprovedApplication
+	statement := `
+		SELECT
+			a.code,
+			a.name,
+			COALESCE(a.launch_url, '') AS launch_url,
+			COALESCE(a.logo_url, '') AS logo_url
+		FROM public.applications a
+		JOIN public.app_users u
+			ON u.id = ?
+			AND u.deleted_at IS NULL
+		LEFT JOIN public.app_memberships m
+			ON m.application_id = a.id
+			AND m.app_user_id = u.id
+			AND m.deleted_at IS NULL
+		WHERE a.is_active = TRUE
+		  AND COALESCE(BTRIM(a.launch_url), '') <> ''
+		  AND (COALESCE(u.is_sso_admin, false) = TRUE OR m.status = 'approved')
+		ORDER BY a.created_at ASC, a.name ASC`
+	if err := r.db.WithContext(ctx).Raw(statement, appUserID).Scan(&apps).Error; err != nil {
+		return nil, fmt.Errorf("list approved applications: %w", err)
+	}
+	if apps == nil {
+		apps = []ApprovedApplication{}
+	}
+	return apps, nil
+}
+
 func (r *CanonicalRepository) mutate(ctx context.Context, actorAppUserID, targetAppUserID uuid.UUID, input DirectoryUpdate, disableOnly bool) error {
 	if r == nil || r.db == nil {
 		return ErrCanonicalIdentityUnavailable
